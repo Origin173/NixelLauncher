@@ -1,0 +1,36 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+
+:root {
+  font-family: "Segoe UI Variable", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #263e33;
+  background: #f5f7f2;
+}
+
+body {
+  margin: 0;
+}
+.app {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+}
+.welcome {
+  width: min(100%, 440px);
+  padding: 40px;
+  gap: 16px;
+}
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: #6e8665;
+}
+.welcome h1 {
+  font-size: 32px;
+  font-weight: 600;
+}
+.welcome > p:last-child {
+  font-size: 13px;
+  color: #7a8673;
+}
