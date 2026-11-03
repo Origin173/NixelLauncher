@@ -1,4 +1,5 @@
 import type { BuiltinPlugin } from '../shared/host-api';
+import { tr, withTranslations } from '../shared/i18n';
 import {
   accountsPlugin,
   microsoftId,
@@ -14,103 +15,164 @@ import { contentPlugin, resourcesId, resourcesPlugin } from './resources';
 
 export const builtinPlugins: BuiltinPlugin[] = [
   {
-    manifest: {
-      id: curseforgeId,
-      name: 'CurseForge',
-      description: '通过自己的 API Key 搜索与安装 CurseForge 资源、依赖及标准整合包。',
-      version: '0.1.0',
-      apiVersion: 1,
-      category: '资源服务',
-    },
+    manifest: withTranslations(
+      {
+        id: curseforgeId,
+        name: 'CurseForge',
+        description: tr('builtin.searchAndInstallCurseforgeResourcesDependenciesAnd'),
+        version: '0.1.0',
+        apiVersion: 1,
+        category: tr('builtin.resourceService'),
+      },
+      {
+        description: 'builtin.searchAndInstallCurseforgeResourcesDependenciesAnd',
+        category: 'builtin.resourceService',
+      },
+    ),
     plugin: curseforgePlugin,
   },
   {
-    manifest: {
-      id: 'nixel.instances',
-      name: '实例管理',
-      description: '独立实例、文件与整合包管理。',
-      version: '0.1.0',
-      apiVersion: 1,
-      category: '核心',
-    },
+    manifest: withTranslations(
+      {
+        id: 'nixel.instances',
+        name: tr('builtin.instanceManager'),
+        description: tr('builtin.manageIndependentInstancesFilesAndModpacks'),
+        version: '0.1.0',
+        apiVersion: 1,
+        category: tr('builtin.core'),
+      },
+      {
+        name: 'builtin.instanceManager',
+        description: 'builtin.manageIndependentInstancesFilesAndModpacks',
+        category: 'builtin.core',
+      },
+    ),
     plugin: instancesPlugin,
   },
   {
-    manifest: {
-      id: 'nixel.accounts',
-      name: '账号管理',
-      description: '管理与刷新各账号服务的游戏角色。',
-      version: '0.1.0',
-      apiVersion: 1,
-      category: '核心',
-    },
+    manifest: withTranslations(
+      {
+        id: 'nixel.accounts',
+        name: tr('builtin.accountManager'),
+        description: tr('builtin.manageAndRefreshProfilesFromAccountProviders'),
+        version: '0.1.0',
+        apiVersion: 1,
+        category: tr('builtin.core'),
+      },
+      {
+        name: 'builtin.accountManager',
+        description: 'builtin.manageAndRefreshProfilesFromAccountProviders',
+        category: 'builtin.core',
+      },
+    ),
     plugin: accountsPlugin,
   },
   {
-    manifest: {
-      id: 'nixel.resources',
-      name: '内容管理',
-      description: '资源提供者分发与本地内容文件管理。',
-      version: '0.1.0',
-      apiVersion: 1,
-      category: '核心',
-    },
+    manifest: withTranslations(
+      {
+        id: 'nixel.resources',
+        name: tr('builtin.contentManager'),
+        description: tr('builtin.routeResourceRequestsToProvidersAndManage'),
+        version: '0.1.0',
+        apiVersion: 1,
+        category: tr('builtin.core'),
+      },
+      {
+        name: 'builtin.contentManager',
+        description: 'builtin.routeResourceRequestsToProvidersAndManage',
+        category: 'builtin.core',
+      },
+    ),
     plugin: contentPlugin,
   },
   {
-    manifest: {
-      id: gameId,
-      name: 'Minecraft 游戏服务',
-      description:
-        '基于 XMCL 安装与启动 Vanilla、Fabric、Forge、NeoForge 和 Quilt，管理独立实例与整合包。',
-      version: '0.1.0',
-      apiVersion: 1,
-      category: '游戏服务',
-    },
+    manifest: withTranslations(
+      {
+        id: gameId,
+        name: tr('builtin.minecraftGameService'),
+        description: tr('builtin.installAndLaunchVanillaFabricForgeNeoforge'),
+        version: '0.1.0',
+        apiVersion: 1,
+        category: tr('builtin.gameService'),
+      },
+      {
+        name: 'builtin.minecraftGameService',
+        description: 'builtin.installAndLaunchVanillaFabricForgeNeoforge',
+        category: 'builtin.gameService',
+      },
+    ),
     plugin: gamePlugin,
   },
   {
-    manifest: {
-      id: resourcesId,
-      name: 'Modrinth 资源服务',
-      description: '搜索兼容资源，解析必需依赖，校验下载并管理实例内容。',
-      version: '0.1.0',
-      apiVersion: 1,
-      category: '资源服务',
-    },
+    manifest: withTranslations(
+      {
+        id: resourcesId,
+        name: tr('builtin.modrinthResources'),
+        description: tr('builtin.findCompatibleContentResolveRequiredDependenciesAnd'),
+        version: '0.1.0',
+        apiVersion: 1,
+        category: tr('builtin.resourceService'),
+      },
+      {
+        name: 'builtin.modrinthResources',
+        description: 'builtin.findCompatibleContentResolveRequiredDependenciesAnd',
+        category: 'builtin.resourceService',
+      },
+    ),
     plugin: resourcesPlugin,
   },
   {
-    manifest: {
-      id: offlineId,
-      name: '离线角色',
-      description: '使用标准 OfflinePlayer UUID 管理本地角色。',
-      version: '0.1.0',
-      apiVersion: 1,
-      category: '账号服务',
-    },
+    manifest: withTranslations(
+      {
+        id: offlineId,
+        name: tr('accounts.offlineProfile'),
+        description: tr('builtin.manageLocalProfilesWithStandardOfflineplayerUuids'),
+        version: '0.1.0',
+        apiVersion: 1,
+        category: tr('builtin.accountService'),
+      },
+      {
+        name: 'accounts.offlineProfile',
+        description: 'builtin.manageLocalProfilesWithStandardOfflineplayerUuids',
+        category: 'builtin.accountService',
+      },
+    ),
     plugin: offlinePlugin,
   },
   {
-    manifest: {
-      id: microsoftId,
-      name: 'Microsoft 账号',
-      description: '使用自己的公共客户端 ID，通过设备代码登录 Minecraft Java 账号。',
-      version: '0.1.0',
-      apiVersion: 1,
-      category: '账号服务',
-    },
+    manifest: withTranslations(
+      {
+        id: microsoftId,
+        name: tr('builtin.microsoftAccounts'),
+        description: tr('builtin.signInToMinecraftJavaUsingDevice'),
+        version: '0.1.0',
+        apiVersion: 1,
+        category: tr('builtin.accountService'),
+      },
+      {
+        name: 'builtin.microsoftAccounts',
+        description: 'builtin.signInToMinecraftJavaUsingDevice',
+        category: 'builtin.accountService',
+      },
+    ),
     plugin: microsoftPlugin,
   },
   {
-    manifest: {
-      id: yggdrasilId,
-      name: 'Yggdrasil 账号',
-      description: '第三方认证服务与 authlib-injector 启动。',
-      version: '0.1.0',
-      apiVersion: 1,
-      category: '账号服务',
-    },
+    manifest: withTranslations(
+      {
+        id: yggdrasilId,
+        name: tr('builtin.yggdrasilAccounts'),
+        description: tr('builtin.thirdPartyAuthenticationAndAuthlibInjectorSupport'),
+        version: '0.1.0',
+        apiVersion: 1,
+        category: tr('builtin.accountService'),
+      },
+      {
+        name: 'builtin.yggdrasilAccounts',
+        description: 'builtin.thirdPartyAuthenticationAndAuthlibInjectorSupport',
+        category: 'builtin.accountService',
+      },
+    ),
     plugin: yggdrasilPlugin,
   },
 ];

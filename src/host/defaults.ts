@@ -9,6 +9,7 @@ export function defaultState(root: string): PersistedState {
     content: [],
     plugins: {},
     settings: {
+      locale: 'system',
       theme: 'system',
       motion: true,
       background: 'alpine',

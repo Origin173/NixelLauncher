@@ -4,6 +4,7 @@ import type { Context } from 'cordis';
 import { serviceEnvironment } from '../host/service-environment';
 import type { ContentCategory, Instance, Resource } from '../shared/contracts';
 import type { TaskContext } from '../shared/host-api';
+import { tr } from '../shared/i18n';
 import { download, hashFile } from './files';
 import { importModpack } from './modpacks';
 import type { ResourceProvider } from './providers';
@@ -15,7 +16,7 @@ import {
 } from './resource-files';
 
 export const curseforgeId = 'nixel.resources.curseforge';
-type Category = ContentCategory | '整合包';
+type Category = ContentCategory | 'modpacks';
 interface CurseForgeClass {
   id: number;
   slug: string;
@@ -70,10 +71,10 @@ const loaderTypes: Record<Instance['loader'], number> = {
   NeoForge: 6,
 };
 const classSlugs: Record<Category, string[]> = {
-  模组: ['mc-mods', 'mods'],
-  整合包: ['modpacks'],
-  资源包: ['texture-packs', 'resource-packs'],
-  光影: ['shaders', 'shader-packs'],
+  mods: ['mc-mods', 'mods'],
+  modpacks: ['modpacks'],
+  resourcepacks: ['texture-packs', 'resource-packs'],
+  shaders: ['shaders', 'shader-packs'],
 };
 const sortFields: Record<string, number> = {
   relevance: 2,
@@ -86,25 +87,30 @@ const loaderNames = new Set(['forge', 'fabric', 'quilt', 'neoforge', 'cauldron',
 
 function id(value: string) {
   if (!/^\d+$/.test(value) || !Number.isSafeInteger(Number(value)) || Number(value) <= 0)
-    throw new Error('CurseForge 项目或文件 ID 无效');
+    throw new Error(tr('curseforge.invalidCurseforgeProjectOrFileId'));
   return Number(value);
 }
 function fileHashes(file: CurseForgeFile): Record<string, string> {
   const sha1 = file.hashes.find((hash) => hash.algo === 1)?.value;
   const md5 = file.hashes.find((hash) => hash.algo === 2)?.value;
-  if (!sha1 && !md5) throw new Error(`CurseForge 文件缺少校验值：${file.fileName}`);
+  if (!sha1 && !md5)
+    throw new Error(tr('curseforge.curseforgeFileHasNoChecksumValue', { value1: file.fileName }));
   return sha1 ? { sha1 } : { md5: md5 as string };
 }
 function assertDownload(project: CurseForgeProject, file: CurseForgeFile) {
   if (project.allowModDistribution === false || !file.downloadUrl)
-    throw new Error(`作者未开放「${project.name}」的第三方下载，请在 CurseForge 项目页面获取文件`);
+    throw new Error(
+      tr('curseforge.theAuthorHasDisabledThirdPartyDownloads', { value1: project.name }),
+    );
   if (!project.isAvailable || !file.isAvailable || file.isServerPack)
-    throw new Error(`此 CurseForge 文件不可用于客户端安装：${file.displayName}`);
+    throw new Error(
+      tr('curseforge.thisCurseforgeFileCannotBeInstalledOn', { value1: file.displayName }),
+    );
   fileHashes(file);
 }
 function isCompatible(file: CurseForgeFile, instance: Instance, category: Category) {
   if (!file.gameVersions.includes(instance.version)) return false;
-  if (category !== '模组') return true;
+  if (category !== 'mods') return true;
   const declared = file.gameVersions
     .map((version) => version.toLowerCase())
     .filter((version) => loaderNames.has(version));
@@ -123,10 +129,7 @@ class CurseForgeClient {
     body?: unknown,
   ): Promise<ApiResponse<T>> {
     const key = serviceEnvironment.curseforgeApiKey;
-    if (!key)
-      throw new Error(
-        'CurseForge 尚未配置：请在 .env 中填写自己的 CURSEFORGE_API_KEY，然后重启启动器',
-      );
+    if (!key) throw new Error(tr('curseforge.curseforgeIsNotConfiguredSetCurseforgeApi'));
     const url = new URL(`https://api.curseforge.com/v1/${path}`);
     for (const [name, value] of Object.entries(params))
       if (value !== undefined) url.searchParams.set(name, String(value));
@@ -142,8 +145,11 @@ class CurseForgeClient {
       body: body ? JSON.stringify(body) : undefined,
     });
     if (response.status === 401 || response.status === 403)
-      throw new Error('CurseForge 拒绝访问，请检查 .env 中 CURSEFORGE_API_KEY 的有效性与权限');
-    if (!response.ok) throw new Error(`CurseForge 请求失败：HTTP ${response.status}`);
+      throw new Error(tr('curseforge.curseforgeDeniedAccessCheckCurseforgeApiKey'));
+    if (!response.ok)
+      throw new Error(
+        tr('curseforge.curseforgeRequestFailedHttpValue', { value1: response.status }),
+      );
     return response.json() as Promise<ApiResponse<T>>;
   }
   async categoryIds(signal?: AbortSignal) {
@@ -171,13 +177,14 @@ class CurseForgeClient {
     const file = (
       await this.request<CurseForgeFile>(`mods/${projectId}/files/${fileId}`, {}, signal)
     ).data;
-    if (file.modId !== projectId) throw new Error('CurseForge 项目与文件不匹配');
+    if (file.modId !== projectId)
+      throw new Error(tr('curseforge.theCurseforgeProjectAndFileDoNot'));
     return file;
   }
   async versions(projectId: number, instance?: Instance, signal?: AbortSignal) {
     const project = await this.project(projectId, signal);
     const category = (await this.categoryIds(signal)).get(project.classId);
-    if (!category) throw new Error('不支持此 CurseForge 资源类型');
+    if (!category) throw new Error(tr('curseforge.unsupportedCurseforgeResourceType'));
     const files: CurseForgeFile[] = [];
     for (let index = 0; index < 10000; index += 50) {
       const result = await this.request<CurseForgeFile[]>(
@@ -185,7 +192,7 @@ class CurseForgeClient {
         {
           gameVersion: instance?.version,
           modLoaderType:
-            instance && category === '模组' ? loaderTypes[instance.loader] || undefined : undefined,
+            instance && category === 'mods' ? loaderTypes[instance.loader] || undefined : undefined,
           index,
           pageSize: 50,
         },
@@ -224,7 +231,12 @@ class CurseForgeClient {
         const project = projectsById.get(entry.projectID);
         const file = filesById.get(entry.fileID);
         if (!project || !file || file.modId !== entry.projectID)
-          throw new Error(`整合包文件不可用：${entry.projectID}/${entry.fileID}`);
+          throw new Error(
+            tr('curseforge.modpackFileUnavailableValueValue', {
+              value1: entry.projectID,
+              value2: entry.fileID,
+            }),
+          );
         assertDownload(project, file);
       }
     }
@@ -260,10 +272,10 @@ export const curseforgePlugin = {
         ]);
         assertDownload(project, file);
         const category = classes.get(project.classId);
-        if (!category) throw new Error('不支持此 CurseForge 资源类型');
-        if (category === '整合包') {
+        if (!category) throw new Error(tr('curseforge.unsupportedCurseforgeResourceType'));
+        if (category === 'modpacks') {
           if (!allowPack || !root)
-            throw new Error('CurseForge 整合包清单或依赖不能包含另一个整合包');
+            throw new Error(tr('curseforge.aCurseforgeModpackManifestOrDependencyCannot'));
           const path = join(host.store.cacheRoot, `${randomUUID()}.zip`);
           await download(
             file.downloadUrl as string,
@@ -271,20 +283,32 @@ export const curseforgePlugin = {
             task.signal,
             fileHashes(file),
             (current, total) =>
-              task.report(total ? (current / total) * 100 : 0, `下载 ${project.name}`),
+              task.report(
+                total ? (current / total) * 100 : 0,
+                tr('curseforge.downloadValue', { value1: project.name }),
+              ),
           );
           await importModpack(host, path, task, project.name);
           return;
         }
-        if (!instance) throw new Error('请先选择目标实例');
+        if (!instance) throw new Error(tr('curseforge.chooseATargetInstanceFirst'));
         const target = instance;
         if (!isCompatible(file, target, category))
-          throw new Error(`CurseForge 文件 ${file.displayName} 与实例版本或加载器不兼容`);
+          throw new Error(
+            tr('curseforge.curseforgeFileValueIsIncompatibleWithThis', {
+              value1: file.displayName,
+            }),
+          );
         for (const dependency of file.dependencies.filter((item) => item.relationType === 3)) {
           const selected =
             pinned.get(dependency.modId) ||
             (await client.versions(dependency.modId, target, task.signal))[0]?.id;
-          if (!selected) throw new Error(`未找到兼容的 CurseForge 必需依赖：${dependency.modId}`);
+          if (!selected)
+            throw new Error(
+              tr('curseforge.noCompatibleRequiredCurseforgeDependencyFoundValue', {
+                value1: dependency.modId,
+              }),
+            );
           await installVersion(dependency.modId, selected);
         }
         await installContentFile(host, target, task, {
@@ -292,6 +316,7 @@ export const curseforgePlugin = {
           projectId: String(projectId),
           versionId: String(fileId),
           name: project.name,
+          icon: project.logo?.thumbnailUrl,
           version: file.displayName,
           category,
           fileName: file.fileName,
@@ -305,15 +330,15 @@ export const curseforgePlugin = {
       async search(query, instance) {
         const classes = await client.categoryIds();
         const classId = [...classes].find(([, category]) => category === query.category)?.[0];
-        if (query.category && query.category !== '全部' && !classId)
-          throw new Error('CurseForge 不支持此资源分类');
+        if (query.category && query.category !== 'all' && !classId)
+          throw new Error(tr('curseforge.curseforgeDoesNotSupportThisCategory'));
         const result = await client.request<CurseForgeProject[]>('mods/search', {
           gameId: 432,
           classId,
           searchFilter: query.query,
           gameVersion: instance?.version,
           modLoaderType:
-            instance && query.category === '模组'
+            instance && query.category === 'mods'
               ? loaderTypes[instance.loader] || undefined
               : undefined,
           sortField: sortFields[query.sort || 'relevance'] || 2,
@@ -389,7 +414,9 @@ export const curseforgePlugin = {
             algorithm,
           );
           if (checksum !== hashes[algorithm])
-            throw new Error(`本地文件 ${entry.fileName} 已被修改，请确认后重新安装`);
+            throw new Error(
+              tr('curseforge.localFileValueWasModifiedReviewIt', { value1: entry.fileName }),
+            );
           await host.store.update((draft) => {
             const item = draft.content.find((content) => content.id === entry.id);
             if (item)

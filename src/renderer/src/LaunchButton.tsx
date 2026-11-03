@@ -1,4 +1,5 @@
 import type { ComponentProps } from 'react';
+import { tr } from '../../shared/i18n';
 import { useApp } from './state';
 import { Action } from './ui';
 
@@ -37,16 +38,16 @@ export function LaunchButton({
       }}
     >
       {running
-        ? '结束游戏'
+        ? tr('LaunchButton.stopGame')
         : task
-          ? `正在启动 ${Math.round(task.progress)}%`
+          ? tr('LaunchButton.startingValue', { value1: Math.round(task.progress) })
           : installTask
-            ? `正在安装 ${Math.round(installTask.progress)}%`
+            ? tr('LaunchButton.installingValue', { value1: Math.round(installTask.progress) })
             : busyTask
-              ? `正在处理 ${Math.round(busyTask.progress)}%`
+              ? tr('LaunchButton.processingValue', { value1: Math.round(busyTask.progress) })
               : needsInstall
-                ? '安装游戏'
-                : '启动游戏'}
+                ? tr('LaunchButton.installGame')
+                : tr('LaunchButton.launchGame')}
     </Action>
   );
 }

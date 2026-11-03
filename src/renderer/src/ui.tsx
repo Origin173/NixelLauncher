@@ -18,6 +18,7 @@ import {
   Tooltip,
 } from '@heroui/react';
 import type { ComponentProps, ReactNode } from 'react';
+import { label as displayLabel, tr } from '../../shared/i18n';
 import type { IconName } from './icons';
 import { Icon } from './icons';
 
@@ -144,6 +145,7 @@ export function Field({
   type = 'text',
   description,
   error,
+  hideLabel = false,
 }: {
   label: string;
   value: string;
@@ -152,10 +154,11 @@ export function Field({
   type?: 'text' | 'number' | 'url' | 'password';
   description?: string;
   error?: string;
+  hideLabel?: boolean;
 }) {
   return (
     <TextField className="field" value={value} onChange={onChange} isInvalid={Boolean(error)}>
-      <Label>{label}</Label>
+      <Label className={hideLabel ? 'sr-only' : undefined}>{label}</Label>
       <Input placeholder={placeholder} type={type} />
       {description && <span className="field-hint">{description}</span>}
       {error && <span className="field-error">{error}</span>}
@@ -174,15 +177,15 @@ export function ArgumentField({
   return (
     <TextField className="field" value={value} onChange={onChange}>
       <Label>{label}</Label>
-      <TextArea rows={3} placeholder="每行一个参数" />
-      <span className="field-hint">每行一个参数，包含空格的值无需额外引号。</span>
+      <TextArea rows={3} placeholder={tr('ui.oneArgumentPerLine')} />
+      <span className="field-hint">{tr('ui.oneArgumentPerLineValuesContainingSpaces')}</span>
     </TextField>
   );
 }
 export function Search({
   value,
   onChange,
-  placeholder = '搜索…',
+  placeholder = tr('ui.search'),
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -193,7 +196,7 @@ export function Search({
       <SearchField.Group>
         <SearchField.SearchIcon />
         <SearchField.Input placeholder={placeholder} />
-        <SearchField.ClearButton aria-label="清除搜索" />
+        <SearchField.ClearButton aria-label={tr('ui.clearSearch')} />
       </SearchField.Group>
     </SearchField>
   );
@@ -237,8 +240,12 @@ export function Choice({
       <Select.Popover>
         <ListBox aria-label={label}>
           {options.map((o) => (
-            <ListBox.Item key={o.id || '__inherit__'} id={o.id || '__inherit__'} textValue={o.name}>
-              <Label>{o.name}</Label>
+            <ListBox.Item
+              key={o.id || '__inherit__'}
+              id={o.id || '__inherit__'}
+              textValue={o.id === o.name ? displayLabel(o.name) : o.name}
+            >
+              <Label>{o.id === o.name ? displayLabel(o.name) : o.name}</Label>
               <ListBox.ItemIndicator />
             </ListBox.Item>
           ))}
@@ -284,7 +291,7 @@ export function Check({
         <Checkbox.Control>
           <Checkbox.Indicator />
         </Checkbox.Control>
-        <Label className={label.startsWith('选择 ') ? 'sr-only' : ''}>{label}</Label>
+        <Label>{label}</Label>
       </Checkbox.Content>
     </Checkbox>
   );
@@ -293,7 +300,7 @@ export function Segments({
   value,
   options,
   onChange,
-  label = '页面分类',
+  label = tr('ui.pageCategory'),
   secondary = false,
 }: {
   value: string;
@@ -313,7 +320,7 @@ export function Segments({
         <Tabs.List aria-label={label}>
           {options.map((o) => (
             <Tabs.Tab key={o} id={o} className="whitespace-nowrap">
-              {o}
+              {displayLabel(o)}
               <Tabs.Indicator />
             </Tabs.Tab>
           ))}
@@ -463,7 +470,7 @@ export function Dialog({
     >
       <Modal.Container size={wide ? 'lg' : 'md'}>
         <Modal.Dialog>
-          <Modal.CloseTrigger aria-label="关闭弹窗" />
+          <Modal.CloseTrigger aria-label={tr('ui.closeDialog')} />
           <Modal.Header>
             <Modal.Heading>{title}</Modal.Heading>
             {description && <p className="muted">{description}</p>}

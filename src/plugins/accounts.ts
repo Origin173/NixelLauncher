@@ -3,8 +3,9 @@ import { join } from 'node:path';
 import { getOfflineUUID, MicrosoftAuthenticator, YggdrasilThirdPartyClient } from '@xmcl/user';
 import type { Context } from 'cordis';
 import { serviceEnvironment } from '../host/service-environment';
-import type { Account, DeviceLogin } from '../shared/contracts';
+import type { Account, DeviceLogin, ProviderDescriptor } from '../shared/contracts';
 import type { NixelHost } from '../shared/host-api';
+import { tr, translatedName } from '../shared/i18n';
 import { commandsFor } from './commands';
 import { download, json } from './files';
 import type { AccountProvider } from './providers';
@@ -21,15 +22,24 @@ async function save(host: NixelHost, account: Account) {
   });
   return account;
 }
-function register(ctx: Context, id: string, name: string, implementation: AccountProvider) {
-  ctx.nixel.providers.register(ctx, { id, pluginId: id, kind: 'accounts', name }, implementation);
+function register(
+  ctx: Context,
+  id: string,
+  display: Pick<ProviderDescriptor, 'name' | 'locales'>,
+  implementation: AccountProvider,
+) {
+  ctx.nixel.providers.register(
+    ctx,
+    { id, pluginId: id, kind: 'accounts', ...display },
+    implementation,
+  );
 }
 export const offlinePlugin = {
   name: offlineId,
   inject: ['nixel'],
   apply(ctx: Context) {
     const host = ctx.nixel;
-    register(ctx, offlineId, '离线角色', {
+    register(ctx, offlineId, translatedName('accounts.offlineProfile'), {
       async refresh(account) {
         return account;
       },
@@ -45,16 +55,16 @@ export const offlinePlugin = {
     command('accounts.addOffline', async ({ name }: { name: string }) => {
       name = name.trim();
       if (!/^[a-zA-Z0-9_]{1,16}$/.test(name))
-        throw new Error('离线角色名应为 1–16 位字母、数字或下划线');
+        throw new Error(tr('accounts.offlineNamesMustContain116Letters'));
       const uuid = getOfflineUUID(name).replaceAll('-', '');
       return save(host, {
         id: `${offlineId}:${uuid}`,
         name,
         uuid,
-        type: '离线',
+        type: 'offline',
         provider: offlineId,
         color: 'green',
-        detail: '离线角色 · 无在线验证',
+        detail: tr('accounts.offlineProfileNoOnlineAuthentication'),
       });
     });
   },
@@ -115,7 +125,7 @@ export const microsoftPlugin = {
         id,
         name: profile.name,
         uuid: profile.id,
-        type: 'Microsoft',
+        type: 'microsoft',
         provider: microsoftId,
         color: 'blue',
         detail: 'Minecraft Java · Microsoft',
@@ -124,7 +134,7 @@ export const microsoftPlugin = {
     }
     async function refresh(account: Account) {
       const text = await host.platform.secretGet(`account:${account.id}`);
-      if (!text) throw new Error('登录凭据不存在，请重新登录 Microsoft');
+      if (!text) throw new Error(tr('accounts.microsoftCredentialsNotFoundSignInAgain'));
       const secret = JSON.parse(text) as MicrosoftSecret;
       const response = await fetch(`${oauth}/token`, {
         method: 'POST',
@@ -135,42 +145,44 @@ export const microsoftPlugin = {
           scope,
         }),
       });
-      if (!response.ok) throw new Error('Microsoft 会话刷新失败，请重新登录');
+      if (!response.ok) throw new Error(tr('accounts.couldNotRefreshTheMicrosoftSessionSign'));
       const tokens = (await response.json()) as OAuthTokens;
       return complete(
         { ...tokens, refresh_token: tokens.refresh_token || secret.refreshToken },
         secret.clientId,
       );
     }
-    register(ctx, microsoftId, 'Microsoft', {
-      refresh,
-      async session(account, signal) {
-        if (!account.expiresAt || account.expiresAt < Date.now() + 60000)
-          account = await refresh(account);
-        signal.throwIfAborted();
-        const text = await host.platform.secretGet(`account:${account.id}`);
-        if (!text) throw new Error('Microsoft 登录凭据不存在');
-        return {
-          accessToken: (JSON.parse(text) as MicrosoftSecret).accessToken,
-          gameProfile: { id: account.uuid, name: account.name },
-          userType: 'mojang',
-        };
+    register(
+      ctx,
+      microsoftId,
+      { name: 'Microsoft' },
+      {
+        refresh,
+        async session(account, signal) {
+          if (!account.expiresAt || account.expiresAt < Date.now() + 60000)
+            account = await refresh(account);
+          signal.throwIfAborted();
+          const text = await host.platform.secretGet(`account:${account.id}`);
+          if (!text) throw new Error(tr('accounts.microsoftCredentialsNotFound'));
+          return {
+            accessToken: (JSON.parse(text) as MicrosoftSecret).accessToken,
+            gameProfile: { id: account.uuid, name: account.name },
+            userType: 'mojang',
+          };
+        },
       },
-    });
+    );
     const command = commandsFor(ctx);
     command('accounts.microsoft.start', async (): Promise<DeviceLogin> => {
       const clientId = serviceEnvironment.microsoftClientId;
-      if (!clientId)
-        throw new Error(
-          '请在 .env 配置 MICROSOFT_CLIENT_ID 并重启启动器。该应用需启用设备代码流程与 Minecraft 服务访问权限。',
-        );
+      if (!clientId) throw new Error(tr('accounts.setMicrosoftClientIdInEnvAnd'));
       const response = await fetch(`${oauth}/devicecode`, {
         method: 'POST',
         body: new URLSearchParams({ client_id: clientId, scope }),
       });
       if (!response.ok)
         throw new Error(
-          `无法开始 Microsoft 登录：HTTP ${response.status}，请检查客户端 ID 与应用权限`,
+          tr('accounts.cannotStartMicrosoftSignInHttpValue', { value1: response.status }),
         );
       const code = (await response.json()) as {
         device_code: string;
@@ -200,7 +212,7 @@ export const microsoftPlugin = {
       const login = pending.get(id);
       if (!login || Date.now() >= login.expiresAt) {
         pending.delete(id);
-        throw new Error('设备代码已过期，请重新登录');
+        throw new Error(tr('accounts.theDeviceCodeHasExpiredSignIn'));
       }
       if (Date.now() < login.nextPoll) return { status: 'pending' };
       login.nextPoll = Date.now() + login.interval * 1000;
@@ -220,7 +232,10 @@ export const microsoftPlugin = {
         return { status: 'pending' };
       }
       pending.delete(id);
-      if (!response.ok) throw new Error(`Microsoft 登录失败：${body.error || response.status}`);
+      if (!response.ok)
+        throw new Error(
+          tr('accounts.microsoftSignInFailedValue', { value1: body.error || response.status }),
+        );
       return { status: 'complete', account: await complete(body, login.clientId) };
     });
     ctx.effect(() => () => {
@@ -240,9 +255,10 @@ export const yggdrasilPlugin = {
     const host = ctx.nixel;
     const client = (server: string) => new YggdrasilThirdPartyClient(server);
     async function refresh(account: Account) {
-      if (!account.authServer) throw new Error('第三方账号缺少认证地址');
+      if (!account.authServer)
+        throw new Error(tr('accounts.theThirdPartyAccountHasNoAuthentication'));
       const text = await host.platform.secretGet(`account:${account.id}`);
-      if (!text) throw new Error('第三方账号凭据不存在，请重新登录');
+      if (!text) throw new Error(tr('accounts.thirdPartyCredentialsNotFoundSignIn'));
       const result = await client(account.authServer).refresh(JSON.parse(text) as YggdrasilSecret);
       await host.platform.secretSet(
         `account:${account.id}`,
@@ -254,7 +270,7 @@ export const yggdrasilPlugin = {
         uuid: result.selectedProfile.id,
       });
     }
-    register(ctx, yggdrasilId, 'Yggdrasil 第三方认证', {
+    register(ctx, yggdrasilId, translatedName('accounts.yggdrasilAuthentication'), {
       refresh,
       async session(account, signal) {
         account = await refresh(account);
@@ -288,14 +304,16 @@ export const yggdrasilPlugin = {
         password: string;
       }) => {
         const url = new URL(server);
-        if (url.protocol !== 'https:') throw new Error('认证服务器必须使用 HTTPS');
+        if (url.protocol !== 'https:')
+          throw new Error(tr('accounts.theAuthenticationServerMustUseHttps'));
         server = url.href.replace(/\/$/, '');
         const result = await client(server).login({
           username,
           password,
           clientToken: randomUUID(),
         });
-        if (!result.selectedProfile) throw new Error('此账号没有可用的游戏角色');
+        if (!result.selectedProfile)
+          throw new Error(tr('accounts.thisAccountHasNoAvailableGameProfile'));
         const id = `${yggdrasilId}:${Buffer.from(server).toString('base64url')}:${result.selectedProfile.id}`;
         await host.platform.secretSet(
           `account:${id}`,
@@ -307,7 +325,7 @@ export const yggdrasilPlugin = {
           name: result.selectedProfile.name,
           authServer: server,
           provider: yggdrasilId,
-          type: '第三方',
+          type: 'yggdrasil',
           color: 'purple',
           detail: url.hostname,
         });
@@ -333,7 +351,7 @@ export const accountsPlugin = {
     });
     command('accounts.refresh', async ({ id }: { id: string }) => {
       const account = host.store.read().accounts.find((entry) => entry.id === id);
-      if (!account) throw new Error('账号不存在');
+      if (!account) throw new Error(tr('accounts.accountNotFound'));
       return host.providers.get<AccountProvider>('accounts', account.provider).refresh(account);
     });
   },

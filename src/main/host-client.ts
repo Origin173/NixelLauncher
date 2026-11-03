@@ -7,6 +7,7 @@ import type {
   MainToHost,
   PlatformOperation,
 } from '../host/protocol';
+import { tr } from '../shared/i18n';
 
 interface PendingCommand {
   resolve(value: unknown): void;
@@ -88,7 +89,9 @@ export class HostClient {
     child.on('exit', (code) => {
       if (this.child !== child) return;
       this.child = undefined;
-      const error = new Error(`插件 Host 已退出（${code}），请重启 Host 后重试。`);
+      const error = new Error(
+        tr('host-client.thePluginHostExitedValueRestartThe', { value1: code }),
+      );
       rejectReady(error);
       for (const pending of this.pending.values()) pending.reject(error);
       this.pending.clear();
@@ -106,7 +109,7 @@ export class HostClient {
   }
 
   command(command: string, payload?: unknown): Promise<unknown> {
-    if (!this.child) return Promise.reject(new Error('插件 Host 尚未运行。'));
+    if (!this.child) return Promise.reject(new Error(tr('host-client.thePluginHostIsNotRunning')));
     const id = randomUUID();
     return new Promise((resolve, reject) => {
       this.pending.set(id, { resolve, reject });

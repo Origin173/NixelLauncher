@@ -1,5 +1,6 @@
 import { safeStorage } from 'electron';
 import { JsonStorage } from '../host/storage';
+import { tr } from '../shared/i18n';
 
 export class SecretStorage {
   private values: Record<string, string> = {};
@@ -18,7 +19,7 @@ export class SecretStorage {
       !safeStorage.isEncryptionAvailable() ||
       (process.platform === 'linux' && safeStorage.getSelectedStorageBackend() === 'basic_text')
     ) {
-      throw new Error('系统安全存储不可用，无法保存登录凭据。');
+      throw new Error(tr('secrets.systemSecureStorageIsUnavailableLoginCredentials'));
     }
   }
 

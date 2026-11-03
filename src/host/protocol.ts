@@ -1,4 +1,5 @@
 export interface HostConfiguration {
+  systemLocale?: string;
   dataPath: string;
   appVersion: string;
   rendererPath: string;

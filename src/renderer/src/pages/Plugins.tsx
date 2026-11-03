@@ -1,8 +1,9 @@
 import { Card } from '@heroui/react';
 import { useState } from 'react';
+import { tr } from '../../../shared/i18n';
 import { useApp } from '../state';
 import { Action, Empty, Heading, Notice, Search, Tag, Toggle } from '../ui';
-import { PlaceholderIcon, Workspace } from '../workspace';
+import { AssetIcon, Workspace } from '../workspace';
 
 export function PluginsPage() {
   const a = useApp();
@@ -11,19 +12,26 @@ export function PluginsPage() {
     `${p.name} ${p.desc}`.toLowerCase().includes(query.toLowerCase()),
   );
   return (
-    <Workspace title="插件">
-      <Heading title="插件" sub="业务服务全局启用。当前界面插件需要先切换其他界面后再停用。">
+    <Workspace title={tr('App.plugins')}>
+      <Heading
+        title={tr('App.plugins')}
+        sub={tr('Plugins.servicesAreEnabledGloballySwitchToAnother')}
+      >
         <Action
           variant="secondary"
           icon="folder"
           size="sm"
           onPress={() => a.setOverlay({ type: 'local-plugin' })}
         >
-          安装本地目录
+          {tr('Plugins.installLocalDirectory')}
         </Action>
       </Heading>
       <div className="content-toolbar">
-        <Search value={query} onChange={setQuery} placeholder="搜索已安装插件" />
+        <Search
+          value={query}
+          onChange={setQuery}
+          placeholder={tr('Plugins.searchInstalledPlugins')}
+        />
       </div>
       <div className="workspace-scroll">
         {list.length ? (
@@ -35,11 +43,11 @@ export function PluginsPage() {
                   className="list-row-main"
                   onClick={() => a.setOverlay({ type: 'plugin', pluginId: p.id })}
                 >
-                  <PlaceholderIcon name={p.name} />
+                  <AssetIcon kind="plugin" builtin={p.builtin} />
                   <span className="plugin-info">
                     <span className="row">
                       <strong>{p.name}</strong>
-                      {p.official && <Tag>内置</Tag>}
+                      {p.official && <Tag>{tr('Plugins.builtIn')}</Tag>}
                     </span>
                     <span className="list-description">{p.desc}</span>
                   </span>
@@ -50,7 +58,7 @@ export function PluginsPage() {
                   {p.error && <span className="field-error">{p.error}</span>}
                 </div>
                 <Toggle
-                  label={`启用 ${p.name}`}
+                  label={tr('overlays.enableValue', { value1: p.name })}
                   value={p.enabled}
                   disabled={p.id === a.settings.interfacePlugin}
                   onChange={(enabled) =>
@@ -61,10 +69,10 @@ export function PluginsPage() {
             ))}
           </Card>
         ) : (
-          <Empty title="没有匹配的插件" icon="plugin" />
+          <Empty title={tr('Plugins.noMatchingPlugins')} icon="plugin" />
         )}
         <div className="padded">
-          <Notice>本地插件会在独立 Host 中执行代码，请仅安装你信任的插件目录。</Notice>
+          <Notice>{tr('Plugins.localPluginsExecuteCodeInTheHost')}</Notice>
         </div>
       </div>
     </Workspace>

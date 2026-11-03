@@ -8,13 +8,16 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useTranslation } from 'react-i18next';
 import type {
   LauncherSettings,
   LauncherSnapshot,
   Page,
   Resource,
   ResourceQuery,
+  ResourceSearchResult,
 } from '../../shared/contracts';
+import { i18n, setLocale, tr } from '../../shared/i18n';
 
 export type Overlay =
   | { type: 'create' | 'import' | 'account' | 'background' | 'wizard' | 'search' | 'local-plugin' }
@@ -23,6 +26,7 @@ export type Overlay =
   | { type: 'confirm'; title: string; detail: string; action: () => Promise<unknown> }
   | null;
 const defaults: LauncherSettings = {
+  locale: 'system',
   theme: 'system',
   motion: true,
   background: 'alpine',
@@ -68,20 +72,23 @@ export function useApp() {
   return value;
 }
 function useAppState() {
+  useTranslation(undefined, { i18n });
   const [snapshot, setSnapshot] = useState<LauncherSnapshot>(initial);
   const [page, setPage] = useState<Page>('home');
   const [selectedId, setSelectedId] = useState('');
-  const [resourceCategory, setResourceCategory] = useState('模组');
+  const [resourceCategory, setResourceCategory] = useState('mods');
   const [instanceCatalogOpen, setInstanceCatalogOpen] = useState(false);
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [taskOpen, setTaskOpen] = useState(false);
-  const [settingsTab, setSettingsTab] = useState('appearance');
-  const [instanceTab, setInstanceTab] = useState('概览');
+  const [settingsTab, setSettingsTab] = useState('general');
+  const [instanceTab, setInstanceTab] = useState('overview');
   const [connectionError, setConnectionError] = useState('');
   const [wallpaper, setWallpaper] = useState('alpine');
   const initialized = useRef(false);
   useEffect(() => {
     const receive = (next: LauncherSnapshot) => {
+      setLocale(next.settings.locale, navigator.language);
+      document.documentElement.lang = i18n.language;
       setSnapshot(next);
       setConnectionError('');
       if (!initialized.current && next.host.status === 'ready') {
@@ -101,7 +108,7 @@ function useAppState() {
       try {
         return await window.nixel.invoke<T>(name, params);
       } catch (error) {
-        toast.danger('操作未完成', {
+        toast.danger(tr('state.operationFailed'), {
           description: error instanceof Error ? error.message : String(error),
         });
         return undefined;
@@ -114,11 +121,8 @@ function useAppState() {
     [command],
   );
   const searchResources = useCallback(async (params: ResourceQuery) => {
-    const data = await window.nixel.invoke<{ items: Resource[]; total: number }>(
-      'resources.search',
-      params,
-    );
-    return { results: data.items, total: data.total };
+    const data = await window.nixel.invoke<ResourceSearchResult>('resources.search', params);
+    return { ...data, results: data.items };
   }, []);
   const s = snapshot.settings;
   useEffect(() => {
@@ -136,7 +140,7 @@ function useAppState() {
       .catch(() => {
         if (active) {
           setWallpaper('alpine');
-          toast.danger('无法读取背景图片，已使用默认背景。');
+          toast.danger(tr('state.cannotReadTheBackgroundImageUsingThe'));
         }
       });
     return () => {
@@ -159,7 +163,7 @@ function useAppState() {
   }, [s.theme]);
   const current = snapshot.instances.find((i) => i.id === selectedId) ?? snapshot.instances[0];
   const launchInstance = snapshot.instances.find((i) => i.id === s.launchInstance) ?? current;
-  const openInstance = (id: string, tab = '概览') => {
+  const openInstance = (id: string, tab = 'overview') => {
     setSelectedId(id);
     setInstanceTab(tab);
     setInstanceCatalogOpen(false);

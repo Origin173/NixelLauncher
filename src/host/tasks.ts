@@ -4,6 +4,8 @@ import type { Context } from 'cordis';
 import type { Task } from '../shared/contracts';
 import { errorMessage } from '../shared/error-message';
 import type { TaskContext, TaskManager } from '../shared/host-api';
+import { tr } from '../shared/i18n';
+import { migrateIdentifier } from '../shared/migrate-identifiers';
 import type { JsonStorage } from './storage';
 
 type Runner = (context: TaskContext) => Promise<void>;
@@ -33,9 +35,11 @@ export class HostTasks implements TaskManager {
   async load() {
     this.tasks = await this.storage.read<Task[]>('tasks', []);
     for (const task of this.tasks) {
+      if (task.retry && typeof task.retry.params.category === 'string')
+        task.retry.params.category = migrateIdentifier(task.retry.params.category);
       if (task.status !== 'running') continue;
       task.status = 'failed';
-      task.error = 'Host 在任务完成前退出，请重新发起操作。';
+      task.error = tr('tasks.theHostExitedBeforeThisTaskFinished');
       task.finishedAt = new Date().toISOString();
     }
     await this.persist();
@@ -125,7 +129,9 @@ export class HostTasks implements TaskManager {
       .catch((error: unknown) => {
         const message = error instanceof Error ? error.message : String(error);
         task.status = 'failed';
-        task.error = [task.error, `任务状态保存失败：${message}`].filter(Boolean).join('\n');
+        task.error = [task.error, tr('tasks.couldNotSaveTaskStateValue', { value1: message })]
+          .filter(Boolean)
+          .join('\n');
         this.changed();
       });
     this.runs.set(task.id, { abort, promise, run, owner });
@@ -135,15 +141,15 @@ export class HostTasks implements TaskManager {
 
   cancel(id: string) {
     const task = this.tasks.find((item) => item.id === id);
-    if (!task) throw new Error('找不到任务。');
+    if (!task) throw new Error(tr('tasks.taskNotFound'));
     if (task.status === 'running') this.runs.get(id)?.abort.abort();
   }
 
   async retry(id: string) {
     const previous = this.tasks.find((item) => item.id === id);
     const runner = this.runs.get(id);
-    if (!previous) throw new Error('找不到任务。');
-    if (previous.status === 'running') throw new Error('任务仍在运行。');
+    if (!previous) throw new Error(tr('tasks.taskNotFound'));
+    if (previous.status === 'running') throw new Error(tr('tasks.thisTaskIsStillRunning'));
     if (previous.retry) {
       const result = await this.replay(
         previous.retry.command,
@@ -151,7 +157,7 @@ export class HostTasks implements TaskManager {
       );
       return result.taskId;
     }
-    if (!runner) throw new Error('此任务的执行上下文已失效，请重新发起原操作。');
+    if (!runner) throw new Error(tr('tasks.thisTaskCanNoLongerBeRetried'));
     const start = () => this.start(previous.name, previous.detail, runner.run, previous);
     return runner.owner ? commandOwner.run(runner.owner, start) : start();
   }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { JavaRuntime } from '../../../shared/contracts';
+import { label, tr } from '../../../shared/i18n';
 import { Landscape } from '../Landscape';
 import { useApp } from '../state';
 import {
@@ -11,6 +12,7 @@ import {
   Heading,
   Notice,
   Range,
+  Search,
   Segments,
   SettingRow,
   Tag,
@@ -18,52 +20,98 @@ import {
 } from '../ui';
 import { NavList, Workspace } from '../workspace';
 
-const groups = [
-  { id: 'general', name: '通用', icon: 'settings' },
-  { id: 'appearance', name: '外观与背景', icon: 'palette' },
-  { id: 'game', name: '全局游戏配置', icon: 'sliders' },
-  { id: 'java', name: 'Java 运行环境', icon: 'cpu' },
-  { id: 'downloads', name: '下载与网络', icon: 'download' },
-  { id: 'storage', name: '存储与数据', icon: 'folder' },
-  { id: 'about', name: '关于 Nixel', icon: 'info' },
-] as const;
+const settingGroups = () =>
+  [
+    {
+      id: 'general',
+      name: tr('Settings.generalLanguage'),
+      icon: 'settings',
+      keywords: tr('Settings.languageChineseEnglishTrayWindowSetup'),
+    },
+    {
+      id: 'appearance',
+      name: tr('Settings.appearance'),
+      icon: 'palette',
+      keywords: tr('Settings.themeColorsBackgroundMotionInterface'),
+    },
+    {
+      id: 'game',
+      name: tr('Settings.gameDefaults'),
+      icon: 'sliders',
+      keywords: tr('Settings.memoryAccountResolutionFullscreenArgumentsJvm'),
+    },
+    {
+      id: 'java',
+      name: tr('Settings.javaRuntimes'),
+      icon: 'cpu',
+      keywords: tr('Settings.javaDownloadVersionPathDetect'),
+    },
+    {
+      id: 'downloads',
+      name: tr('Settings.downloads'),
+      icon: 'download',
+      keywords: tr('Settings.concurrencyModrinthCurseforge'),
+    },
+    {
+      id: 'storage',
+      name: tr('Settings.storageData'),
+      icon: 'folder',
+      keywords: tr('Settings.directoryFilesData'),
+    },
+    {
+      id: 'about',
+      name: tr('Settings.aboutNixel'),
+      icon: 'info',
+      keywords: tr('Settings.versionPlatformHostServices'),
+    },
+  ] as const;
 export function SettingsPage() {
   const a = useApp();
   const s = a.settings;
+  const [query, setQuery] = useState('');
+  const groups = settingGroups();
+  const visibleGroups = groups.filter((group) =>
+    `${group.name} ${group.keywords}`
+      .toLocaleLowerCase()
+      .includes(query.trim().toLocaleLowerCase()),
+  );
   const interfaces = a.providers.filter((provider) => provider.kind === 'interface');
   return (
     <Workspace
-      title="设置"
+      title={tr('App.settings')}
       sidebar={
-        <NavList
-          label="设置分类"
-          value={a.settingsTab}
-          onChange={a.setSettingsTab}
-          items={[...groups]}
-        />
+        <>
+          <Search value={query} onChange={setQuery} placeholder={tr('Settings.findSettings')} />
+          <NavList
+            label={tr('Settings.settingsCategories')}
+            value={a.settingsTab}
+            onChange={a.setSettingsTab}
+            items={visibleGroups}
+          />
+        </>
       }
     >
-      <Heading title={groups.find((g) => g.id === a.settingsTab)?.name ?? '设置'} />
+      <Heading title={groups.find((g) => g.id === a.settingsTab)?.name ?? tr('App.settings')} />
       <div className="settings-content panel-enter" key={a.settingsTab}>
         {a.settingsTab === 'appearance' && (
           <>
-            <Group title="界面主题">
-              <SettingRow title="配色">
+            <Group title={tr('Settings.interfaceTheme')}>
+              <SettingRow title={tr('Settings.colors')}>
                 <Segments
-                  value={a.theme === 'dark' ? '深色' : a.theme === 'system' ? '跟随系统' : '浅色'}
-                  options={['浅色', '深色', '跟随系统']}
+                  value={a.theme === 'dark' ? 'dark' : a.theme === 'system' ? 'system' : 'light'}
+                  options={['light', 'dark', 'system']}
                   onChange={(v) =>
-                    a.setTheme(v === '深色' ? 'dark' : v === '浅色' ? 'light' : 'system')
+                    a.setTheme(v === 'dark' ? 'dark' : v === 'light' ? 'light' : 'system')
                   }
                 />
               </SettingRow>
-              <SettingRow title="界面动效">
-                <Toggle label="界面动效" value={a.motion} onChange={a.setMotion} />
+              <SettingRow title={tr('Settings.animations')}>
+                <Toggle label={tr('Settings.animations')} value={a.motion} onChange={a.setMotion} />
               </SettingRow>
               {interfaces.length > 1 && (
-                <SettingRow title="启动器界面">
+                <SettingRow title={tr('Settings.launcherInterface')}>
                   <Choice
-                    label="界面插件"
+                    label={tr('Settings.interfacePlugin')}
                     value={s.interfacePlugin}
                     onChange={(interfacePlugin) => void a.updateSettings({ interfacePlugin })}
                     options={interfaces.map((provider) => ({
@@ -74,61 +122,79 @@ export function SettingsPage() {
                 </SettingRow>
               )}
             </Group>
-            <Group title="背景">
+            <Group title={tr('Settings.background')}>
               {a.background !== 'none' && (
                 <div className="background-preview">
                   {a.background.startsWith('data:') ? (
-                    <img src={a.background} alt="当前背景" />
+                    <img src={a.background} alt={tr('Settings.currentBackground')} />
                   ) : (
                     <Landscape variant={a.background} />
                   )}
                 </div>
               )}
-              <SettingRow title="背景图片" description="背景贯穿主页、管理页面和标题栏。">
+              <SettingRow
+                title={tr('Settings.backgroundImage')}
+                description={tr('Settings.theBackgroundContinuesAcrossHomeManagementPages')}
+              >
                 <Action
                   variant="secondary"
                   size="sm"
                   icon="image"
                   onPress={() => a.setOverlay({ type: 'background' })}
                 >
-                  更换背景
+                  {tr('overlays.changeBackground')}
                 </Action>
               </SettingRow>
               <div className="padded">
-                <Range label="背景遮罩" value={a.dim} onChange={a.setDim} />
+                <Range label={tr('Settings.backgroundDimming')} value={a.dim} onChange={a.setDim} />
               </div>
             </Group>
           </>
         )}
         {a.settingsTab === 'general' && (
-          <Group title="启动器">
+          <Group title={tr('Settings.preferences')}>
+            <SettingRow title={tr('Settings.language')}>
+              <Choice
+                label={tr('Settings.language')}
+                value={s.locale}
+                onChange={(locale) => void a.updateSettings({ locale: locale as typeof s.locale })}
+                options={[
+                  { id: 'system', name: tr('Settings.system') },
+                  { id: 'zh-CN', name: tr('Settings.chinese') },
+                  { id: 'en-US', name: 'English' },
+                ]}
+              />
+            </SettingRow>
             <SettingRow
-              title="游戏启动后隐藏主窗口"
-              description="游戏与任务继续在后台运行，可从系统托盘恢复窗口。"
+              title={tr('Settings.hideLauncherAfterGameStarts')}
+              description={tr('Settings.gamesAndTasksContinueInTheBackground')}
             >
               <Toggle
-                label="游戏启动后隐藏主窗口"
+                label={tr('Settings.hideLauncherAfterGameStarts')}
                 value={s.closeAfterLaunch}
                 onChange={(closeAfterLaunch) => void a.updateSettings({ closeAfterLaunch })}
               />
             </SettingRow>
-            <SettingRow title="首次设置" description="重新选择 Java 与添加账号。">
+            <SettingRow
+              title={tr('Settings.initialSetup')}
+              description={tr('Settings.chooseJavaAndAddAccountsAgain')}
+            >
               <Action
                 variant="secondary"
                 size="sm"
                 onPress={() => a.setOverlay({ type: 'wizard' })}
               >
-                打开设置向导
+                {tr('Settings.openSetupWizard')}
               </Action>
             </SettingRow>
           </Group>
         )}
         {a.settingsTab === 'game' && (
           <>
-            <Group title="内存">
+            <Group title={tr('Settings.memory')}>
               <div className="padded">
                 <Range
-                  label="默认内存上限"
+                  label={tr('Settings.defaultMemoryLimit')}
                   min={1}
                   max={32}
                   value={a.memory / 1024}
@@ -138,14 +204,14 @@ export function SettingsPage() {
               </div>
             </Group>
             <LaunchOptions />
-            <Group title="启动账号">
-              <SettingRow title="全局默认账号">
+            <Group title={tr('Home.launchAccount')}>
+              <SettingRow title={tr('Settings.globalDefaultAccount')}>
                 <Choice
-                  label="默认账号"
+                  label={tr('Settings.defaultAccount')}
                   value={a.defaultAccount}
                   onChange={a.setDefaultAccount}
                   options={[
-                    { id: '', name: '尚未选择' },
+                    { id: '', name: tr('Settings.notSelected') },
                     ...a.accounts.map((p) => ({ id: p.id, name: p.name })),
                   ]}
                 />
@@ -155,10 +221,13 @@ export function SettingsPage() {
         )}
         {a.settingsTab === 'java' && <JavaSettings />}
         {a.settingsTab === 'downloads' && (
-          <Group title="下载">
-            <SettingRow title="并发下载数量" description="用于游戏资源与依赖下载。">
+          <Group title={tr('Settings.download')}>
+            <SettingRow
+              title={tr('Settings.concurrentDownloads')}
+              description={tr('Settings.usedForGameAssetsAndDependencyDownloads')}
+            >
               <Choice
-                label="下载并发数"
+                label={tr('Settings.downloadConcurrency')}
                 value={String(s.downloadConcurrency)}
                 onChange={(v) => void a.updateSettings({ downloadConcurrency: Number(v) })}
                 options={[2, 4, 8, 16].map((v) => ({ id: String(v), name: String(v) }))}
@@ -167,10 +236,12 @@ export function SettingsPage() {
           </Group>
         )}
         {a.settingsTab === 'storage' && (
-          <Group title="本地目录">
+          <Group title={tr('Settings.localDirectories')}>
             <SettingRow
-              title="实例存储目录"
-              description={s.instanceDirectory || '使用应用数据目录内的 instances 文件夹。'}
+              title={tr('Settings.instanceDirectory')}
+              description={
+                s.instanceDirectory || tr('Settings.useTheInstancesFolderInTheApplication')
+              }
             >
               <Action
                 size="sm"
@@ -178,23 +249,26 @@ export function SettingsPage() {
                 icon="folder"
                 onPress={() =>
                   void window.nixel
-                    .selectPath({ kind: 'directory', title: '选择新实例保存目录' })
+                    .selectPath({
+                      kind: 'directory',
+                      title: tr('Settings.chooseDirectoryForNewInstances'),
+                    })
                     .then((path) => {
                       if (path) void a.updateSettings({ instanceDirectory: path });
                     })
                 }
               >
-                选择目录
+                {tr('Settings.chooseDirectory')}
               </Action>
             </SettingRow>
-            <SettingRow title="启动器数据" description={a.dataDirectory}>
+            <SettingRow title={tr('Settings.launcherData')} description={a.dataDirectory}>
               <Action
                 size="sm"
                 variant="secondary"
                 icon="folder"
                 onPress={() => void window.nixel.openPath(a.dataDirectory)}
               >
-                打开目录
+                {tr('Instances.openDirectory')}
               </Action>
             </SettingRow>
           </Group>
@@ -202,30 +276,30 @@ export function SettingsPage() {
         {a.settingsTab === 'about' && (
           <>
             <Group title="NixelLauncher">
-              <SettingRow title="版本">
+              <SettingRow title={tr('Settings.version')}>
                 <Tag>{a.appVersion}</Tag>
               </SettingRow>
-              <SettingRow title="运行平台">
+              <SettingRow title={tr('Settings.platform')}>
                 <span>{window.nixel.platform}</span>
               </SettingRow>
-              <SettingRow title="插件 Host">
+              <SettingRow title={tr('Settings.pluginHost')}>
                 <span>
-                  {a.host.status}
+                  {label(a.host.status)}
                   {a.host.pid ? ` · PID ${a.host.pid}` : ''}
                 </span>
               </SettingRow>
-              <SettingRow title="服务管理">
+              <SettingRow title={tr('Settings.serviceManagement')}>
                 <Action
                   variant="secondary"
                   size="sm"
                   icon="refresh"
                   onPress={() => void a.restartHost()}
                 >
-                  重新启动 Host
+                  {tr('Settings.restartHost')}
                 </Action>
               </SettingRow>
             </Group>
-            <p className="muted">Minecraft Java 版启动器 · Electron、React、HeroUI 与 Cordis。</p>
+            <p className="muted">{tr('Settings.aMinecraftJavaLauncherBuiltWithElectron')}</p>
           </>
         )}
       </div>
@@ -277,20 +351,26 @@ export function JavaSettings() {
   };
   return (
     <Group
-      title="Java 运行环境"
-      description="Minecraft 不同版本需要对应的 Java 主版本。可以使用自动检测，或选择本机可执行文件。"
+      title={tr('Settings.javaRuntimes')}
+      description={tr('Settings.minecraftVersionsRequireSpecificJavaVersionsUse')}
     >
-      <SettingRow title="自动下载所需 Java" description="启动游戏时自动安装缺少的对应版本。">
+      <SettingRow
+        title={tr('Settings.downloadRequiredJavaAutomatically')}
+        description={tr('Settings.installAMissingJavaVersionWhenLaunching')}
+      >
         <Toggle
-          label="自动下载 Java"
+          label={tr('Settings.downloadJavaAutomatically')}
           value={a.settings.autoDownloadJava}
           onChange={(autoDownloadJava) => void a.updateSettings({ autoDownloadJava })}
         />
       </SettingRow>
-      <SettingRow title="下载 Java" description="运行环境由启动器管理，无需手动配置路径。">
+      <SettingRow
+        title={tr('Settings.downloadJava')}
+        description={tr('Settings.theLauncherManagesThisRuntimeNoPath')}
+      >
         <div className="row">
           <Choice
-            label="Java 主版本"
+            label={tr('Settings.javaMajorVersion')}
             value={major}
             onChange={setMajor}
             options={[8, 16, 17, 21, 25].map((v) => ({ id: String(v), name: `Java ${v}` }))}
@@ -304,11 +384,11 @@ export function JavaSettings() {
               a.setTaskOpen(true);
             }}
           >
-            下载
+            {tr('Settings.download')}
           </Action>
         </div>
       </SettingRow>
-      <SettingRow title="自动检测">
+      <SettingRow title={tr('Settings.automaticDetection')}>
         <Action
           variant="secondary"
           size="sm"
@@ -316,11 +396,16 @@ export function JavaSettings() {
           isPending={loading}
           onPress={() => void detect()}
         >
-          检测本机 Java
+          {tr('Settings.detectLocalJava')}
         </Action>
       </SettingRow>
       <div className="padded stack">
-        <Field label="Java 可执行文件" value={path} onChange={setPath} placeholder="留空自动选择" />
+        <Field
+          label={tr('Instances.javaExecutable')}
+          value={path}
+          onChange={setPath}
+          placeholder={tr('Settings.leaveEmptyForAutomaticSelection')}
+        />
         <div className="row">
           <Action
             size="sm"
@@ -328,16 +413,16 @@ export function JavaSettings() {
             icon="folder"
             onPress={() =>
               void window.nixel
-                .selectPath({ kind: 'file', title: '选择 Java 可执行文件' })
+                .selectPath({ kind: 'file', title: tr('Instances.chooseJavaExecutable') })
                 .then((p) => {
                   if (p) setPath(p);
                 })
             }
           >
-            选择文件
+            {tr('Settings.chooseFile')}
           </Action>
           <Action size="sm" icon="check" isPending={loading} onPress={() => void save()}>
-            验证并保存
+            {tr('Settings.verifyAndSave')}
           </Action>
         </div>
         {error && <Notice tone="danger">{error}</Notice>}
@@ -352,13 +437,11 @@ export function JavaSettings() {
               <strong>Java {r.version}</strong>
               <small>{r.path}</small>
             </span>
-            {path === r.path && <Tag>已选择</Tag>}
+            {path === r.path && <Tag>{tr('Settings.selected')}</Tag>}
           </button>
         ))}
         {!loading && !runtimes.length && (
-          <p className="muted">
-            没有检测到 Java。可在上方下载，或启用自动下载后直接创建并启动游戏。
-          </p>
+          <p className="muted">{tr('Settings.javaWasNotDetectedDownloadItAbove')}</p>
         )}
       </div>
     </Group>
@@ -410,23 +493,46 @@ export function LaunchOptions({ instanceId }: { instanceId?: string }) {
       .map((line) => line.trim())
       .filter(Boolean);
   return (
-    <Group title="启动选项">
+    <Group title={tr('Settings.launchOptions')}>
       {instanceId && (
-        <SettingRow title="继承全局启动选项">
-          <Toggle label="继承全局启动选项" value={inherit} onChange={setInherit} />
+        <SettingRow title={tr('Settings.useGlobalLaunchOptions')}>
+          <Toggle
+            label={tr('Settings.useGlobalLaunchOptions')}
+            value={inherit}
+            onChange={setInherit}
+          />
         </SettingRow>
       )}
       {!inherit && (
         <div className="padded stack">
-          <ArgumentField label="JVM 参数" value={jvm} onChange={setJvm} />
-          <ArgumentField label="游戏参数" value={game} onChange={setGame} />
           <div className="row">
-            <Field label="窗口宽度" type="number" value={width} onChange={setWidth} />
-            <Field label="窗口高度" type="number" value={height} onChange={setHeight} />
+            <Field
+              label={tr('Settings.windowWidth')}
+              type="number"
+              value={width}
+              onChange={setWidth}
+            />
+            <Field
+              label={tr('Settings.windowHeight')}
+              type="number"
+              value={height}
+              onChange={setHeight}
+            />
           </div>
-          <SettingRow title="全屏启动">
-            <Toggle label="全屏启动" value={fullscreen} onChange={setFullscreen} />
+          <SettingRow title={tr('Settings.startInFullscreen')}>
+            <Toggle
+              label={tr('Settings.startInFullscreen')}
+              value={fullscreen}
+              onChange={setFullscreen}
+            />
           </SettingRow>
+          <details className="advanced-settings">
+            <summary>{tr('Settings.advancedArguments')}</summary>
+            <div className="stack">
+              <ArgumentField label={tr('Settings.jvmArguments')} value={jvm} onChange={setJvm} />
+              <ArgumentField label={tr('Settings.gameArguments')} value={game} onChange={setGame} />
+            </div>
+          </details>
         </div>
       )}
       <div className="padded">
@@ -461,7 +567,7 @@ export function LaunchOptions({ instanceId }: { instanceId?: string }) {
             setSaving(false);
           }}
         >
-          保存启动选项
+          {tr('Settings.saveLaunchOptions')}
         </Action>
       </div>
     </Group>

@@ -1,6 +1,7 @@
 import { Drawer } from '@heroui/react';
 import { useEffect, useState } from 'react';
 import type { DeviceLogin, Loader, ResourceVersion, VersionEntry } from '../../shared/contracts';
+import { i18n, label, tr } from '../../shared/i18n';
 import type { Resource } from './data';
 import { resourceSource } from './data';
 import { Brand, Icon } from './icons';
@@ -22,6 +23,7 @@ import {
   Tile,
   Toggle,
 } from './ui';
+import { AssetIcon } from './workspace';
 
 function message(error: unknown) {
   return error instanceof Error ? error.message : String(error);
@@ -57,7 +59,7 @@ function OverlayContent({ overlay: o }: { overlay: Overlay }) {
         footer={
           <>
             <Action variant="secondary" onPress={() => a.setOverlay(null)}>
-              取消
+              {tr('overlays.cancel')}
             </Action>
             <Action
               variant="danger"
@@ -70,7 +72,7 @@ function OverlayContent({ overlay: o }: { overlay: Overlay }) {
                   .finally(() => setPending(false));
               }}
             >
-              确认
+              {tr('overlays.confirm')}
             </Action>
           </>
         }
@@ -190,8 +192,8 @@ function CreateDialog() {
       wide
       open={a.overlay !== null}
       onClose={() => a.setOverlay(null)}
-      title="创建实例"
-      description="选择游戏版本与加载器，安装到独立目录。"
+      title={tr('overlays.createInstance')}
+      description={tr('overlays.chooseAGameVersionAndLoaderFor')}
       footer={
         <>
           <span className="dialog-footer-note">{step + 1} / 3</span>
@@ -199,7 +201,7 @@ function CreateDialog() {
             variant="secondary"
             onPress={() => (step ? setStep(step - 1) : a.setOverlay(null))}
           >
-            {step ? '上一步' : '取消'}
+            {step ? tr('overlays.back') : tr('overlays.cancel')}
           </Action>
           <Action
             icon={step === 2 ? 'download' : 'arrow'}
@@ -213,21 +215,28 @@ function CreateDialog() {
             }
             onPress={() => (step === 2 ? void submit() : setStep(step + 1))}
           >
-            {step === 2 ? '创建并安装' : '下一步'}
+            {step === 2 ? tr('overlays.createAndInstall') : tr('overlays.next')}
           </Action>
         </>
       }
     >
-      <Steps items={['游戏版本', '加载器', '实例设置']} step={step} />
+      <Steps
+        items={[tr('overlays.gameVersion'), tr('overlays.loader'), tr('overlays.instanceSettings')]}
+        step={step}
+      />
       {error && <Notice tone="danger">{error}</Notice>}
       {step === 0 && (
         <div className="stack">
           <div className="row">
-            <Search value={query} onChange={setQuery} placeholder="查找 Minecraft 版本" />
-            <Check label="显示快照" value={snapshots} onChange={setSnapshots} />
+            <Search
+              value={query}
+              onChange={setQuery}
+              placeholder={tr('overlays.findMinecraftVersions')}
+            />
+            <Check label={tr('overlays.showSnapshots')} value={snapshots} onChange={setSnapshots} />
           </div>
           {loading ? (
-            <p className="muted">正在获取 Minecraft 版本…</p>
+            <p className="muted">{tr('overlays.fetchingMinecraftVersions')}</p>
           ) : (
             <div className="option-list version-options">
               {shown.map((v) => (
@@ -240,7 +249,7 @@ function CreateDialog() {
                   <Tile icon="box" size="sm" />
                   <span>
                     <strong>Minecraft {v.id}</strong>
-                    <small>{v.type === 'release' ? '正式版' : v.type}</small>
+                    <small>{v.type === 'release' ? tr('overlays.release') : v.type}</small>
                   </span>
                   {version === v.id && <Icon name="check" size={18} />}
                 </button>
@@ -255,33 +264,31 @@ function CreateDialog() {
             value={loader}
             options={loaderOptions}
             onChange={(v) => setLoader(v as Loader)}
-            label="加载器"
+            label={tr('overlays.loader')}
           />
           {loader === 'Vanilla' ? (
-            <Notice>使用原版 Minecraft，无需额外加载器。</Notice>
+            <Notice>{tr('overlays.useVanillaMinecraftWithoutAnAdditionalLoader')}</Notice>
           ) : loaderLoading ? (
-            <p className="muted">正在获取 {loader} 版本…</p>
+            <p className="muted">{tr('create.loaderLoading', { loader })}</p>
           ) : loaderVersions.length ? (
             <Choice
-              label="加载器版本"
+              label={tr('overlays.loaderVersion')}
               value={loaderVersion}
               onChange={setLoaderVersion}
               options={loaderVersions.map((v) => ({ id: v.id, name: v.id }))}
             />
           ) : (
-            <Notice tone="warning">
-              没有找到适用于 Minecraft {version} 的 {loader} 版本。选择其他加载器或游戏版本。
-            </Notice>
+            <Notice tone="warning">{tr('create.noLoader', { version, loader })}</Notice>
           )}
         </div>
       )}
       {step === 2 && (
         <div className="stack">
           <Field
-            label="实例名称"
+            label={tr('overlays.instanceName')}
             value={name}
             onChange={setName}
-            placeholder="给你的新世界起个名字"
+            placeholder={tr('overlays.nameYourNewWorld')}
           />
           <div className="row">
             <Tag>Minecraft {version}</Tag>
@@ -290,9 +297,7 @@ function CreateDialog() {
               {loaderVersion ? ` ${loaderVersion}` : ''}
             </Tag>
           </div>
-          <p className="muted">
-            实例使用全局服务与游戏设置，创建后可单独调整。安装进度会显示在任务中心。
-          </p>
+          <p className="muted">{tr('overlays.newInstancesUseGlobalGameSettingsYou')}</p>
         </div>
       )}
     </Dialog>
@@ -301,7 +306,7 @@ function CreateDialog() {
 
 function AccountDialog() {
   const a = useApp();
-  const [type, setType] = useState('Microsoft');
+  const [type, setType] = useState('microsoft');
   const [name, setName] = useState('');
   const [server, setServer] = useState('');
   const [username, setUsername] = useState('');
@@ -311,13 +316,13 @@ function AccountDialog() {
   const [device, setDevice] = useState<DeviceLogin | null>(null);
   const visible = a.overlay?.type === 'account';
   useEffect(() => {
-    if (!device || !visible || type !== 'Microsoft') return;
+    if (!device || !visible || type !== 'microsoft') return;
     let active = true;
     let timer: ReturnType<typeof setTimeout>;
     const poll = async () => {
       if (Date.now() > device.expiresAt) {
         if (active) {
-          setError('设备代码已过期，请重新获取。');
+          setError(tr('overlays.theDeviceCodeHasExpiredRequestA'));
           setDevice(null);
         }
         return;
@@ -350,14 +355,14 @@ function AccountDialog() {
     setPending(true);
     setError('');
     try {
-      if (type === 'Microsoft') {
+      if (type === 'microsoft') {
         const result = await window.nixel.invoke<DeviceLogin>('accounts.microsoft.start');
         setDevice(result);
         await window.nixel.openExternal(result.verificationUri);
       } else {
         await window.nixel.invoke(
-          type === '离线' ? 'accounts.addOffline' : 'accounts.yggdrasil.login',
-          type === '离线' ? { name: name.trim() } : { server, username, password },
+          type === 'offline' ? 'accounts.addOffline' : 'accounts.yggdrasil.login',
+          type === 'offline' ? { name: name.trim() } : { server, username, password },
         );
         a.setOverlay(null);
       }
@@ -368,28 +373,28 @@ function AccountDialog() {
     }
   };
   const disabled =
-    type === 'Microsoft'
+    type === 'microsoft'
       ? false
-      : type === '离线'
+      : type === 'offline'
         ? !/^[A-Za-z0-9_]{1,16}$/.test(name)
         : !server || !username || !password;
   return (
     <Dialog
       open={a.overlay !== null}
       onClose={() => a.setOverlay(null)}
-      title="添加账号"
+      title={tr('overlays.addAccount')}
       footer={
         <>
           <Action variant="secondary" onPress={() => a.setOverlay(null)}>
-            取消
+            {tr('overlays.cancel')}
           </Action>
           <Action
             isPending={pending}
             isDisabled={disabled || Boolean(device)}
-            icon={type === 'Microsoft' ? 'arrow' : 'plus'}
+            icon={type === 'microsoft' ? 'arrow' : 'plus'}
             onPress={() => void submit()}
           >
-            {type === 'Microsoft' ? '获取设备代码' : '添加账号'}
+            {type === 'microsoft' ? tr('overlays.getDeviceCode') : tr('overlays.addAccount')}
           </Action>
         </>
       }
@@ -397,11 +402,11 @@ function AccountDialog() {
       <div className="stack">
         <Segments
           value={type}
-          options={['Microsoft', '离线', '第三方']}
+          options={['microsoft', 'offline', 'yggdrasil']}
           onChange={setType}
-          label="账号类型"
+          label={tr('overlays.accountType')}
         />
-        {type === 'Microsoft' &&
+        {type === 'microsoft' &&
           (device ? (
             <div className="auth-preview">
               <div className="microsoft-logo">
@@ -410,7 +415,7 @@ function AccountDialog() {
                 <i />
                 <i />
               </div>
-              <p>在浏览器登录 Microsoft 并输入设备代码。</p>
+              <p>{tr('overlays.signInToMicrosoftInYourBrowser')}</p>
               <strong className="auth-code">{device.userCode}</strong>
               <div className="row">
                 <Action
@@ -419,44 +424,49 @@ function AccountDialog() {
                   icon="copy"
                   onPress={() => void navigator.clipboard.writeText(device.userCode)}
                 >
-                  复制代码
+                  {tr('overlays.copyCode')}
                 </Action>
                 <Action
                   size="sm"
                   variant="secondary"
                   onPress={() => void window.nixel.openExternal(device.verificationUri)}
                 >
-                  打开登录页面
+                  {tr('overlays.openSignInPage')}
                 </Action>
               </div>
-              <p className="muted">等待授权完成…</p>
+              <p className="muted">{tr('overlays.waitingForAuthorization')}</p>
             </div>
           ) : (
-            <Notice>登录将在你的浏览器完成。Nixel 仅保存 Minecraft 所需的身份凭据。</Notice>
+            <Notice>{tr('overlays.signInTakesPlaceInYourBrowser')}</Notice>
           ))}
-        {type === '离线' && (
+        {type === 'offline' && (
           <>
             <Field
-              label="角色名称"
+              label={tr('overlays.profileName')}
               value={name}
               onChange={setName}
               placeholder="Player"
-              description="1–16 个英文字母、数字或下划线。"
+              description={tr('overlays.116LettersNumbersOrUnderscores')}
             />
-            <Notice>离线角色用于本地游戏与支持离线身份的服务器。</Notice>
+            <Notice>{tr('overlays.offlineProfilesWorkWithLocalGamesAnd')}</Notice>
           </>
         )}
-        {type === '第三方' && (
+        {type === 'yggdrasil' && (
           <>
             <Field
-              label="Yggdrasil 认证服务器"
+              label={tr('overlays.yggdrasilAuthenticationServer')}
               type="url"
               value={server}
               onChange={setServer}
               placeholder="https://example.com/api/yggdrasil"
             />
-            <Field label="用户名或邮箱" value={username} onChange={setUsername} />
-            <Field label="密码" type="password" value={password} onChange={setPassword} />
+            <Field label={tr('overlays.usernameOrEmail')} value={username} onChange={setUsername} />
+            <Field
+              label={tr('overlays.password')}
+              type="password"
+              value={password}
+              onChange={setPassword}
+            />
           </>
         )}
         {error && <Notice tone="danger">{error}</Notice>}
@@ -467,7 +477,7 @@ function AccountDialog() {
 
 function ResourceDialog({ resource: r, instanceId }: { resource: Resource; instanceId?: string }) {
   const a = useApp();
-  const isPack = r.category === '整合包';
+  const isPack = r.category === 'modpacks';
   const [target, setTarget] = useState(
     instanceId ?? a.launchInstance?.id ?? a.instances[0]?.id ?? '',
   );
@@ -556,7 +566,7 @@ function ResourceDialog({ resource: r, instanceId }: { resource: Resource; insta
       footer={
         <>
           <Action variant="secondary" onPress={() => a.setOverlay(null)}>
-            取消
+            {tr('overlays.cancel')}
           </Action>
           <Action
             icon="download"
@@ -571,12 +581,12 @@ function ResourceDialog({ resource: r, instanceId }: { resource: Resource; insta
             onPress={() => void install()}
           >
             {installTask
-              ? `正在安装 ${Math.round(installTask.progress)}%`
+              ? tr('LaunchButton.installingValue', { value1: Math.round(installTask.progress) })
               : alreadyInstalled
-                ? '已安装'
+                ? label('installed')
                 : isPack
-                  ? '创建整合包实例'
-                  : '安装到实例'}
+                  ? tr('overlays.createModpackInstance')
+                  : tr('overlays.installToInstance')}
           </Action>
         </>
       }
@@ -584,8 +594,9 @@ function ResourceDialog({ resource: r, instanceId }: { resource: Resource; insta
       <div className="stack">
         <p>{r.desc}</p>
         <div className="row">
-          <Tag>{r.category}</Tag>
-          <span className="muted">{r.downloads} 次下载</span>
+          <AssetIcon src={r.icon} kind={r.category} />
+          <Tag>{label(r.category)}</Tag>
+          <span className="muted">{tr('catalog.downloadCount', { count: r.downloads })}</span>
           {r.url && (
             <Action
               size="sm"
@@ -593,7 +604,7 @@ function ResourceDialog({ resource: r, instanceId }: { resource: Resource; insta
               icon="external"
               onPress={() => void window.nixel.openExternal(r.url ?? '')}
             >
-              查看项目
+              {tr('overlays.viewProject')}
             </Action>
           )}
         </div>
@@ -601,7 +612,8 @@ function ResourceDialog({ resource: r, instanceId }: { resource: Resource; insta
           <>
             {!isPack && instanceId && (
               <div className="install-target-summary">
-                安装到 <strong>{targetInstance?.name ?? '实例已移除'}</strong>
+                {tr('overlays.installTo')}
+                <strong>{targetInstance?.name ?? tr('overlays.instanceRemoved')}</strong>
                 {targetInstance && (
                   <span className="muted">
                     {targetInstance.version} · {targetInstance.loader}
@@ -611,7 +623,7 @@ function ResourceDialog({ resource: r, instanceId }: { resource: Resource; insta
             )}
             {!isPack && !instanceId && (
               <Choice
-                label="安装目标"
+                label={tr('overlays.installTarget')}
                 value={target}
                 onChange={setTarget}
                 options={a.instances.map((i) => ({
@@ -621,26 +633,33 @@ function ResourceDialog({ resource: r, instanceId }: { resource: Resource; insta
               />
             )}
             {loading ? (
-              <p className="muted">正在获取兼容版本…</p>
+              <p className="muted">{tr('overlays.fetchingCompatibleVersions')}</p>
             ) : versions.length ? (
               <Choice
-                label="资源版本"
+                label={tr('overlays.resourceVersion')}
                 value={version}
                 onChange={setVersion}
                 options={versions.map((v) => ({
                   id: v.id,
-                  name: `${v.version} · ${new Date(v.publishedAt).toLocaleDateString()}`,
+                  name: `${v.version} · ${new Date(v.publishedAt).toLocaleDateString(i18n.language)}`,
                 }))}
               />
             ) : (
               <Notice tone="warning">
-                {isPack ? '没有可安装的整合包版本。' : '没有适用于当前实例版本与加载器的资源版本。'}
+                {isPack
+                  ? tr('overlays.noInstallableModpackVersionsFound')
+                  : tr('overlays.noResourceVersionsMatchThisInstanceS')}
               </Notice>
             )}
           </>
         ) : (
-          <Empty title="先创建一个实例" detail="选择游戏版本与加载器后，就可以安装兼容的内容。">
-            <Action onPress={() => a.setOverlay({ type: 'create' })}>创建实例</Action>
+          <Empty
+            title={tr('overlays.createAnInstanceFirst')}
+            detail={tr('overlays.chooseAGameVersionAndLoaderTo')}
+          >
+            <Action onPress={() => a.setOverlay({ type: 'create' })}>
+              {tr('overlays.createInstance')}
+            </Action>
           </Empty>
         )}
         {error && <Notice tone="danger">{error}</Notice>}
@@ -662,7 +681,7 @@ function PluginDialog({ id }: { id: string }) {
     try {
       const parsed: unknown = JSON.parse(config);
       if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed))
-        throw new Error('配置需要是 JSON 对象。');
+        throw new Error(tr('overlays.configurationMustBeAJsonObject'));
       await window.nixel.invoke('plugins.configure', { id, config: parsed });
       a.setOverlay(null);
     } catch (e) {
@@ -681,33 +700,40 @@ function PluginDialog({ id }: { id: string }) {
       footer={
         <>
           <Action variant="secondary" onPress={() => a.setOverlay(null)}>
-            关闭
+            {tr('overlays.close')}
           </Action>
           <Action isPending={pending} onPress={() => void save()}>
-            保存配置
+            {tr('overlays.saveConfiguration')}
           </Action>
         </>
       }
     >
       <div className="stack">
-        <p>{p.desc}</p>
+        <div className="row">
+          <AssetIcon builtin={p.builtin} kind="plugin" />
+          <p>{p.desc}</p>
+        </div>
         <div className="row">
           <Tag
             color={p.status === 'active' ? 'success' : p.status === 'error' ? 'danger' : 'default'}
           >
-            {p.status === 'active' ? '正在运行' : p.status === 'error' ? '加载失败' : '已停用'}
+            {p.status === 'active'
+              ? tr('overlays.running')
+              : p.status === 'error'
+                ? tr('overlays.failedToLoad')
+                : tr('overlays.disabled')}
           </Tag>
           <Tag>{p.category}</Tag>
           <span className="flex-1" />
           <Toggle
-            label={`启用 ${p.name}`}
+            label={tr('overlays.enableValue', { value1: p.name })}
             value={p.enabled}
             disabled={p.id === a.settings.interfacePlugin}
             onChange={(enabled) => void a.command('plugins.setEnabled', { id, enabled })}
           />
         </div>
         {p.error && <Notice tone="danger">{p.error}</Notice>}
-        <label htmlFor="plugin-config">插件配置（JSON）</label>
+        <label htmlFor="plugin-config">{tr('overlays.pluginConfigurationJson')}</label>
         <textarea
           id="plugin-config"
           className="json-editor"
@@ -721,7 +747,7 @@ function PluginDialog({ id }: { id: string }) {
             icon="folder"
             onPress={() => void window.nixel.openPath(p.directory ?? '')}
           >
-            打开插件目录
+            {tr('overlays.openPluginDirectory')}
           </Action>
         )}
         {!p.builtin && (
@@ -731,13 +757,13 @@ function PluginDialog({ id }: { id: string }) {
             onPress={() =>
               a.setOverlay({
                 type: 'confirm',
-                title: `移除插件 ${p.name}？`,
-                detail: '将从启动器卸载插件，保留原始插件目录。',
+                title: tr('overlays.removePluginValue', { value1: p.name }),
+                detail: tr('overlays.uninstallThisPluginFromTheLauncherIts'),
                 action: () => window.nixel.invoke('plugins.remove', { id }),
               })
             }
           >
-            卸载插件
+            {tr('overlays.uninstallPlugin')}
           </Action>
         )}
       </div>
@@ -766,33 +792,33 @@ function LocalPluginDialog() {
     <Dialog
       open={a.overlay !== null}
       onClose={() => a.setOverlay(null)}
-      title="安装本地插件"
+      title={tr('overlays.installLocalPlugin')}
       footer={
         <>
           <Action variant="secondary" onPress={() => a.setOverlay(null)}>
-            取消
+            {tr('overlays.cancel')}
           </Action>
           <Action isPending={pending} isDisabled={!path} onPress={() => void install()}>
-            安装插件
+            {tr('overlays.installPlugin')}
           </Action>
         </>
       }
     >
       <div className="stack">
-        <Notice>选择包含 nixel-plugin.json 的可信插件目录。插件将在本机 Host 进程执行。</Notice>
-        <Field label="插件目录" value={path} onChange={setPath} />
+        <Notice>{tr('overlays.chooseATrustedDirectoryContainingNixelPlugin')}</Notice>
+        <Field label={tr('overlays.pluginDirectory')} value={path} onChange={setPath} />
         <Action
           variant="secondary"
           icon="folder"
           onPress={() =>
             void window.nixel
-              .selectPath({ kind: 'directory', title: '选择 Nixel 插件目录' })
+              .selectPath({ kind: 'directory', title: tr('overlays.chooseNixelPluginDirectory') })
               .then((p) => {
                 if (p) setPath(p);
               })
           }
         >
-          浏览目录
+          {tr('overlays.browseDirectory')}
         </Action>
         {error && <Notice tone="danger">{error}</Notice>}
       </div>
@@ -802,7 +828,7 @@ function LocalPluginDialog() {
 
 function ImportDialog() {
   const a = useApp();
-  const [mode, setMode] = useState('整合包');
+  const [mode, setMode] = useState('modpacks');
   const [versionId, setVersionId] = useState('');
   const [versions, setVersions] = useState<
     { versionId: string; version: string; loader: Loader }[]
@@ -817,7 +843,7 @@ function ImportDialog() {
     setError('');
     try {
       await window.nixel.invoke(
-        mode === '整合包' ? 'instances.import' : 'instances.importDirectory',
+        mode === 'modpacks' ? 'instances.import' : 'instances.importDirectory',
         { path, name: name.trim() || undefined, versionId: versionId.trim() || undefined },
       );
       a.setOverlay(null);
@@ -832,28 +858,30 @@ function ImportDialog() {
     <Dialog
       open={a.overlay !== null}
       onClose={() => a.setOverlay(null)}
-      title="导入实例"
+      title={tr('overlays.importInstance')}
       footer={
         <>
           <Action variant="secondary" onPress={() => a.setOverlay(null)}>
-            取消
+            {tr('overlays.cancel')}
           </Action>
           <Action
             icon="download"
             isPending={pending}
-            isDisabled={!path || detecting || (mode === '本地目录' && !versionId)}
+            isDisabled={!path || detecting || (mode === 'local-directory' && !versionId)}
             onPress={() => void submit()}
           >
-            {mode === '整合包' ? '导入并安装' : '复制为新实例'}
+            {mode === 'modpacks'
+              ? tr('overlays.importAndInstall')
+              : tr('overlays.copyAsNewInstance')}
           </Action>
         </>
       }
     >
       <div className="stack">
         <Segments
-          label="导入方式"
+          label={tr('overlays.importMethod')}
           value={mode}
-          options={['整合包', '本地目录']}
+          options={['modpacks', 'local-directory']}
           onChange={(value) => {
             if (pending || detecting) return;
             setMode(value);
@@ -865,11 +893,16 @@ function ImportDialog() {
         />
         <div className="file-drop">
           <Tile icon="upload" size="lg" />
-          <h3>{path || (mode === '整合包' ? '选择整合包文件' : '选择游戏目录')}</h3>
+          <h3>
+            {path ||
+              (mode === 'modpacks'
+                ? tr('overlays.chooseModpackFile')
+                : tr('overlays.chooseGameDirectory'))}
+          </h3>
           <p>
-            {mode === '整合包'
-              ? '支持 Modrinth .mrpack 和 CurseForge .zip。'
-              : '复制已有游戏目录，包括存档、模组和配置。支持 .minecraft 或独立游戏目录。'}
+            {mode === 'modpacks'
+              ? tr('overlays.supportsModrinthMrpackAndCurseforgeZip')
+              : tr('overlays.copyAnExistingGameDirectoryIncludingSaves')}
           </p>
           <Action
             variant="secondary"
@@ -878,10 +911,16 @@ function ImportDialog() {
             onPress={() =>
               void window.nixel
                 .selectPath({
-                  kind: mode === '整合包' ? 'file' : 'directory',
-                  title: mode === '整合包' ? '导入整合包' : '选择游戏目录',
+                  kind: mode === 'modpacks' ? 'file' : 'directory',
+                  title:
+                    mode === 'modpacks'
+                      ? tr('modpacks.importModpack')
+                      : tr('overlays.chooseGameDirectory'),
                   filters: [
-                    { name: 'Modrinth / CurseForge 整合包', extensions: ['mrpack', 'zip'] },
+                    {
+                      name: tr('overlays.modrinthCurseforgeModpacks'),
+                      extensions: ['mrpack', 'zip'],
+                    },
                   ],
                 })
                 .then(async (p) => {
@@ -890,7 +929,7 @@ function ImportDialog() {
                   setError('');
                   setVersionId('');
                   setVersions([]);
-                  if (mode !== '本地目录') return;
+                  if (mode !== 'local-directory') return;
                   setDetecting(true);
                   try {
                     const found = await window.nixel.invoke<
@@ -898,7 +937,7 @@ function ImportDialog() {
                     >('instances.detectDirectory', { path: p });
                     setVersions(found);
                     if (found.length === 1 && found[0]) setVersionId(found[0].versionId);
-                    if (!found.length) setError('目录中没有找到可导入的游戏版本。');
+                    if (!found.length) setError(tr('overlays.noImportableGameVersionsFoundInThis'));
                   } catch (e) {
                     setError(message(e));
                   } finally {
@@ -908,22 +947,27 @@ function ImportDialog() {
                 .catch((e) => setError(message(e)))
             }
           >
-            选择路径
+            {tr('overlays.choosePath')}
           </Action>
         </div>
         <Field
-          label="实例名称（可选）"
+          label={tr('overlays.instanceNameOptional')}
           value={name}
           onChange={setName}
-          placeholder={mode === '整合包' ? '使用整合包名称' : '使用目录名称'}
+          placeholder={
+            mode === 'modpacks' ? tr('overlays.useModpackName') : tr('overlays.useDirectoryName')
+          }
         />
-        {mode === '本地目录' && (
+        {mode === 'local-directory' && (
           <Choice
-            label={detecting ? '正在检测游戏版本' : '游戏版本'}
+            label={detecting ? tr('overlays.detectingGameVersions') : tr('overlays.gameVersion')}
             value={versionId}
             onChange={setVersionId}
             options={[
-              { id: '', name: detecting ? '检测中…' : '请选择版本' },
+              {
+                id: '',
+                name: detecting ? tr('overlays.detecting') : tr('overlays.chooseAVersion'),
+              },
               ...versions.map((v) => ({
                 id: v.versionId,
                 name: `${v.versionId} · ${v.loader} ${v.version}`,
@@ -944,8 +988,8 @@ function BackgroundDialog() {
     try {
       const path = await window.nixel.selectPath({
         kind: 'file',
-        title: '选择背景图片',
-        filters: [{ name: '图片', extensions: ['png', 'jpg', 'jpeg', 'webp'] }],
+        title: tr('overlays.chooseBackgroundImage'),
+        filters: [{ name: tr('overlays.images'), extensions: ['png', 'jpg', 'jpeg', 'webp'] }],
       });
       if (path) {
         await window.nixel.invoke('settings.update', { background: path });
@@ -956,7 +1000,11 @@ function BackgroundDialog() {
     }
   };
   return (
-    <Dialog open={a.overlay !== null} onClose={() => a.setOverlay(null)} title="更换背景">
+    <Dialog
+      open={a.overlay !== null}
+      onClose={() => a.setOverlay(null)}
+      title={tr('overlays.changeBackground')}
+    >
       <div className="stack">
         <button
           type="button"
@@ -967,11 +1015,11 @@ function BackgroundDialog() {
           }}
         >
           <Landscape variant="alpine" />
-          <span className="background-preview-label">默认山谷</span>
+          <span className="background-preview-label">{tr('overlays.alpineValley')}</span>
         </button>
         <div className="row">
           <Action icon="image" onPress={() => void choose()}>
-            选择本地图片
+            {tr('overlays.chooseLocalImage')}
           </Action>
           <Action
             variant="secondary"
@@ -980,7 +1028,7 @@ function BackgroundDialog() {
               a.setOverlay(null);
             }}
           >
-            纯色背景
+            {tr('overlays.solidBackground')}
           </Action>
         </div>
         {error && <Notice tone="danger">{error}</Notice>}
@@ -1014,13 +1062,13 @@ function WizardDialog() {
       wide
       open={a.overlay !== null}
       onClose={() => a.setOverlay(null)}
-      title="欢迎使用 Nixel"
+      title={tr('overlays.welcomeToNixel')}
       footer={
         <>
           <span className="dialog-footer-note">{step + 1} / 3</span>
           {step > 0 && (
             <Action variant="secondary" onPress={() => setStep(step - 1)}>
-              上一步
+              {tr('overlays.back')}
             </Action>
           )}
           <Action
@@ -1029,47 +1077,50 @@ function WizardDialog() {
             isDisabled={step === 2 && Boolean(name) && !/^[A-Za-z0-9_]{1,16}$/.test(name)}
             onPress={() => (step === 2 ? void finish() : setStep(step + 1))}
           >
-            {step === 2 ? '开始使用' : '下一步'}
+            {step === 2 ? tr('overlays.getStarted') : tr('overlays.next')}
           </Action>
         </>
       }
     >
-      <Steps items={['欢迎', '偏好与 Java', '游戏账号']} step={step} />
+      <Steps
+        items={[tr('overlays.welcome'), tr('overlays.preferencesJava'), tr('overlays.gameAccount')]}
+        step={step}
+      />
       {step === 0 ? (
         <div className="wizard-content">
           <Brand size={68} />
-          <h2>你的世界，自由组合。</h2>
+          <h2>{tr('overlays.yourWorldYourWay')}</h2>
           <p>
-            独立实例、本地数据与可组合的插件服务。
+            {tr('overlays.independentInstancesLocalDataAndComposablePlugin')}
             <br />
-            先完成几个简单设置，再创建第一个世界。
+            {tr('overlays.setYourPreferencesThenCreateYourFirst')}
           </p>
         </div>
       ) : step === 1 ? (
         <div className="stack">
           <Segments
-            value={a.theme === 'dark' ? '深色' : a.theme === 'system' ? '跟随系统' : '浅色'}
-            options={['浅色', '深色', '跟随系统']}
-            onChange={(v) => a.setTheme(v === '深色' ? 'dark' : v === '浅色' ? 'light' : 'system')}
-            label="主题"
+            value={a.theme === 'dark' ? 'dark' : a.theme === 'system' ? 'system' : 'light'}
+            options={['light', 'dark', 'system']}
+            onChange={(v) => a.setTheme(v === 'dark' ? 'dark' : v === 'light' ? 'light' : 'system')}
+            label={tr('overlays.theme')}
           />
           <JavaSettings />
         </div>
       ) : (
         <div className="stack">
-          <h2>选择一个游戏身份</h2>
+          <h2>{tr('overlays.chooseAGameIdentity')}</h2>
           {a.accounts.length ? (
-            <Notice>已添加 {a.accounts.length} 个账号，可以直接开始。</Notice>
+            <Notice>{tr('setup.accountsReady', { count: a.accounts.length })}</Notice>
           ) : (
             <>
               <Field
-                label="离线角色名称（可选）"
+                label={tr('overlays.offlineProfileNameOptional')}
                 value={name}
                 onChange={setName}
                 placeholder="Player"
-                description="1–16 个英文字母、数字或下划线。也可以之后添加 Microsoft 账号。"
+                description={tr('overlays.116LettersNumbersOrUnderscoresYou')}
               />
-              <Notice>你可以随时前往账号页面登录 Microsoft，或添加第三方认证账号。</Notice>
+              <Notice>{tr('overlays.youCanSignInWithMicrosoftOr')}</Notice>
             </>
           )}
           {error && <Notice tone="danger">{error}</Notice>}
@@ -1084,9 +1135,17 @@ function SearchDialog() {
   const [query, setQuery] = useState('');
   const instances = a.instances.filter((i) => i.name.toLowerCase().includes(query.toLowerCase()));
   return (
-    <Dialog open={a.overlay !== null} onClose={() => a.setOverlay(null)} title="搜索启动器">
+    <Dialog
+      open={a.overlay !== null}
+      onClose={() => a.setOverlay(null)}
+      title={tr('overlays.searchLauncher')}
+    >
       <div className="stack">
-        <Search value={query} onChange={setQuery} placeholder="搜索实例或页面" />
+        <Search
+          value={query}
+          onChange={setQuery}
+          placeholder={tr('overlays.searchInstancesOrPages')}
+        />
         {instances.map((i) => (
           <Action
             key={i.id}
@@ -1102,10 +1161,10 @@ function SearchDialog() {
         ))}
         {(
           [
-            { id: 'resources', name: '资源' },
-            { id: 'plugins', name: '插件' },
-            { id: 'accounts', name: '账号' },
-            { id: 'settings', name: '设置' },
+            { id: 'resources', name: tr('App.resources') },
+            { id: 'plugins', name: tr('App.plugins') },
+            { id: 'accounts', name: tr('App.accounts') },
+            { id: 'settings', name: tr('App.settings') },
           ] as const
         )
           .filter((p) => !query || p.name.includes(query))
@@ -1129,14 +1188,14 @@ function SearchDialog() {
 
 export function TaskDrawer() {
   const a = useApp();
-  const [tab, setTab] = useState('全部');
+  const [tab, setTab] = useState('all');
   const [log, setLog] = useState('');
   const tasks = a.tasks.filter(
     (t) =>
-      tab === '全部' ||
-      (tab === '进行中'
+      tab === 'all' ||
+      (tab === 'running'
         ? t.status === 'running'
-        : tab === '已完成'
+        : tab === 'completed'
           ? t.status === 'completed'
           : t.status === 'failed' || t.status === 'cancelled'),
   );
@@ -1144,15 +1203,15 @@ export function TaskDrawer() {
     <Drawer.Backdrop isOpen={a.taskOpen} onOpenChange={a.setTaskOpen}>
       <Drawer.Content placement="right">
         <Drawer.Dialog className="task-drawer">
-          <Drawer.CloseTrigger aria-label="关闭任务中心" />
+          <Drawer.CloseTrigger aria-label={tr('overlays.closeTaskCenter')} />
           <Drawer.Header>
-            <Drawer.Heading>任务中心</Drawer.Heading>
-            <p className="muted">切换页面，进度也会继续。</p>
+            <Drawer.Heading>{tr('overlays.taskCenter')}</Drawer.Heading>
+            <p className="muted">{tr('overlays.tasksContinueWhenYouSwitchPages')}</p>
           </Drawer.Header>
           <Drawer.Body>
             <Segments
               value={tab}
-              options={['全部', '进行中', '已完成', '其他']}
+              options={['all', 'running', 'completed', 'other']}
               onChange={setTab}
             />
             <div className="task-list">
@@ -1186,10 +1245,10 @@ export function TaskDrawer() {
                         {
                           (
                             {
-                              running: '进行中',
-                              completed: '已完成',
-                              failed: '失败',
-                              cancelled: '已取消',
+                              running: label('running'),
+                              completed: label('completed'),
+                              failed: tr('overlays.failed'),
+                              cancelled: tr('overlays.cancelled'),
                             } as const
                           )[t.status]
                         }
@@ -1198,7 +1257,7 @@ export function TaskDrawer() {
                     <div
                       className={`progress-track ${t.status === 'failed' ? 'progress-error' : ''}`}
                       role="progressbar"
-                      aria-label={`${t.name}进度`}
+                      aria-label={tr('overlays.valueProgress', { value1: t.name })}
                       aria-valuenow={t.progress}
                       aria-valuemin={0}
                       aria-valuemax={100}
@@ -1215,12 +1274,12 @@ export function TaskDrawer() {
                         className="text-link"
                         onClick={() => setLog(log === t.id ? '' : t.id)}
                       >
-                        任务日志
+                        {tr('overlays.taskLog')}
                         <Icon name={log === t.id ? 'down' : 'chevron'} size={13} />
                       </button>
                       {t.status === 'running' ? (
                         <Action size="sm" variant="ghost" onPress={() => a.cancelTask(t.id)}>
-                          取消
+                          {tr('overlays.cancel')}
                         </Action>
                       ) : (
                         (t.status === 'failed' || t.status === 'cancelled') && (
@@ -1230,22 +1289,22 @@ export function TaskDrawer() {
                             icon="refresh"
                             onPress={() => a.retryTask(t)}
                           >
-                            重试
+                            {tr('overlays.retry')}
                           </Action>
                         )
                       )}
                     </div>
                     {log === t.id && (
                       <pre className="task-log">
-                        {t.logs.length ? t.logs.join('\n') : '暂无任务日志。'}
+                        {t.logs.length ? t.logs.join('\n') : tr('overlays.noTaskLogYet')}
                       </pre>
                     )}
                   </article>
                 ))
               ) : (
                 <Empty
-                  title="这里暂时没有任务"
-                  detail="安装游戏或添加资源后，进度会显示在这里。"
+                  title={tr('overlays.noTasksYet')}
+                  detail={tr('overlays.installAGameOrAddResourcesTo')}
                   icon="download"
                 />
               )}
@@ -1253,10 +1312,12 @@ export function TaskDrawer() {
           </Drawer.Body>
           <Drawer.Footer>
             <span className="micro">
-              {a.tasks.filter((t) => t.status === 'running').length} 项任务进行中
+              {tr('tasks.activeCount', {
+                count: a.tasks.filter((task) => task.status === 'running').length,
+              })}
             </span>
             <Action variant="ghost" size="sm" onPress={a.clearTasks}>
-              清除已结束任务
+              {tr('overlays.clearFinishedTasks')}
             </Action>
           </Drawer.Footer>
         </Drawer.Dialog>

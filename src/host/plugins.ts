@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import type { Context, Fiber, Plugin } from 'cordis';
 import type { NixelPluginManifest, PluginItem } from '../shared/contracts';
 import type { BuiltinPlugin } from '../shared/host-api';
+import { tr, translatedName, withTranslations } from '../shared/i18n';
 import type { NixelService } from './core';
 import { validateSettings } from './settings';
 
@@ -50,14 +51,21 @@ export class HostPlugins {
 
   async initialize(builtins: BuiltinPlugin[]) {
     const defaults: BuiltinPlugin = {
-      manifest: {
-        id: 'nixel.ui.default',
-        name: 'Nixel 默认界面',
-        version: '1.0.0',
-        description: 'NixelLauncher 内置界面。',
-        apiVersion: 1,
-        category: '界面',
-      },
+      manifest: withTranslations(
+        {
+          id: 'nixel.ui.default',
+          name: tr('plugins.nixelDefaultInterface'),
+          version: '1.0.0',
+          description: tr('plugins.theBuiltInNixellauncherInterface'),
+          apiVersion: 1,
+          category: tr('plugins.interface'),
+        },
+        {
+          name: 'plugins.nixelDefaultInterface',
+          description: 'plugins.theBuiltInNixellauncherInterface',
+          category: 'plugins.interface',
+        },
+      ),
       plugin: (ctx: Context) => {
         ctx.nixel.providers.register(
           ctx,
@@ -65,7 +73,7 @@ export class HostPlugins {
             id: 'nixel.ui.default',
             pluginId: 'nixel.ui.default',
             kind: 'interface',
-            name: 'Nixel 默认界面',
+            ...translatedName('plugins.nixelDefaultInterface'),
           },
           {},
         );
@@ -81,16 +89,16 @@ export class HostPlugins {
       if (!persisted.directory || this.entries.has(id)) continue;
       try {
         const manifest = await this.readManifest(persisted.directory);
-        if (manifest.id !== id) throw new Error('插件 ID 与已安装记录不一致。');
+        if (manifest.id !== id) throw new Error(tr('plugins.thePluginIdDoesNotMatchIts'));
         this.entries.set(id, { item: this.item(manifest, false, persisted.directory) });
       } catch (error) {
         const manifest: NixelPluginManifest = {
           id,
           name: id,
           version: '?',
-          description: '无法读取本地插件。',
+          description: tr('plugins.cannotReadTheLocalPlugin'),
           apiVersion: 1,
-          category: '本地',
+          category: tr('plugins.local'),
         };
         const item = this.item(manifest, false, persisted.directory);
         item.status = 'error';
@@ -129,13 +137,13 @@ export class HostPlugins {
       typeof manifest.category !== 'string' ||
       (!manifest.main && !manifest.renderer)
     )
-      throw new Error('nixel-plugin.json 格式无效，或插件 API 版本不受支持。');
+      throw new Error(tr('plugins.invalidNixelPluginJsonOrUnsupportedPlugin'));
     if (
       manifest.dependencies &&
       (!Array.isArray(manifest.dependencies) ||
         manifest.dependencies.some((id) => typeof id !== 'string'))
     ) {
-      throw new Error('插件依赖格式无效。');
+      throw new Error(tr('plugins.invalidPluginDependencies'));
     }
     if (manifest.main) await this.entryPath(directory, manifest.main);
     if (manifest.renderer) await this.entryPath(directory, manifest.renderer);
@@ -144,12 +152,12 @@ export class HostPlugins {
 
   private async entryPath(directory: string, entry: string) {
     if (typeof entry !== 'string' || isAbsolute(entry))
-      throw new Error('插件入口必须是目录内的相对路径。');
+      throw new Error(tr('plugins.thePluginEntryMustBeARelative'));
     const root = await realpath(directory);
     const path = await realpath(resolve(root, entry));
     const relation = relative(root, path);
     if (relation.startsWith('..') || isAbsolute(relation))
-      throw new Error('插件入口超出安装目录。');
+      throw new Error(tr('plugins.thePluginEntryIsOutsideItsInstallation'));
     await access(path);
     return path;
   }
@@ -157,14 +165,16 @@ export class HostPlugins {
   private async enable(id: string, ancestors: Set<string>) {
     const entry = this.require(id);
     if (entry.fiber || entry.item.status === 'active') return;
-    if (ancestors.has(id)) throw new Error(`插件循环依赖：${id}`);
+    if (ancestors.has(id))
+      throw new Error(tr('plugins.circularPluginDependencyValue', { value1: id }));
     try {
       const next = new Set(ancestors).add(id);
       for (const dependency of entry.item.manifest.dependencies ?? []) {
-        if (!this.require(dependency).item.enabled) throw new Error(`请先启用依赖：${dependency}`);
+        if (!this.require(dependency).item.enabled)
+          throw new Error(tr('plugins.enableThisDependencyFirstValue', { value1: dependency }));
         await this.enable(dependency, next);
         if (this.require(dependency).item.status !== 'active')
-          throw new Error(`依赖加载失败：${dependency}`);
+          throw new Error(tr('plugins.failedToLoadDependencyValue', { value1: dependency }));
       }
       let plugin = entry.plugin;
       if (!entry.item.builtin && entry.item.manifest.main && entry.item.directory) {
@@ -211,7 +221,7 @@ export class HostPlugins {
 
   private require(id: string) {
     const entry = this.entries.get(id);
-    if (!entry) throw new Error(`插件未安装：${id}`);
+    if (!entry) throw new Error(tr('plugins.pluginIsNotInstalledValue', { value1: id }));
     return entry;
   }
 
@@ -219,14 +229,16 @@ export class HostPlugins {
     const entry = this.require(id);
     this.assertIdle(entry);
     if (this.host.store.read().settings.interfacePlugin === id)
-      throw new Error('请先切换到其他界面。');
+      throw new Error(tr('plugins.switchToAnotherInterfaceFirst'));
     const dependents = [...this.entries.values()].filter(
       (plugin) =>
         plugin.item.status === 'active' && plugin.item.manifest.dependencies?.includes(id),
     );
     if (dependents.length)
       throw new Error(
-        `请先禁用依赖此插件的 ${dependents.map((plugin) => plugin.item.name).join('、')}。`,
+        tr('plugins.disableValueWhichDependsOnThisPlugin', {
+          value1: dependents.map((plugin) => plugin.item.name).join('、'),
+        }),
       );
     await entry.fiber?.dispose();
     entry.fiber = undefined;
@@ -242,7 +254,7 @@ export class HostPlugins {
       this.host.running.size ||
       this.host.tasks.list().some((task) => task.status === 'running')
     ) {
-      throw new Error('请先停止游戏并取消运行中的任务，再修改后端插件。');
+      throw new Error(tr('plugins.stopGamesAndCancelActiveTasksBefore'));
     }
   }
 
@@ -259,10 +271,12 @@ export class HostPlugins {
 
   private async selectInterface(id: string) {
     const entry = this.require(id);
-    if (entry.item.status !== 'active') throw new Error('所选界面插件未启用。');
+    if (entry.item.status !== 'active')
+      throw new Error(tr('plugins.theSelectedInterfacePluginIsDisabled'));
     if (id === 'nixel.ui.default') return this.loadInterface('');
     const { renderer } = entry.item.manifest;
-    if (!renderer || !entry.item.directory) throw new Error('插件没有提供界面。');
+    if (!renderer || !entry.item.directory)
+      throw new Error(tr('plugins.thisPluginDoesNotProvideAnInterface'));
     await this.loadInterface(await this.entryPath(entry.item.directory, renderer));
   }
 
@@ -289,7 +303,7 @@ export class HostPlugins {
       this.ctx,
       'plugins.setEnabled',
       async ({ id, enabled }: { id: string; enabled: boolean }) => {
-        if (typeof enabled !== 'boolean') throw new Error('启用状态无效。');
+        if (typeof enabled !== 'boolean') throw new Error(tr('plugins.invalidEnabledState'));
         if (enabled) {
           this.require(id).item.enabled = true;
           await this.enable(id, new Set());
@@ -302,7 +316,7 @@ export class HostPlugins {
       'plugins.configure',
       async ({ id, config }: { id: string; config: Record<string, unknown> }) => {
         if (!config || typeof config !== 'object' || Array.isArray(config))
-          throw new Error('插件配置必须是对象。');
+          throw new Error(tr('plugins.pluginConfigurationMustBeAnObject'));
         const entry = this.require(id);
         this.assertIdle(entry);
         entry.item.config = config;
@@ -325,17 +339,18 @@ export class HostPlugins {
       },
     );
     commands.register(this.ctx, 'plugins.install', async ({ directory }: { directory: string }) => {
-      if (!isAbsolute(directory)) throw new Error('插件目录必须是绝对路径。');
+      if (!isAbsolute(directory)) throw new Error(tr('plugins.thePluginDirectoryMustBeAnAbsolute'));
       const root = await realpath(directory);
       const manifest = await this.readManifest(root);
-      if (this.entries.has(manifest.id)) throw new Error('此插件已经安装。');
+      if (this.entries.has(manifest.id))
+        throw new Error(tr('plugins.thisPluginIsAlreadyInstalled'));
       this.entries.set(manifest.id, { item: this.item(manifest, false, root) });
       await this.enable(manifest.id, new Set());
       await this.save();
     });
     commands.register(this.ctx, 'plugins.remove', async ({ id }: { id: string }) => {
       const entry = this.require(id);
-      if (entry.item.builtin) throw new Error('内置插件不能卸载，可以将其禁用。');
+      if (entry.item.builtin) throw new Error(tr('plugins.builtInPluginsCanBeDisabledBut'));
       await this.disable(id);
       this.entries.delete(id);
       await this.save();

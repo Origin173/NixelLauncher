@@ -6,6 +6,7 @@ import { pipeline } from 'node:stream/promises';
 import type { Context } from 'cordis';
 import type { Instance, Loader } from '../shared/contracts';
 import type { NixelHost, TaskContext } from '../shared/host-api';
+import { tr } from '../shared/i18n';
 import { commandsFor } from './commands';
 import { inside } from './files';
 import { assertInstanceIdle, createInstance, getInstance } from './game';
@@ -32,7 +33,8 @@ async function detectVersions(root: string) {
       /* An unrelated incomplete profile does not hide valid versions. */
     }
   }
-  if (!candidates.length) throw new Error('目录中没有可识别的 Minecraft 版本文件');
+  if (!candidates.length)
+    throw new Error(tr('local-instances.noRecognizableMinecraftVersionFilesFoundIn'));
   return candidates.map((profile) => describeVersion(profile, candidates));
 }
 
@@ -74,13 +76,16 @@ async function copyTree(source: string, target: string, task: TaskContext) {
     !difference ||
     (!isAbsolute(difference) && difference !== '..' && !difference.startsWith(`..${sep}`))
   )
-    throw new Error('目标实例目录不能位于来源目录中');
+    throw new Error(tr('local-instances.theTargetInstanceDirectoryCannotBeInside'));
   const files: { source: string; name: string; size: number }[] = [];
   async function walk(root: string, prefix = '') {
     task.signal.throwIfAborted();
     for (const entry of await readdir(root, { withFileTypes: true })) {
       const name = prefix ? `${prefix}/${entry.name}` : entry.name;
-      if (entry.isSymbolicLink()) throw new Error(`不支持复制符号链接：${name}`);
+      if (entry.isSymbolicLink())
+        throw new Error(
+          tr('local-instances.copyingSymbolicLinksIsNotSupportedValue', { value1: name }),
+        );
       if (
         !prefix &&
         [
@@ -107,11 +112,16 @@ async function copyTree(source: string, target: string, task: TaskContext) {
     const source = createReadStream(file.source);
     source.on('data', (chunk) => {
       completed += chunk.length;
-      task.report(total ? (completed / total) * 100 : 0, `复制 ${file.name}`);
+      task.report(
+        total ? (completed / total) * 100 : 0,
+        tr('local-instances.copyValue', { value1: file.name }),
+      );
     });
     await pipeline(source, createWriteStream(path), { signal: task.signal });
   }
-  task.log(`已复制 ${files.length} 个文件，保留存档与配置`);
+  task.log(
+    tr('local-instances.copiedValueFilesIncludingSavesAndConfiguration', { value1: files.length }),
+  );
 }
 
 async function copyInstance(
@@ -165,11 +175,13 @@ async function copyInstance(
       item.error = original?.error;
       item.pendingOperation = undefined;
     });
-    task.log(`新实例：${instance.name}`);
+    task.log(tr('local-instances.newInstanceValue', { value1: instance.name }));
   } catch (error) {
     const target = inside(root, instance.id);
     if (target !== resolve(instance.directory))
-      throw new Error('新实例目录边界不匹配，未删除文件', { cause: error });
+      throw new Error(tr('local-instances.theNewInstanceDirectoryBoundaryDoesNot'), {
+        cause: error,
+      });
     await rm(target, { recursive: true, force: true });
     await host.store.update((draft) => {
       draft.instances = draft.instances.filter((entry) => entry.id !== instance.id);
@@ -189,8 +201,8 @@ export function registerLocalInstances(ctx: Context) {
     'instances.importDirectory',
     ({ path, name, versionId }: { path: string; name?: string; versionId?: string }) => ({
       taskId: host.tasks.start(
-        '导入游戏目录',
-        '识别本地游戏版本',
+        tr('local-instances.importGameDirectory'),
+        tr('local-instances.detectingLocalGameVersions'),
         async (task) => {
           const source = await realpath(path);
           const versions = await detectVersions(source);
@@ -199,10 +211,11 @@ export function registerLocalInstances(ctx: Context) {
             : versions.length === 1
               ? versions[0]
               : undefined;
-          if (!version) throw new Error('请从此目录中选择要导入的游戏版本');
+          if (!version) throw new Error(tr('local-instances.chooseAGameVersionToImportFrom'));
           await copyInstance(host, task, source, {
             ...version,
-            name: name?.trim() || source.split(/[\\/]/).pop() || '导入的实例',
+            name:
+              name?.trim() || source.split(/[\\/]/).pop() || tr('local-instances.importedInstance'),
           });
         },
         {
@@ -217,8 +230,8 @@ export function registerLocalInstances(ctx: Context) {
     assertInstanceIdle(host, id);
     return {
       taskId: host.tasks.start(
-        `复制 ${original.name}`,
-        '准备复制实例',
+        tr('local-instances.copyValue', { value1: original.name }),
+        tr('local-instances.preparingToCopyTheInstance'),
         async (task) => {
           const original = getInstance(host, id);
           assertInstanceIdle(host, id, task.taskId);
@@ -226,7 +239,10 @@ export function registerLocalInstances(ctx: Context) {
             host,
             task,
             original.directory,
-            { ...original, name: name?.trim() || `${original.name} 副本` },
+            {
+              ...original,
+              name: name?.trim() || tr('local-instances.valueCopy', { value1: original.name }),
+            },
             original,
           );
         },

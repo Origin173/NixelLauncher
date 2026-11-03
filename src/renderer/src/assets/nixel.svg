@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 64 64" fill="none">
+  <title>NixelLauncher</title>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#142D36"/>
+  <path d="M13 23 31 13 42 19 24 29Z" fill="#ADFADE"/>
+  <path d="M13 23 24 29V48L13 42Z" fill="#46C8C2"/>
+  <path d="M24 48 42 38V19L51 24V43L33 53Z" fill="#238FAD"/>
+  <path d="M24 48 42 38 51 43 33 53Z" fill="#3EBCC6"/>
+  <path d="m39 10 9-5 9 5-9 5Z" fill="#D3FFED"/>
+  <path d="m39 10 9 5v9l-9-5Z" fill="#79E2C5"/>
+  <path d="m48 15 9-5v9l-9 5Z" fill="#39AEAA"/>
+</svg>

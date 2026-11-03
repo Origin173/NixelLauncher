@@ -7,6 +7,7 @@ import type { Context } from 'cordis';
 import { ZipFile } from 'yazl';
 import type { Loader } from '../shared/contracts';
 import type { NixelHost, TaskContext } from '../shared/host-api';
+import { tr } from '../shared/i18n';
 import type { CurseForgePackFile, CurseForgeResourceProvider } from './curseforge';
 import { download, inside } from './files';
 import { assertInstanceIdle, createInstance, getInstance } from './game';
@@ -67,14 +68,15 @@ export async function importModpack(
         !Array.isArray(manifest.files) ||
         !Array.isArray(manifest.minecraft.modLoaders)
       )
-        throw new Error('CurseForge manifest.json 格式无效');
+        throw new Error(tr('modpacks.invalidCurseforgeManifestJson'));
       const dependencies: Record<string, string> = { minecraft: manifest.minecraft.version };
       const primary =
         manifest.minecraft.modLoaders.find((loader) => loader.primary) ||
         manifest.minecraft.modLoaders[0];
       if (primary) {
         const match = /^(forge|fabric|neoforge)-(.+)$/.exec(primary.id);
-        if (!match?.[1] || !match[2]) throw new Error(`此整合包的加载器尚不支持：${primary.id}`);
+        if (!match?.[1] || !match[2])
+          throw new Error(tr('modpacks.thisModpackSLoaderIsNotSupported', { value1: primary.id }));
         dependencies[match[1] === 'fabric' ? 'fabric-loader' : match[1]] = match[2];
       }
       curseForgeFiles = manifest.files.filter((file) => file.required !== false);
@@ -86,9 +88,9 @@ export async function importModpack(
           !Number.isSafeInteger(file.fileID) ||
           file.fileID <= 0
         )
-          throw new Error('CurseForge 整合包含有无效的项目或文件 ID');
+          throw new Error(tr('modpacks.theCurseforgeModpackContainsAnInvalidProject'));
         if (pinned.has(file.projectID) && pinned.get(file.projectID) !== file.fileID)
-          throw new Error('CurseForge 整合包给同一项目指定了冲突的文件版本');
+          throw new Error(tr('modpacks.theCurseforgeModpackSpecifiesConflictingVersionsFor'));
         pinned.set(file.projectID, file.fileID);
       }
       const overrides = (manifest.overrides || 'overrides').replace(/\/$/, '');
@@ -106,17 +108,20 @@ export async function importModpack(
         'resources',
         'nixel.resources.curseforge',
       );
-    } else throw new Error('整合包缺少 modrinth.index.json 或 CurseForge manifest.json');
+    } else throw new Error(tr('modpacks.theModpackIsMissingModrinthIndexJson'));
     if (
       index.formatVersion !== 1 ||
       index.game !== 'minecraft' ||
       !index.dependencies?.minecraft ||
       !Array.isArray(index.files)
     )
-      throw new Error('不支持的整合包格式');
+      throw new Error(tr('modpacks.unsupportedModpackFormat'));
     const supported = ['minecraft', 'fabric-loader', 'forge', 'neoforge', 'quilt-loader'];
     const unsupported = Object.keys(index.dependencies).find((key) => !supported.includes(key));
-    if (unsupported) throw new Error(`此整合包包含未支持的组件：${unsupported}`);
+    if (unsupported)
+      throw new Error(
+        tr('modpacks.thisModpackContainsAnUnsupportedComponentValue', { value1: unsupported }),
+      );
     let loader: Loader = 'Vanilla';
     let loaderVersion: string | undefined;
     for (const [key, kind] of [
@@ -134,14 +139,14 @@ export async function importModpack(
       if (entry.fileName.endsWith('/')) continue;
       inside(host.store.cacheRoot, entry.fileName);
       if (((entry.externalFileAttributes >>> 16) & 0o170000) === 0o120000)
-        throw new Error('整合包不允许包含符号链接');
+        throw new Error(tr('modpacks.modpacksCannotContainSymbolicLinks'));
     }
     for (const file of index.files) {
       inside(host.store.cacheRoot, file.path);
       if (!file.hashes?.sha1 || !file.hashes?.sha512 || !file.downloads?.length)
-        throw new Error('整合包文件缺少 SHA-1、SHA-512 校验值或下载地址');
+        throw new Error(tr('modpacks.aModpackFileIsMissingSha1'));
       if (file.downloads.some((url) => new URL(url).protocol !== 'https:'))
-        throw new Error('整合包下载地址必须使用 HTTPS');
+        throw new Error(tr('modpacks.modpackDownloadUrlsMustUseHttps'));
     }
     if (curseForgeProvider && curseForgeFiles)
       await curseForgeProvider.prepareFiles(curseForgeFiles, task.signal);
@@ -195,7 +200,10 @@ export async function importModpack(
       if (failure) throw failure;
       task.report(
         (++completed / clientFiles.length) * 100,
-        `导入整合包文件 ${completed}/${clientFiles.length}`,
+        tr('modpacks.importModpackFileValueValue', {
+          value1: completed,
+          value2: clientFiles.length,
+        }),
       );
     }
     for (const prefix of overridePrefixes) {
@@ -220,7 +228,7 @@ export async function importModpack(
       }
     });
     task.signal.throwIfAborted();
-    task.log(`整合包已导入：${instance.name}`);
+    task.log(tr('modpacks.modpackImportedValue', { value1: instance.name }));
     return instance.id;
   } catch (error) {
     if (createdInstance) {
@@ -232,18 +240,21 @@ export async function importModpack(
           !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(created.id) ||
           directory !== resolve(created.directory)
         )
-          throw new Error('新实例目录边界不匹配，未执行文件删除');
+          throw new Error(tr('modpacks.theNewInstanceDirectoryBoundaryDoesNot'));
         await rm(directory, { recursive: true, force: true });
         await host.store.update((draft) => {
           draft.instances = draft.instances.filter((entry) => entry.id !== created.id);
           draft.content = draft.content.filter((entry) => entry.instance !== created.id);
         });
-        task.log('已清理未完成的整合包实例，重试会重新导入');
+        task.log(tr('modpacks.removedTheUnfinishedModpackInstanceRetryingWill'));
       } catch (cleanupError) {
         failures.push(cleanupError);
       }
       if (failures.length > 1)
-        throw new AggregateError(failures, '整合包导入失败，部分清理未完成，请检查实例数据目录');
+        throw new AggregateError(
+          failures,
+          tr('modpacks.modpackImportFailedAndCleanupWasIncomplete'),
+        );
     }
     throw error;
   } finally {
@@ -254,7 +265,7 @@ export async function importModpack(
 async function exportModpack(host: NixelHost, id: string, path: string, task: TaskContext) {
   const instance = getInstance(host, id);
   assertInstanceIdle(host, id, task.taskId);
-  if (host.running.has(id)) throw new Error('请先停止游戏再导出整合包');
+  if (host.running.has(id)) throw new Error(tr('modpacks.stopTheGameBeforeExportingAModpack'));
   const dependencies: Record<string, string> = { minecraft: instance.version };
   const loaderKey = {
     Fabric: 'fabric-loader',
@@ -265,7 +276,7 @@ async function exportModpack(host: NixelHost, id: string, path: string, task: Ta
   }[instance.loader];
   if (loaderKey && instance.loaderVersion) dependencies[loaderKey] = instance.loaderVersion;
   if (loaderKey && !instance.loaderVersion) {
-    throw new Error('实例缺少准确的加载器版本，请完成游戏安装后导出');
+    throw new Error(tr('modpacks.theExactLoaderVersionIsMissingFinish'));
   }
   const index: MrpackIndex = {
     formatVersion: 1,
@@ -324,7 +335,7 @@ async function exportModpack(host: NixelHost, id: string, path: string, task: Ta
     await rm(temporary, { force: true });
     throw error;
   }
-  task.log(`已导出 ${files.length} 个文件，包含玩家存档`);
+  task.log(tr('modpacks.exportedValueFilesIncludingPlayerSaves', { value1: files.length }));
 }
 
 export function registerModpacks(ctx: Context) {
@@ -334,8 +345,8 @@ export function registerModpacks(ctx: Context) {
     'instances.import',
     ({ path, name }: { path: string; name?: string }) => ({
       taskId: host.tasks.start(
-        '导入整合包',
-        '读取整合包清单',
+        tr('modpacks.importModpack'),
+        tr('modpacks.readingTheModpackManifest'),
         async (task) => {
           await importModpack(host, path, task, name);
         },
@@ -347,8 +358,8 @@ export function registerModpacks(ctx: Context) {
     assertInstanceIdle(host, id);
     return {
       taskId: host.tasks.start(
-        '导出整合包',
-        '打包实例与存档',
+        tr('modpacks.exportModpack'),
+        tr('modpacks.packingTheInstanceAndSaves'),
         (task) => exportModpack(host, id, path, task),
         {
           instanceId: id,

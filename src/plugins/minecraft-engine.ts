@@ -20,6 +20,7 @@ import {
   resolveMinecraftVersionJsonInstallFile,
   resolveNeoForgedInstallerFile,
 } from '@xmcl/installer';
+import { tr } from '../shared/i18n';
 import { json } from './files';
 
 export type LoaderKind = 'vanilla' | 'fabric' | 'quilt' | 'forge' | 'neoforge';
@@ -71,7 +72,10 @@ export async function listLoaderVersions(
     `https://maven.neoforged.net/releases/net/neoforged/${project}/maven-metadata.xml`,
     { signal },
   );
-  if (!response.ok) throw new Error(`NeoForge 版本查询失败：HTTP ${response.status}`);
+  if (!response.ok)
+    throw new Error(
+      tr('minecraft-engine.neoforgeVersionLookupFailedHttpValue', { value1: response.status }),
+    );
   const content = await response.text();
   const [, minor, patch = '0'] = minecraft.split('.');
   const prefix =
@@ -90,7 +94,8 @@ export async function requiredJava(minecraft: string, signal?: AbortSignal) {
   const metadata = (await getVersionList({ signal })).versions.find(
     (version) => version.id === minecraft,
   );
-  if (!metadata) throw new Error(`Minecraft 版本不存在：${minecraft}`);
+  if (!metadata)
+    throw new Error(tr('minecraft-engine.minecraftVersionNotFoundValue', { value1: minecraft }));
   const version = await json<{ javaVersion?: { majorVersion: number } }>(metadata.url, { signal });
   return version.javaVersion?.majorVersion || 8;
 }
@@ -103,7 +108,7 @@ export async function installMinecraft(input: InstallInput, progress: WorkProgre
     tracker,
     maxConcurrency: input.concurrency || 8,
   });
-  let stage = '准备安装';
+  let stage = tr('game.preparingInstallation');
   const timer = setInterval(() => progress.update(stage, tracker.progress, tracker.total), 250);
   const execute = async (files: ReturnType<typeof resolveLibraryInstallFiles>, message: string) => {
     progress.signal.throwIfAborted();
@@ -119,19 +124,31 @@ export async function installMinecraft(input: InstallInput, progress: WorkProgre
     const metadata = (await getVersionList({ signal: progress.signal })).versions.find(
       (version) => version.id === input.minecraft,
     );
-    if (!metadata) throw new Error(`Minecraft 版本不存在：${input.minecraft}`);
-    await execute([resolveMinecraftVersionJsonInstallFile(metadata, folder)], '下载游戏版本信息');
+    if (!metadata)
+      throw new Error(
+        tr('minecraft-engine.minecraftVersionNotFoundValue', { value1: input.minecraft }),
+      );
+    await execute(
+      [resolveMinecraftVersionJsonInstallFile(metadata, folder)],
+      tr('minecraft-engine.downloadingGameVersionMetadata'),
+    );
     let version = await Version.parse(folder, input.minecraft);
     const jar = resolveMinecraftJarInstallFile(version);
-    await execute(jar ? [jar] : [], '下载游戏本体');
-    await execute(resolveLibraryInstallFiles(version.libraries, folder), '下载基础游戏依赖库');
+    await execute(jar ? [jar] : [], tr('minecraft-engine.downloadingTheGame'));
+    await execute(
+      resolveLibraryInstallFiles(version.libraries, folder),
+      tr('minecraft-engine.downloadingBaseGameLibraries'),
+    );
     let versionId = input.minecraft;
     if (input.loader !== 'vanilla') {
       const loaderVersion =
         input.loaderVersion ||
         (await listLoaderVersions(input.loader, input.minecraft, progress.signal))[0];
-      if (!loaderVersion) throw new Error('未找到兼容的加载器版本');
-      stage = `安装 ${input.loader} ${loaderVersion}`;
+      if (!loaderVersion) throw new Error(tr('game.noCompatibleLoaderVersionFound'));
+      stage = tr('minecraft-engine.installValueValue', {
+        value1: input.loader,
+        value2: loaderVersion,
+      });
       progress.update(stage);
       if (input.loader === 'fabric' || input.loader === 'quilt') {
         versionId = await executeInstallWorkflow(
@@ -182,9 +199,18 @@ export async function installMinecraft(input: InstallInput, progress: WorkProgre
       }
       version = await Version.parse(folder, versionId);
     }
-    await execute(resolveLibraryInstallFiles(version.libraries, folder), '下载游戏依赖库');
-    await execute(resolveAssetMetadataInstallFiles(version, folder), '下载资源索引');
-    await execute(await resolveAssetObjectInstallFiles(version, folder), '下载游戏资源');
+    await execute(
+      resolveLibraryInstallFiles(version.libraries, folder),
+      tr('minecraft-engine.downloadingGameLibraries'),
+    );
+    await execute(
+      resolveAssetMetadataInstallFiles(version, folder),
+      tr('minecraft-engine.downloadingTheAssetIndex'),
+    );
+    await execute(
+      await resolveAssetObjectInstallFiles(version, folder),
+      tr('minecraft-engine.downloadingGameAssets'),
+    );
     return versionId;
   } finally {
     clearInterval(timer);

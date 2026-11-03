@@ -1,10 +1,11 @@
 import { Button, Card, Description, Label, ListBox, Popover } from '@heroui/react';
 import { useState } from 'react';
+import { label, tr } from '../../../shared/i18n';
 import { Icon } from '../icons';
 import { LaunchButton } from '../LaunchButton';
 import { useApp } from '../state';
 import { Action, IconButton } from '../ui';
-import { PlaceholderIcon } from '../workspace';
+import { AssetIcon } from '../workspace';
 
 function QuickPicker({ kind }: { kind: 'instance' | 'account' }) {
   const a = useApp();
@@ -26,31 +27,41 @@ function QuickPicker({ kind }: { kind: 'instance' | 'account' }) {
           name: i.name,
           description: `${i.version} · ${i.loader}`,
         }))
-      : a.accounts.map((p) => ({ id: p.id, name: p.name, description: p.type }));
+      : a.accounts.map((p) => ({ id: p.id, name: p.name, description: label(p.type) }));
   return (
     <Popover isOpen={open} onOpenChange={setOpen}>
       <Button
         variant="ghost"
         isIconOnly={kind === 'instance'}
         className={kind === 'instance' ? 'instance-switch' : 'quick-account'}
-        aria-label={kind === 'instance' ? '切换启动实例' : '切换启动账号'}
+        aria-label={
+          kind === 'instance' ? tr('Home.switchLaunchInstance') : tr('Home.switchLaunchAccount')
+        }
       >
         {kind === 'account' && (
           <>
-            <PlaceholderIcon name={account?.name ?? '?'} size="sm" />
+            <AssetIcon kind="account" size="sm" />
             <span className="picker-copy">
-              <strong>{account?.name ?? '选择账号'}</strong>
-              <small>{account?.type ?? '添加一个游戏账号'}</small>
+              <strong>{account?.name ?? tr('Home.chooseAccount')}</strong>
+              <small>{account ? label(account.type) : tr('Home.addAGameAccount')}</small>
             </span>
           </>
         )}
         <Icon name="down" size={14} />
       </Button>
       <Popover.Content placement="top end" className="quick-picker-popover">
-        <Popover.Dialog aria-label={kind === 'instance' ? '选择启动实例' : '选择启动账号'}>
-          <Popover.Heading>{kind === 'instance' ? '启动实例' : '启动账号'}</Popover.Heading>
+        <Popover.Dialog
+          aria-label={
+            kind === 'instance' ? tr('Home.chooseLaunchInstance') : tr('Home.chooseLaunchAccount')
+          }
+        >
+          <Popover.Heading>
+            {kind === 'instance' ? tr('Home.launchInstance') : tr('Home.launchAccount')}
+          </Popover.Heading>
           <ListBox
-            aria-label={kind === 'instance' ? '可启动实例' : '可用账号'}
+            aria-label={
+              kind === 'instance' ? tr('Home.availableInstances') : tr('Home.availableAccounts')
+            }
             selectionMode="single"
             disallowEmptySelection
             selectedKeys={[kind === 'instance' ? (instance?.id ?? '') : accountId]}
@@ -61,7 +72,14 @@ function QuickPicker({ kind }: { kind: 'instance' | 'account' }) {
           >
             {items.map((item) => (
               <ListBox.Item key={item.id} id={item.id} textValue={item.name}>
-                <PlaceholderIcon name={item.name} size="sm" />
+                <AssetIcon
+                  kind={
+                    kind === 'account'
+                      ? 'account'
+                      : a.instances.find((instance) => instance.id === item.id)?.loader
+                  }
+                  size="sm"
+                />
                 <div className="picker-copy">
                   <Label>{item.name}</Label>
                   <Description>{item.description}</Description>
@@ -80,7 +98,7 @@ function QuickPicker({ kind }: { kind: 'instance' | 'account' }) {
                 a.setOverlay({ type: kind === 'instance' ? 'create' : 'account' });
               }}
             >
-              添加{kind === 'instance' ? '实例' : '账号'}
+              {kind === 'instance' ? tr('home.addInstance') : tr('overlays.addAccount')}
             </Action>
             <Action
               variant="ghost"
@@ -91,7 +109,7 @@ function QuickPicker({ kind }: { kind: 'instance' | 'account' }) {
                 else a.setPage('accounts');
               }}
             >
-              管理
+              {tr('Home.manage')}
               <Icon name="arrow" size={14} />
             </Action>
           </div>
@@ -106,33 +124,33 @@ export function Home() {
   const instance = a.launchInstance;
   return (
     <div className="home-page">
-      <section className="home-scene" aria-label="启动器主页">
+      <section className="home-scene" aria-label={tr('Home.launcherHome')}>
         <div className="background-action">
           <Action
             isIconOnly
             variant="secondary"
-            aria-label="更换背景"
+            aria-label={tr('overlays.changeBackground')}
             icon="image"
             onPress={() => a.setOverlay({ type: 'background' })}
           />
         </div>
         <Card
           className={`launch-dock ${instance ? '' : 'launch-dock--empty'}`}
-          aria-label="游戏启动区域"
+          aria-label={tr('Home.gameLaunchArea')}
         >
           {!instance ? (
             <>
-              <h2 className="dock-empty-title">添加游戏实例</h2>
+              <h2 className="dock-empty-title">{tr('Home.addAGameInstance')}</h2>
               <div className="dock-empty-actions">
                 <Action icon="plus" onPress={() => a.setOverlay({ type: 'create' })}>
-                  创建实例
+                  {tr('overlays.createInstance')}
                 </Action>
                 <Action
                   icon="upload"
                   variant="secondary"
                   onPress={() => a.setOverlay({ type: 'import' })}
                 >
-                  导入实例
+                  {tr('overlays.importInstance')}
                 </Action>
               </div>
             </>
@@ -146,7 +164,7 @@ export function Home() {
                   icon="user"
                   onPress={() => a.setOverlay({ type: 'account' })}
                 >
-                  添加账号
+                  {tr('overlays.addAccount')}
                 </Action>
               )}
               <div className="dock-divider" />
@@ -154,10 +172,10 @@ export function Home() {
                 <button
                   type="button"
                   className="dock-instance-detail"
-                  aria-label={`管理实例 ${instance.name}`}
+                  aria-label={tr('Home.manageInstanceValue', { value1: instance.name })}
                   onClick={() => a.openInstance(instance.id)}
                 >
-                  <PlaceholderIcon name={instance.name} />
+                  <AssetIcon kind={instance.loader} />
                   <span className="picker-copy">
                     <strong>{instance.name}</strong>
                     <small>
@@ -175,9 +193,9 @@ export function Home() {
                   className="launch-main-action"
                 />
                 <IconButton
-                  label="当前实例设置"
+                  label={tr('Home.currentInstanceSettings')}
                   icon="settings"
-                  onPress={() => a.openInstance(instance.id, '设置')}
+                  onPress={() => a.openInstance(instance.id, 'settings')}
                 />
               </div>
             </>

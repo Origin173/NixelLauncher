@@ -4,10 +4,11 @@ import { mkdir, rename, rm } from 'node:fs/promises';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
+import { tr } from '../shared/i18n';
 
 export function inside(root: string, path: string) {
   if (isAbsolute(path) || path.includes('\\') || path.includes(':'))
-    throw new Error('文件路径必须是相对路径');
+    throw new Error(tr('files.theFilePathMustBeRelative'));
   if (
     path
       .split('/')
@@ -22,7 +23,7 @@ export function inside(root: string, path: string) {
           /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(segment),
       )
   )
-    throw new Error('文件路径包含不安全的名称');
+    throw new Error(tr('files.theFilePathContainsAnUnsafeName'));
   const target = resolve(root, path);
   const difference = relative(resolve(root), target);
   if (
@@ -31,7 +32,7 @@ export function inside(root: string, path: string) {
     difference.startsWith(`..${sep}`) ||
     isAbsolute(difference)
   )
-    throw new Error('文件路径越出实例目录');
+    throw new Error(tr('files.theFilePathIsOutsideTheInstance'));
   return target;
 }
 
@@ -40,7 +41,13 @@ export async function json<T>(url: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: { 'User-Agent': 'NixelLauncher/0.1.0', ...init?.headers },
   });
-  if (!response.ok) throw new Error(`请求失败：${response.status} ${new URL(url).hostname}`);
+  if (!response.ok)
+    throw new Error(
+      tr('files.requestFailedValueValue', {
+        value1: response.status,
+        value2: new URL(url).hostname,
+      }),
+    );
   return response.json() as Promise<T>;
 }
 
@@ -51,9 +58,10 @@ export async function download(
   hashes?: Record<string, string>,
   progress?: (current: number, total: number) => void,
 ) {
-  if (new URL(url).protocol !== 'https:') throw new Error('下载地址必须使用 HTTPS');
+  if (new URL(url).protocol !== 'https:') throw new Error(tr('files.theDownloadUrlMustUseHttps'));
   const response = await fetch(url, { signal, headers: { 'User-Agent': 'NixelLauncher/0.1.0' } });
-  if (!response.ok || !response.body) throw new Error(`下载失败：HTTP ${response.status}`);
+  if (!response.ok || !response.body)
+    throw new Error(tr('files.downloadFailedHttpValue', { value1: response.status }));
   await mkdir(dirname(target), { recursive: true });
   const temporary = `${target}.part`;
   let current = 0;
@@ -69,7 +77,7 @@ export async function download(
   try {
     await pipeline(source, createWriteStream(temporary), { signal });
     if (digest && algorithm && digest.digest('hex') !== hashes?.[algorithm]?.toLowerCase())
-      throw new Error('下载文件校验失败');
+      throw new Error(tr('files.fileChecksumVerificationFailed'));
     await rename(temporary, target);
   } catch (error) {
     await rm(temporary, { force: true });

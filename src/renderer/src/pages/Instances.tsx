@@ -1,6 +1,7 @@
 import { Card } from '@heroui/react';
 import { useEffect, useState } from 'react';
 import type { Instance, InstanceFile, ResourceVersion } from '../../../shared/contracts';
+import { i18n, label, tr } from '../../../shared/i18n';
 import { resourceSource } from '../data';
 import { LaunchButton } from '../LaunchButton';
 import { ResourceBrowser } from '../ResourceBrowser';
@@ -21,13 +22,13 @@ import {
   Tag,
   Toggle,
 } from '../ui';
-import { NavList, PlaceholderIcon, Workspace } from '../workspace';
+import { AssetIcon, NavList, Workspace } from '../workspace';
 import { LaunchOptions } from './Settings';
 
 export function InstancesPage() {
   const a = useApp();
   const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('模组');
+  const [category, setCategory] = useState('mods');
   const i = a.current;
   const failedGame = a.tasks.find(
     (task) =>
@@ -37,12 +38,12 @@ export function InstancesPage() {
   );
   return (
     <Workspace
-      title="实例"
+      title={tr('App.instances')}
       sidebar={
         <>
-          <Search value={query} onChange={setQuery} placeholder="搜索实例" />
+          <Search value={query} onChange={setQuery} placeholder={tr('Instances.searchInstances')} />
           <NavList
-            label="游戏实例"
+            label={tr('Instances.gameInstances')}
             value={i?.id ?? ''}
             onChange={(id) => {
               a.setSelectedId(id);
@@ -62,7 +63,7 @@ export function InstancesPage() {
       footer={
         <div className="side-bottom">
           <Action fullWidth icon="plus" onPress={() => a.setOverlay({ type: 'create' })}>
-            新建
+            {tr('Instances.new')}
           </Action>
           <Action
             fullWidth
@@ -70,15 +71,18 @@ export function InstancesPage() {
             icon="upload"
             onPress={() => a.setOverlay({ type: 'import' })}
           >
-            导入
+            {tr('Instances.import')}
           </Action>
         </div>
       }
     >
       {!i ? (
-        <Empty title="还没有游戏实例" detail="从一个独立实例开始。游戏文件、模组和存档分别保存。">
+        <Empty
+          title={tr('Instances.noGameInstancesYet')}
+          detail={tr('Instances.startWithAnIndependentInstanceGameFiles')}
+        >
           <Action icon="plus" onPress={() => a.setOverlay({ type: 'create' })}>
-            创建第一个实例
+            {tr('Instances.createFirstInstance')}
           </Action>
         </Empty>
       ) : (
@@ -87,33 +91,40 @@ export function InstancesPage() {
             <h1 className="flex-1">{i.name}</h1>
             <IconButton
               icon="folder"
-              label="查看实例目录"
+              label={tr('Instances.openInstanceDirectory')}
               onPress={() => void window.nixel.openPath(i.directory)}
             />
-            <IconButton icon="upload" label="导出整合包" onPress={() => void exportInstance(i)} />
+            <IconButton
+              icon="upload"
+              label={tr('modpacks.exportModpack')}
+              onPress={() => void exportInstance(i)}
+            />
             <LaunchButton instanceId={i.id} size="sm" />
           </div>
           <Segments
             secondary
             value={a.instanceTab}
-            options={['概览', '内容', '存档', '截图', '设置', '日志']}
+            options={['overview', 'content', 'saves', 'screenshots', 'settings', 'logs']}
             onChange={a.setInstanceTab}
-            label="实例管理分页"
+            label={tr('Instances.instanceTabs')}
           />
-          <div className="instance-content-body" hidden={a.instanceTab !== '内容'}>
+          <div className="instance-content-body" hidden={a.instanceTab !== 'content'}>
             <div className="content-scope">
               <Choice
-                label="实例内容类型"
+                label={tr('Instances.instanceContentType')}
                 value={category}
-                options={['模组', '资源包', '光影'].map((name) => ({ id: name, name }))}
+                options={['mods', 'resourcepacks', 'shaders'].map((name) => ({
+                  id: name,
+                  name: label(name),
+                }))}
                 onChange={setCategory}
               />
               <Segments
                 secondary
-                label="内容操作"
-                value={a.instanceCatalogOpen ? '添加内容' : '已安装'}
-                options={['已安装', '添加内容']}
-                onChange={(value) => a.setInstanceCatalogOpen(value === '添加内容')}
+                label={tr('Instances.contentAction')}
+                value={a.instanceCatalogOpen ? 'browse' : 'installed'}
+                options={['installed', 'browse']}
+                onChange={(value) => a.setInstanceCatalogOpen(value === 'browse')}
               />
             </div>
             <div className="content-pane" hidden={a.instanceCatalogOpen}>
@@ -125,16 +136,16 @@ export function InstancesPage() {
           </div>
           <div
             className="detail-scroll panel-enter"
-            hidden={a.instanceTab === '内容'}
+            hidden={a.instanceTab === 'content'}
             key={`${i.id}-${a.instanceTab}`}
           >
-            {a.instanceTab === '概览' && (
+            {a.instanceTab === 'overview' && (
               <div className="instance-overview">
-                <Group title="运行环境">
+                <Group title={tr('Instances.runtime')}>
                   <SettingRow title="Minecraft">
                     <span className="mono">{i.version}</span>
                   </SettingRow>
-                  <SettingRow title="模组加载器">
+                  <SettingRow title={tr('Instances.modLoader')}>
                     <span>
                       {i.loader}
                       {i.loaderVersion ? ` ${i.loaderVersion}` : ''}
@@ -142,13 +153,13 @@ export function InstancesPage() {
                   </SettingRow>
                   <SettingRow title="Java">
                     <span className="micro mono">
-                      {i.javaPath || a.settings.javaPath || '自动选择'}
+                      {i.javaPath || a.settings.javaPath || tr('Instances.automatic')}
                     </span>
                   </SettingRow>
-                  <SettingRow title="最大内存">
+                  <SettingRow title={tr('Instances.maximumMemory')}>
                     <span>{(i.memory ?? a.memory) / 1024} GB</span>
                   </SettingRow>
-                  <SettingRow title="安装状态">
+                  <SettingRow title={tr('Instances.installationStatus')}>
                     <Tag
                       color={
                         i.status === 'ready'
@@ -161,10 +172,10 @@ export function InstancesPage() {
                       {
                         (
                           {
-                            ready: '已安装',
-                            'not-installed': '待安装',
-                            installing: '安装中',
-                            error: '安装失败',
+                            ready: label('installed'),
+                            'not-installed': tr('Instances.notInstalled'),
+                            installing: tr('Instances.installing'),
+                            error: tr('Instances.installationFailed'),
                           } as const
                         )[i.status]
                       }
@@ -179,9 +190,9 @@ export function InstancesPage() {
                       <Action
                         size="sm"
                         variant="secondary"
-                        onPress={() => a.setInstanceTab('日志')}
+                        onPress={() => a.setInstanceTab('logs')}
                       >
-                        查看游戏日志与崩溃报告
+                        {tr('Instances.viewGameLogsAndCrashReports')}
                       </Action>
                     </div>
                   </Notice>
@@ -191,16 +202,16 @@ export function InstancesPage() {
                     icon="download"
                     onPress={() => void a.command('instances.install', { id: i.id })}
                   >
-                    安装游戏文件
+                    {tr('Instances.installGameFiles')}
                   </Action>
                 )}
               </div>
             )}
-            {a.instanceTab === '设置' && <InstanceSettings key={i.id} instance={i} />}
-            {(a.instanceTab === '存档' || a.instanceTab === '截图') && (
-              <InstanceFiles id={i.id} kind={a.instanceTab === '存档' ? 'saves' : 'screenshots'} />
+            {a.instanceTab === 'settings' && <InstanceSettings key={i.id} instance={i} />}
+            {(a.instanceTab === 'saves' || a.instanceTab === 'screenshots') && (
+              <InstanceFiles id={i.id} kind={a.instanceTab === 'saves' ? 'saves' : 'screenshots'} />
             )}
-            {a.instanceTab === '日志' && <LogView id={i.id} />}
+            {a.instanceTab === 'logs' && <LogView id={i.id} />}
           </div>
         </section>
       )}
@@ -209,9 +220,9 @@ export function InstancesPage() {
   async function exportInstance(instance: Instance) {
     const path = await window.nixel.selectPath({
       kind: 'save',
-      title: '导出实例',
+      title: tr('Instances.exportInstance'),
       defaultPath: `${instance.name}.mrpack`,
-      filters: [{ name: 'Modrinth 整合包', extensions: ['mrpack'] }],
+      filters: [{ name: tr('Instances.modrinthModpack'), extensions: ['mrpack'] }],
     });
     if (path) {
       await a.command('instances.export', { id: instance.id, path });
@@ -226,11 +237,12 @@ function InstalledList({ instance, category }: { instance: Instance; category: s
   const [pending, setPending] = useState(false);
   const busy = pending || a.running.includes(instance.id) || instance.status === 'installing';
   const providerName =
-    a.providers.find((p) => p.id === instance.providers.resources)?.name ?? '资源目录';
+    a.providers.find((p) => p.id === instance.providers.resources)?.name ??
+    tr('Instances.resourceCatalog');
   const visible =
     a.host.status === 'ready' &&
     a.page === 'instances' &&
-    a.instanceTab === '内容' &&
+    a.instanceTab === 'content' &&
     !a.instanceCatalogOpen;
   const list = a.content.filter(
     (c) =>
@@ -245,7 +257,11 @@ function InstalledList({ instance, category }: { instance: Instance; category: s
   return (
     <>
       <div className="content-toolbar">
-        <Search value={query} onChange={setQuery} placeholder={`搜索已安装${category}`} />
+        <Search
+          value={query}
+          onChange={setQuery}
+          placeholder={tr('Instances.searchInstalledValue', { value1: label(category) })}
+        />
         <Action
           size="sm"
           variant="ghost"
@@ -254,8 +270,10 @@ function InstalledList({ instance, category }: { instance: Instance; category: s
           onPress={async () => {
             const path = await window.nixel.selectPath({
               kind: 'file',
-              title: `导入本地${category}`,
-              filters: [{ name: category, extensions: category === '模组' ? ['jar'] : ['zip'] }],
+              title: tr('Instances.importLocalValue', { value1: label(category) }),
+              filters: [
+                { name: label(category), extensions: category === 'mods' ? ['jar'] : ['zip'] },
+              ],
             });
             if (path) {
               setPending(true);
@@ -269,7 +287,7 @@ function InstalledList({ instance, category }: { instance: Instance; category: s
             }
           }}
         >
-          导入文件
+          {tr('Instances.importFiles')}
         </Action>
         <Action
           size="sm"
@@ -278,7 +296,7 @@ function InstalledList({ instance, category }: { instance: Instance; category: s
           isDisabled={busy}
           onPress={() => void a.command('content.checkUpdates', { instanceId: instance.id })}
         >
-          检查更新
+          {tr('Instances.checkForUpdates')}
         </Action>
         <Action
           size="sm"
@@ -286,11 +304,11 @@ function InstalledList({ instance, category }: { instance: Instance; category: s
           icon="folder"
           onPress={() =>
             void window.nixel.openPath(
-              `${instance.directory}/${category === '模组' ? 'mods' : category === '资源包' ? 'resourcepacks' : 'shaderpacks'}`,
+              `${instance.directory}/${category === 'mods' ? 'mods' : category === 'resourcepacks' ? 'resourcepacks' : 'shaderpacks'}`,
             )
           }
         >
-          目录
+          {tr('Instances.directory')}
         </Action>
       </div>
       <div className="workspace-scroll">
@@ -306,13 +324,18 @@ function InstalledList({ instance, category }: { instance: Instance; category: s
               );
               return (
                 <div className="content-row" key={c.id}>
-                  <PlaceholderIcon name={c.name} size="sm" />
+                  <AssetIcon src={c.icon} kind={c.category} size="sm" />
                   <div className="flex-1">
                     <strong>{c.name}</strong>
                     <small>
                       {c.fileName} · {c.version}
                     </small>
-                    {c.update && <Tag color="accent">可更新至 {c.update}</Tag>}
+                    {c.update && (
+                      <Tag color="accent">
+                        {tr('Instances.updateAvailable')}
+                        {c.update}
+                      </Tag>
+                    )}
                   </div>
                   {(c.update || task) && c.projectId && (
                     <Action
@@ -337,11 +360,13 @@ function InstalledList({ instance, category }: { instance: Instance; category: s
                         }
                       }}
                     >
-                      {task ? `正在更新 ${Math.round(task.progress)}%` : '更新'}
+                      {task
+                        ? tr('Instances.updatingValue', { value1: Math.round(task.progress) })
+                        : tr('Instances.update')}
                     </Action>
                   )}
                   <Toggle
-                    label={`启用 ${c.name}`}
+                    label={tr('overlays.enableValue', { value1: c.name })}
                     value={c.enabled}
                     disabled={busy || Boolean(task)}
                     onChange={(enabled) =>
@@ -354,13 +379,13 @@ function InstalledList({ instance, category }: { instance: Instance; category: s
                   />
                   <IconButton
                     icon="trash"
-                    label={`移除 ${c.name}`}
+                    label={tr('Instances.removeValue', { value1: c.name })}
                     isDisabled={busy || Boolean(task)}
                     onPress={() =>
                       a.setOverlay({
                         type: 'confirm',
-                        title: `移除 ${c.name}？`,
-                        detail: '将从当前实例删除这个内容文件。',
+                        title: tr('Instances.removeValue2', { value1: c.name }),
+                        detail: tr('Instances.deleteThisContentFileFromTheCurrent'),
                         action: () =>
                           window.nixel.invoke('content.remove', {
                             instanceId: instance.id,
@@ -375,11 +400,11 @@ function InstalledList({ instance, category }: { instance: Instance; category: s
           </Card>
         ) : (
           <Empty
-            title={`还没有${category}`}
-            detail={`从 ${providerName} 添加内容，或打开目录放入本地文件。`}
+            title={tr('Instances.noValueYet', { value1: label(category) })}
+            detail={tr('Instances.addContentFromValueOrOpenThe', { value1: providerName })}
           >
             <Action icon="plus" onPress={() => a.setInstanceCatalogOpen(true)}>
-              添加内容
+              {tr('Instances.addContent')}
             </Action>
           </Empty>
         )}
@@ -409,28 +434,35 @@ function InstanceSettings({ instance: i }: { instance: Instance }) {
   };
   return (
     <div className="settings-content">
-      <Group title="实例配置">
-        <SettingRow title="实例名称">
-          <Field label="名称" value={name} onChange={setName} />
+      <Group title={tr('Instances.instanceConfiguration')}>
+        <SettingRow title={tr('overlays.instanceName')}>
+          <Field hideLabel label={tr('Instances.name')} value={name} onChange={setName} />
         </SettingRow>
-        <SettingRow title="固定账号" description="留空时使用主页的启动选择与全局默认账号。">
+        <SettingRow
+          title={tr('Instances.pinnedAccount')}
+          description={tr('Instances.leaveEmptyToUseTheHomePage')}
+        >
           <Choice
-            label="固定账号"
+            label={tr('Instances.pinnedAccount')}
             value={account}
             onChange={setAccount}
             options={[
-              { id: '', name: '继承全局默认' },
+              { id: '', name: tr('Instances.useGlobalDefault') },
               ...a.accounts.map((p) => ({ id: p.id, name: p.name })),
             ]}
           />
         </SettingRow>
-        <SettingRow title="继承全局内存">
-          <Toggle label="继承全局内存" value={inherit} onChange={setInherit} />
+        <SettingRow title={tr('Instances.useGlobalMemoryLimit')}>
+          <Toggle
+            label={tr('Instances.useGlobalMemoryLimit')}
+            value={inherit}
+            onChange={setInherit}
+          />
         </SettingRow>
         {!inherit && (
           <div className="padded">
             <Range
-              label="内存上限"
+              label={tr('Instances.memoryLimit')}
               value={memory / 1024}
               onChange={(value) => setMemory(value * 1024)}
               min={1}
@@ -439,15 +471,23 @@ function InstanceSettings({ instance: i }: { instance: Instance }) {
             />
           </div>
         )}
-        <SettingRow title="Java 路径" description="留空使用全局设置。">
+        <SettingRow
+          title={tr('Instances.javaPath')}
+          description={tr('Instances.leaveEmptyToUseGlobalSettings')}
+        >
           <div className="row">
-            <Field label="Java 可执行文件" value={javaPath} onChange={setJavaPath} />
+            <Field
+              hideLabel
+              label={tr('Instances.javaExecutable')}
+              value={javaPath}
+              onChange={setJavaPath}
+            />
             <IconButton
               icon="folder"
-              label="选择 Java"
+              label={tr('Instances.chooseJava')}
               onPress={() =>
                 void window.nixel
-                  .selectPath({ kind: 'file', title: '选择 Java 可执行文件' })
+                  .selectPath({ kind: 'file', title: tr('Instances.chooseJavaExecutable') })
                   .then((path) => {
                     if (path) setJavaPath(path);
                   })
@@ -456,7 +496,7 @@ function InstanceSettings({ instance: i }: { instance: Instance }) {
           </div>
         </SettingRow>
       </Group>
-      <LaunchOptions instanceId={i.id} />
+
       <div className="row">
         <Action
           icon="check"
@@ -473,45 +513,51 @@ function InstanceSettings({ instance: i }: { instance: Instance }) {
             });
           }}
         >
-          保存实例设置
-        </Action>
-        <Action
-          variant="danger-soft"
-          icon="trash"
-          isDisabled={busy}
-          onPress={() =>
-            a.setOverlay({
-              type: 'confirm',
-              title: `删除实例 ${i.name}？`,
-              detail: '将移除实例记录并删除整个实例目录，包括存档、截图和模组。此操作无法撤销。',
-              action: () =>
-                window.nixel.invoke('instances.delete', { id: i.id, deleteFiles: true }),
-            })
-          }
-        >
-          删除实例
-        </Action>
-        <Action
-          variant="secondary"
-          icon="copy"
-          isDisabled={busy}
-          onPress={async () => {
-            await run('instances.clone', { id: i.id }, true);
-          }}
-        >
-          复制实例
-        </Action>
-        <Action
-          variant="secondary"
-          icon="refresh"
-          isDisabled={busy}
-          onPress={async () => {
-            await run('instances.install', { id: i.id }, true);
-          }}
-        >
-          校验并修复
+          {tr('Instances.saveInstanceSettings')}
         </Action>
       </div>
+      <LaunchOptions instanceId={i.id} />
+      <details className="advanced-settings instance-maintenance">
+        <summary>{tr('Instances.maintenance')}</summary>
+        <div className="row">
+          <Action
+            variant="danger-soft"
+            icon="trash"
+            isDisabled={busy}
+            onPress={() =>
+              a.setOverlay({
+                type: 'confirm',
+                title: tr('Instances.deleteInstanceValue', { value1: i.name }),
+                detail: tr('Instances.deleteTheInstanceAndItsEntireDirectory'),
+                action: () =>
+                  window.nixel.invoke('instances.delete', { id: i.id, deleteFiles: true }),
+              })
+            }
+          >
+            {tr('Instances.deleteInstance')}
+          </Action>
+          <Action
+            variant="secondary"
+            icon="copy"
+            isDisabled={busy}
+            onPress={async () => {
+              await run('instances.clone', { id: i.id }, true);
+            }}
+          >
+            {tr('Instances.cloneInstance')}
+          </Action>
+          <Action
+            variant="secondary"
+            icon="refresh"
+            isDisabled={busy}
+            onPress={async () => {
+              await run('instances.install', { id: i.id }, true);
+            }}
+          >
+            {tr('Instances.verifyAndRepair')}
+          </Action>
+        </div>
+      </details>
     </div>
   );
 }
@@ -552,7 +598,13 @@ function InstanceFiles({
   return (
     <div className="stack">
       <Heading
-        title={kind === 'saves' ? '世界存档' : kind === 'screenshots' ? '游戏截图' : '崩溃报告'}
+        title={
+          kind === 'saves'
+            ? tr('Instances.worldSaves')
+            : kind === 'screenshots'
+              ? tr('Instances.screenshots')
+              : tr('Instances.crashReports')
+        }
       >
         <Action
           icon="folder"
@@ -562,7 +614,7 @@ function InstanceFiles({
             if (i) void window.nixel.openPath(`${i.directory}/${kind}`);
           }}
         >
-          打开目录
+          {tr('Instances.openDirectory')}
         </Action>
       </Heading>
       {error ? (
@@ -581,10 +633,10 @@ function InstanceFiles({
                   variant="ghost"
                   onPress={() => void window.nixel.openPath(f.path)}
                 >
-                  打开
+                  {tr('Instances.open')}
                 </Action>
               </div>
-              <p className="micro">{new Date(f.modifiedAt).toLocaleString()}</p>
+              <p className="micro">{new Date(f.modifiedAt).toLocaleString(i18n.language)}</p>
             </Card>
           ))}
         </div>
@@ -592,17 +644,17 @@ function InstanceFiles({
         <Empty
           title={
             kind === 'saves'
-              ? '还没有世界存档'
+              ? tr('Instances.noWorldSavesYet')
               : kind === 'screenshots'
-                ? '还没有游戏截图'
-                : '没有崩溃报告'
+                ? tr('Instances.noScreenshotsYet')
+                : tr('Instances.noCrashReports')
           }
           detail={
             kind === 'saves'
-              ? '在游戏中创建世界后会显示在这里。'
+              ? tr('Instances.worldsYouCreateInTheGameWill')
               : kind === 'screenshots'
-                ? '在游戏中按 F2 保存截图。'
-                : '游戏生成的崩溃报告会显示在这里。'
+                ? tr('Instances.pressF2InTheGameToSave')
+                : tr('Instances.crashReportsGeneratedByTheGameWill')
           }
         />
       )}
@@ -621,7 +673,7 @@ export function LogView({ id }: { id: string }) {
       task.status === 'failed',
   );
   const instance = a.instances.find((entry) => entry.id === id);
-  const visible = a.page === 'instances' && a.instanceTab === '日志';
+  const visible = a.page === 'instances' && a.instanceTab === 'logs';
   useEffect(() => {
     if (!visible) return;
     let active = true;
@@ -649,7 +701,9 @@ export function LogView({ id }: { id: string }) {
       <InstanceFiles id={id} kind="crash-reports" />
       <div className="row spread">
         <span className="muted">
-          {a.running.includes(id) ? '游戏正在运行 · 日志每 2 秒更新' : '最近一次游戏日志'}
+          {a.running.includes(id)
+            ? tr('Instances.gameRunningLogsRefreshEvery2Seconds')
+            : tr('Instances.latestGameLog')}
         </span>
         <Action
           size="sm"
@@ -657,7 +711,7 @@ export function LogView({ id }: { id: string }) {
           icon="copy"
           onPress={() => void navigator.clipboard.writeText(lines.join('\n'))}
         >
-          复制日志
+          {tr('Instances.copyLog')}
         </Action>
       </div>
       {failure && <Notice tone="danger">{failure.error || failure.detail}</Notice>}
@@ -671,7 +725,7 @@ export function LogView({ id }: { id: string }) {
             if (instance) void window.nixel.openPath(`${instance.directory}/logs`);
           }}
         >
-          日志目录
+          {tr('Instances.logDirectory')}
         </Action>
         <Action
           size="sm"
@@ -681,14 +735,14 @@ export function LogView({ id }: { id: string }) {
             if (instance) void window.nixel.openPath(`${instance.directory}/crash-reports`);
           }}
         >
-          崩溃报告
+          {tr('Instances.crashReports')}
         </Action>
       </div>
       {error ? (
         <Notice tone="danger">{error}</Notice>
       ) : (
         <pre className="game-log">
-          {lines.length ? lines.join('\n') : '尚无游戏日志。启动游戏后，输出会显示在这里。'}
+          {lines.length ? lines.join('\n') : tr('Instances.noGameLogYetLaunchTheGame')}
         </pre>
       )}
     </div>

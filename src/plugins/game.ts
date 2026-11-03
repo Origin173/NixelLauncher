@@ -14,6 +14,7 @@ import type {
 } from '../shared/contracts';
 import { errorMessage } from '../shared/error-message';
 import type { NixelHost, TaskContext } from '../shared/host-api';
+import { tr } from '../shared/i18n';
 import { validateLaunchOptions } from '../shared/launch-options';
 import { commandsFor } from './commands';
 import { discoverJava, inspectJava, installJava } from './java';
@@ -40,7 +41,7 @@ function redactLog(text: string, token?: string) {
 }
 export function getInstance(host: NixelHost, id: string) {
   const instance = host.store.read().instances.find((item) => item.id === id);
-  if (!instance) throw new Error('实例不存在');
+  if (!instance) throw new Error(tr('game.instanceNotFound'));
   return instance;
 }
 export function taskProgress(task: TaskContext) {
@@ -69,9 +70,11 @@ export async function selectJava(
       taskProgress(task),
       host.store.read().settings.downloadConcurrency,
     );
-  if (!runtime) throw new Error(`此版本需要 Java ${major}，请在设置中指定 Java 可执行文件`);
+  if (!runtime) throw new Error(tr('game.thisVersionRequiresJavaValueChooseA', { value1: major }));
   if (runtime.major !== major)
-    throw new Error(`此版本需要 Java ${major}，当前选择为 Java ${runtime.major}`);
+    throw new Error(
+      tr('game.thisVersionRequiresJavaValueJavaValue', { value1: major, value2: runtime.major }),
+    );
   return runtime;
 }
 
@@ -85,7 +88,7 @@ export function assertInstanceIdle(host: NixelHost, id: string, currentTaskId?: 
         (task) => task.id !== currentTaskId && task.instanceId === id && task.status === 'running',
       )
   )
-    throw new Error('此实例已有运行中的任务，请等待完成或取消任务');
+    throw new Error(tr('game.thisInstanceHasAnActiveTaskWait'));
 }
 
 export async function createInstance(
@@ -93,7 +96,8 @@ export async function createInstance(
   input: CreateInstanceInput,
   pendingOperation?: Instance['pendingOperation'],
 ) {
-  if (!input.name.trim() || !input.version) throw new Error('请填写实例名称并选择游戏版本');
+  if (!input.name.trim() || !input.version)
+    throw new Error(tr('game.enterAnInstanceNameAndChooseA'));
   const id = randomUUID();
   const settings = host.store.read().settings;
   const directory = join(settings.instanceDirectory || host.store.instancesRoot, id);
@@ -121,7 +125,7 @@ export async function createInstance(
     playTime: 0,
     color: 'green',
     kind: input.loader,
-    hours: '尚未游玩',
+    hours: tr('game.neverPlayed'),
   };
   await host.store.update((draft) => {
     draft.instances.push(instance);
@@ -133,8 +137,8 @@ export function startInstall(host: NixelHost, id: string) {
   const instance = getInstance(host, id);
   assertInstanceIdle(host, id);
   return host.tasks.start(
-    `安装 ${instance.name}`,
-    '准备安装',
+    tr('game.installValue', { value1: instance.name }),
+    tr('game.preparingInstallation'),
     async (task) => {
       const instance = getInstance(host, id);
       assertInstanceIdle(host, id, task.taskId);
@@ -160,7 +164,9 @@ export function startInstall(host: NixelHost, id: string) {
           const item = draft.instances.find((entry) => entry.id === id);
           if (item) {
             item.status = task.signal.aborted ? 'not-installed' : 'error';
-            item.error = task.signal.aborted ? '安装已取消，可重试安装' : errorMessage(error);
+            item.error = task.signal.aborted
+              ? tr('game.installationCancelledYouCanRetryIt')
+              : errorMessage(error);
           }
         });
         throw error;
@@ -196,7 +202,8 @@ export const gamePlugin = {
             ? undefined
             : instance.loaderVersion ||
               (await listLoaderVersions(kind, instance.version, task.signal))[0];
-        if (kind !== 'vanilla' && !loaderVersion) throw new Error('未找到兼容的加载器版本');
+        if (kind !== 'vanilla' && !loaderVersion)
+          throw new Error(tr('game.noCompatibleLoaderVersionFound'));
         if (loaderVersion && !instance.loaderVersion)
           await host.store.update((draft) => {
             const item = draft.instances.find((entry) => entry.id === instance.id);
@@ -219,7 +226,7 @@ export const gamePlugin = {
         );
       },
       async launch(instance, account, task) {
-        if (host.running.has(instance.id)) throw new Error('实例已在运行');
+        if (host.running.has(instance.id)) throw new Error(tr('game.thisInstanceIsAlreadyRunning'));
         const version = await Version.parse(
           instance.directory,
           instance.launchVersion || instance.version,
@@ -238,10 +245,10 @@ export const gamePlugin = {
           instance.providers.accounts || account.provider,
         );
         if (instance.providers.accounts && account.provider !== instance.providers.accounts)
-          throw new Error('当前账号与实例所选账号提供者不匹配，请在实例设置中选择对应提供者');
+          throw new Error(tr('game.theAccountDoesNotMatchTheInstance'));
         const session = await accountProvider.session(account, task.signal);
         task.signal.throwIfAborted();
-        task.report(0, '正在启动游戏');
+        task.report(0, tr('game.startingTheGame'));
         const logPath = join(instance.directory, 'nixel-launch.log');
         await writeFile(logPath, '', 'utf8');
         const memory = instance.memory ?? host.store.read().settings.memory;
@@ -266,7 +273,7 @@ export const gamePlugin = {
         const started = Date.now();
         stopped.delete(instance.id);
         processes.set(instance.id, process);
-        task.report(100, '游戏运行中');
+        task.report(100, tr('game.gameRunning'));
         host.running.add(instance.id);
         host.changed();
         const output: string[] = [];
@@ -280,7 +287,8 @@ export const gamePlugin = {
           logWrites = logWrites
             .then(() => appendFile(logPath, `${line}\n`, 'utf8'))
             .catch((error) => {
-              if (!logWriteFailed) task.log(`无法写入启动日志：${String(error)}`);
+              if (!logWriteFailed)
+                task.log(tr('game.couldNotWriteTheLaunchLogValue', { value1: String(error) }));
               logWriteFailed = true;
             });
           if (output.length > 2000) output.splice(0, output.length - 2000);
@@ -300,10 +308,10 @@ export const gamePlugin = {
             if (item) item.lastPlayed = new Date().toISOString();
           });
           const code = await exited;
-          capture(`游戏退出，状态码 ${code}`);
+          capture(tr('game.gameExitedWithCodeValue', { value1: code }));
           if (code !== 0 && !task.signal.aborted && !stopped.has(instance.id))
-            throw new Error(`游戏异常退出（${code}），请查看启动日志`);
-          task.report(100, '游戏已结束');
+            throw new Error(tr('game.gameCrashedValueCheckTheLaunchLog', { value1: code }));
+          task.report(100, tr('game.gameStopped'));
         } catch (error) {
           process.kill();
           await exited.catch(() => undefined);
@@ -318,7 +326,7 @@ export const gamePlugin = {
             const item = draft.instances.find((entry) => entry.id === instance.id);
             if (item) {
               item.playTime += Date.now() - started;
-              item.hours = `${(item.playTime / 3600000).toFixed(1)} 小时`;
+              item.hours = tr('game.valueHours', { value1: (item.playTime / 3600000).toFixed(1) });
             }
           });
           host.changed();
@@ -374,11 +382,11 @@ export const instancesPlugin = {
     command('instances.update', async ({ id, patch }: { id: string; patch: Partial<Instance> }) => {
       getInstance(host, id);
       if (!patch || typeof patch !== 'object' || Array.isArray(patch))
-        throw new Error('实例设置无效');
+        throw new Error(tr('game.invalidInstanceSettings'));
       validateLaunchOptions(patch, true);
       if (patch.name !== undefined) {
         if (typeof patch.name !== 'string' || !patch.name.trim())
-          throw new Error('实例名称不能为空');
+          throw new Error(tr('game.theInstanceNameCannotBeEmpty'));
         patch.name = patch.name.trim();
       }
       if (
@@ -386,22 +394,22 @@ export const instancesPlugin = {
         patch.memory !== null &&
         (!Number.isInteger(patch.memory) || patch.memory < 256 || patch.memory > 262144)
       )
-        throw new Error('内存范围应为 256–262144 MiB');
+        throw new Error(tr('game.memoryMustBeBetween256And262144'));
       if (
         patch.account !== undefined &&
         (typeof patch.account !== 'string' ||
           (patch.account &&
             !host.store.read().accounts.some((account) => account.id === patch.account)))
       )
-        throw new Error('所选账号不存在');
+        throw new Error(tr('game.theSelectedAccountDoesNotExist'));
       if (patch.javaPath !== undefined) {
-        if (typeof patch.javaPath !== 'string') throw new Error('Java 路径无效');
+        if (typeof patch.javaPath !== 'string') throw new Error(tr('game.invalidJavaPath'));
         patch.javaPath = patch.javaPath.trim();
         if (
           patch.javaPath &&
           (!isAbsolute(patch.javaPath) || !(await stat(patch.javaPath)).isFile())
         )
-          throw new Error('请选择 Java 可执行文件的绝对路径');
+          throw new Error(tr('game.chooseAnAbsolutePathToTheJava'));
       }
       if (patch.providers !== undefined) {
         assertInstanceIdle(host, id);
@@ -410,12 +418,12 @@ export const instancesPlugin = {
           typeof patch.providers !== 'object' ||
           Array.isArray(patch.providers)
         )
-          throw new Error('实例提供者设置无效');
+          throw new Error(tr('game.invalidInstanceProviderSettings'));
         for (const kind of Object.keys(patch.providers)) {
           if (kind !== 'game' && kind !== 'resources' && kind !== 'accounts')
-            throw new Error('实例提供者类型无效');
+            throw new Error(tr('game.invalidInstanceProviderType'));
           const providerId = patch.providers[kind];
-          if (typeof providerId !== 'string') throw new Error('实例提供者无效');
+          if (typeof providerId !== 'string') throw new Error(tr('game.invalidInstanceProvider'));
           if (kind !== 'accounts' || providerId) host.providers.get(kind, providerId);
         }
         patch.providers = { ...getInstance(host, id).providers, ...patch.providers };
@@ -447,7 +455,7 @@ export const instancesPlugin = {
           instance.status === 'installing' ||
           host.tasks.list().some((task) => task.instanceId === id && task.status === 'running')
         )
-          throw new Error('请先停止此实例的游戏和任务');
+          throw new Error(tr('game.stopThisInstanceSGameAndTasks'));
         if (deleteFiles) {
           const root = resolve(
             host.store.read().settings.instanceDirectory || host.store.instancesRoot,
@@ -459,7 +467,7 @@ export const instancesPlugin = {
             difference.startsWith(`..${sep}`) ||
             isAbsolute(difference)
           )
-            throw new Error('实例目录不在当前管理目录下，请手动删除文件');
+            throw new Error(tr('game.theInstanceDirectoryIsOutsideTheManaged'));
           await rm(instance.directory, { recursive: true, force: true });
         }
         await host.store.update((draft) => {
@@ -472,7 +480,7 @@ export const instancesPlugin = {
     command('instances.launch', ({ id, accountId }: { id: string; accountId?: string }) => {
       const instance = getInstance(host, id);
       assertInstanceIdle(host, id);
-      if (instance.status !== 'ready') throw new Error('请先安装此实例');
+      if (instance.status !== 'ready') throw new Error(tr('game.installThisInstanceFirst'));
       const selected =
         accountId ||
         instance.account ||
@@ -481,15 +489,15 @@ export const instancesPlugin = {
       const account: Account | undefined = host.store
         .read()
         .accounts.find((item) => item.id === selected);
-      if (!account) throw new Error('请先添加并选择游戏账号');
+      if (!account) throw new Error(tr('game.addAndSelectAGameAccountFirst'));
       return {
         taskId: host.tasks.start(
-          `运行 ${instance.name}`,
-          '正在准备启动',
+          tr('game.runValue', { value1: instance.name }),
+          tr('game.preparingToLaunch'),
           async (task) => {
             const current = getInstance(host, id);
             assertInstanceIdle(host, id, task.taskId);
-            if (current.status !== 'ready') throw new Error('请先安装此实例');
+            if (current.status !== 'ready') throw new Error(tr('game.installThisInstanceFirst'));
             const state = host.store.read();
             const currentAccountId =
               accountId ||
@@ -497,7 +505,7 @@ export const instancesPlugin = {
               state.settings.launchAccount ||
               state.settings.defaultAccount;
             const currentAccount = state.accounts.find((entry) => entry.id === currentAccountId);
-            if (!currentAccount) throw new Error('请先添加并选择游戏账号');
+            if (!currentAccount) throw new Error(tr('game.addAndSelectAGameAccountFirst'));
             await host.providers
               .get<GameProvider>('game', current.providers.game)
               .launch(current, currentAccount, task);
@@ -532,7 +540,7 @@ export const instancesPlugin = {
       'instances.files',
       async ({ id, kind }: { id: string; kind: 'saves' | 'screenshots' | 'crash-reports' }) => {
         if (kind !== 'saves' && kind !== 'screenshots' && kind !== 'crash-reports')
-          throw new Error('不支持的文件类型');
+          throw new Error(tr('game.unsupportedFileType'));
         const directory = join(getInstance(host, id).directory, kind);
         const entries = await readdir(directory, { withFileTypes: true }).catch(() => []);
         return Promise.all(
@@ -555,8 +563,8 @@ export const instancesPlugin = {
     command('java.inspect', ({ path }: { path: string }) => inspectJava(path));
     command('java.install', ({ major }: { major: number }) => ({
       taskId: host.tasks.start(
-        `安装 Java ${major}`,
-        '获取 Mojang 官方 Java 运行时',
+        tr('game.installJavaValue', { value1: major }),
+        tr('game.fetchingTheOfficialMojangJavaRuntime'),
         async (task) => {
           const runtime = await installJava(
             join(host.store.root, 'java'),

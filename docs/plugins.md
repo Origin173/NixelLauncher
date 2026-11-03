@@ -58,7 +58,11 @@ ctx.nixel.providers.register(
 
 游戏、资源和账号实现分别遵循 [`providers.ts`](../src/plugins/providers.ts) 的 `GameProvider`、`ResourceProvider`、`AccountProvider`。实例包含 `providers` 和 `providerConfig`；资源安装与游戏启动收到完整实例。账号鉴权实现只向游戏提供者返回会话，公开账号与快照不包含令牌。
 
-资源返回值的 `source` 使用提供者 ID，界面从提供者注册表读取展示名称。查询与安装的显式 `source` 优先于实例默认值；已安装资源使用 `source + projectId` 标识，更新按各自来源分发。任务的 `resourceSource` 与 `resourceId` 共同关联进度。内置来源为 `nixel.resources.modrinth` 和 `nixel.resources.curseforge`。整合包安装可以不传目标实例，由资源提供者创建新实例；普通内容安装必须指定目标实例。
+资源返回值的 `source` 使用提供者 ID，`icon` 为项目图片 URL。`resources.search` 默认或 `source: 'all'` 时并行查询所有已启用的资源提供者；也可传具体 ID 筛选。每个提供者按 `offset` 返回最多 20 项，管理插件交错合并当前页，返回 `items`、`total`、`hasMore` 与分来源的 `warnings`。页偏移每次增加 20；单个来源失败不会丢弃其他来源结果。分类使用 `mods`、`resourcepacks`、`shaders`、`modpacks`。
+
+安装与版本查询继续使用项目实际的 `source`，明确来源优先于实例默认值。已安装资源使用 `source + projectId` 标识，更新按各自来源分发。任务的 `resourceSource` 与 `resourceId` 共同关联进度。内置来源为 `nixel.resources.modrinth` 和 `nixel.resources.curseforge`。整合包安装可以不传目标实例，由资源提供者创建新实例；普通内容安装必须指定目标实例。
+
+插件展示名称、说明与分类可通过 manifest 的 `locales` 字段翻译，见 [翻译约定](localization.md)。
 
 长操作通过 `ctx.nixel.tasks.start` 执行。任务体获得 `signal`、`report` 和 `log`，应将 `signal` 传入下载与子进程流程。`report` 接受 0–100 的实际进度。账号凭据通过 `platform.secretGet/secretSet/secretDelete` 交给主进程系统加密存储。
 
@@ -66,7 +70,7 @@ ctx.nixel.providers.register(
 
 ## 替换默认界面
 
-在 manifest 中增加 `"renderer": "ui/index.html"`。界面插件启用后，可在设置的“外观与背景”中选择。HTML 的脚本和样式使用包内相对路径；该入口可调用相同的 `window.nixel`，类型见 [`contracts.ts`](../src/shared/contracts.ts)。默认界面本身以 `nixel.ui.default` 注册。
+在 manifest 中增加 `"renderer": "ui/index.html"`。界面插件启用后，可在设置的“外观”中选择。HTML 的脚本和样式使用包内相对路径；该入口可调用相同的 `window.nixel`，类型见 [`contracts.ts`](../src/shared/contracts.ts)。默认界面本身以 `nixel.ui.default` 注册。
 
 界面通过 `getSnapshot()` 获取初始状态，通过 `onState(callback)` 订阅后续状态。取消订阅由返回的函数执行。业务命令走 `invoke(command, params)`，文件选择、系统路径、窗口控制走对应的窄接口。完整命令表见 [`implementation.md`](implementation.md)。
 

@@ -1,5 +1,6 @@
 import { Tabs, Toast } from '@heroui/react';
 import { useEffect } from 'react';
+import { tr } from '../../shared/i18n';
 import type { Page } from './data';
 import type { IconName } from './icons';
 import { Brand, Icon } from './icons';
@@ -14,13 +15,13 @@ import { SettingsPage } from './pages/Settings';
 import { AppProvider, useApp } from './state';
 import { Action, IconButton, Tag, Tile } from './ui';
 
-const navigation: { id: Page; name: string; icon: IconName }[] = [
-  { id: 'home', name: '主页', icon: 'home' },
-  { id: 'instances', name: '实例', icon: 'box' },
-  { id: 'resources', name: '资源', icon: 'compass' },
-  { id: 'plugins', name: '插件', icon: 'plugin' },
-  { id: 'accounts', name: '账号', icon: 'user' },
-  { id: 'settings', name: '设置', icon: 'settings' },
+const navigation = (): { id: Page; name: string; icon: IconName }[] => [
+  { id: 'home', name: tr('App.home'), icon: 'home' },
+  { id: 'instances', name: tr('App.instances'), icon: 'box' },
+  { id: 'resources', name: tr('App.resources'), icon: 'compass' },
+  { id: 'plugins', name: tr('App.plugins'), icon: 'plugin' },
+  { id: 'accounts', name: tr('App.accounts'), icon: 'user' },
+  { id: 'settings', name: tr('App.settings'), icon: 'settings' },
 ];
 const views = {
   home: Home,
@@ -66,14 +67,14 @@ function Shell() {
           type="button"
           className="brand"
           onClick={() => a.setPage('home')}
-          aria-label="Nixel 主页"
+          aria-label={tr('App.nixelHome')}
         >
           <Brand size={24} />
           <span>
             Nixel<span className="brand-suffix">Launcher</span>
           </span>
         </button>
-        <nav className="main-nav" aria-label="主导航">
+        <nav className="main-nav" aria-label={tr('App.mainNavigation')}>
           <Tabs
             variant="secondary"
             selectedKey={a.page}
@@ -82,8 +83,8 @@ function Shell() {
             }}
           >
             <Tabs.ListContainer className="titlebar-tabs">
-              <Tabs.List aria-label="主导航">
-                {navigation.map((n) => (
+              <Tabs.List aria-label={tr('App.mainNavigation')}>
+                {navigation().map((n) => (
                   <Tabs.Tab
                     key={n.id}
                     id={n.id}
@@ -102,31 +103,35 @@ function Shell() {
         <div className="header-actions">
           <IconButton
             icon="search"
-            label="全局搜索 · Ctrl K"
+            label={tr('App.searchCtrlK')}
             onPress={() => a.setOverlay({ type: 'search' })}
           />
           <div className="task-trigger">
-            <IconButton icon="download" label="打开任务中心" onPress={() => a.setTaskOpen(true)} />
+            <IconButton
+              icon="download"
+              label={tr('App.openTaskCenter')}
+              onPress={() => a.setTaskOpen(true)}
+            />
             {count > 0 && <span className="count-badge">{count}</span>}
           </div>
           <span className="toolbar-divider" />
-          <fieldset className="window-controls" aria-label="窗口控制">
+          <fieldset className="window-controls" aria-label={tr('App.windowControls')}>
             <IconButton
               className="window-control"
               icon="minimize"
-              label="最小化窗口"
+              label={tr('App.minimizeWindow')}
               onPress={() => void window.nixel.windowControl('minimize')}
             />
             <IconButton
               className="window-control"
               icon="maximize"
-              label="最大化窗口"
+              label={tr('App.maximizeWindow')}
               onPress={() => void window.nixel.windowControl('maximize')}
             />
             <IconButton
               className="window-control window-close"
               icon="close"
-              label="关闭窗口"
+              label={tr('App.closeWindow')}
               onPress={() => void window.nixel.windowControl('close')}
             />
           </fieldset>
@@ -136,12 +141,12 @@ function Shell() {
         {a.hostError && (
           <div className="recovery">
             <Tile icon="plugin" color="amber" size="lg" />
-            <Tag color="warning">恢复模式</Tag>
-            <h1>插件服务暂时不可用</h1>
-            <p>{a.hostMessage || '重新启动插件服务以恢复连接。'}</p>
+            <Tag color="warning">{tr('App.recoveryMode')}</Tag>
+            <h1>{tr('App.pluginServicesAreUnavailable')}</h1>
+            <p>{a.hostMessage || tr('App.restartPluginServicesToReconnect')}</p>
             <div className="row">
               <Action icon="refresh" onPress={() => void a.restartHost()}>
-                重新启动服务
+                {tr('App.restartServices')}
               </Action>
             </div>
           </div>

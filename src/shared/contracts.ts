@@ -1,6 +1,6 @@
 export type Page = 'home' | 'instances' | 'resources' | 'plugins' | 'accounts' | 'settings';
 export type Loader = 'Vanilla' | 'Fabric' | 'Forge' | 'NeoForge' | 'Quilt';
-export type ContentCategory = '模组' | '资源包' | '光影';
+export type ContentCategory = 'mods' | 'resourcepacks' | 'shaders';
 export type ProviderKind = 'game' | 'resources' | 'accounts' | 'interface';
 
 export interface Instance {
@@ -35,7 +35,7 @@ export interface Account {
   id: string;
   name: string;
   uuid: string;
-  type: 'Microsoft' | '离线' | '第三方';
+  type: 'microsoft' | 'offline' | 'yggdrasil';
   provider: string;
   color: string;
   detail: string;
@@ -43,6 +43,7 @@ export interface Account {
   expiresAt?: number;
 }
 export interface InstalledContent {
+  icon?: string;
   id: string;
   instance: string;
   name: string;
@@ -61,7 +62,7 @@ export interface Resource {
   name: string;
   author: string;
   desc: string;
-  category: ContentCategory | '整合包';
+  category: ContentCategory | 'modpacks';
   source: string;
   downloads: string;
   version: string;
@@ -111,6 +112,7 @@ export interface Task {
   retry?: { command: string; params: Record<string, unknown> };
 }
 export interface ProviderDescriptor {
+  locales?: Record<string, { name: string }>;
   id: string;
   pluginId: string;
   kind: ProviderKind;
@@ -118,6 +120,7 @@ export interface ProviderDescriptor {
   capabilities?: string[];
 }
 export interface NixelPluginManifest {
+  locales?: Record<string, Partial<Pick<NixelPluginManifest, 'name' | 'description' | 'category'>>>;
   id: string;
   name: string;
   version: string;
@@ -147,6 +150,7 @@ export interface PluginItem {
   manifest: NixelPluginManifest;
 }
 export interface LauncherSettings {
+  locale: 'system' | 'zh-CN' | 'en-US';
   theme: 'light' | 'dark' | 'system';
   motion: boolean;
   background: string;
@@ -207,6 +211,13 @@ export interface ResourceQuery {
   instanceId?: string;
   sort?: string;
   offset?: number;
+}
+export interface ResourceSearchResult {
+  items: Resource[];
+  total: number;
+  /** Offset is per provider; aggregated pages interleave up to 20 items from each source. */
+  hasMore: boolean;
+  warnings: { source: string; message: string }[];
 }
 export interface CreateInstanceInput {
   name: string;

@@ -11,8 +11,10 @@ import type {
   InstalledContent,
   Instance,
   ResourceQuery,
+  ResourceSearchResult,
 } from '../shared/contracts';
 import type { NixelHost, TaskContext } from '../shared/host-api';
+import { tr } from '../shared/i18n';
 import { commandsFor } from './commands';
 import { download, hashFile, inside } from './files';
 import { assertInstanceIdle, getInstance } from './game';
@@ -26,17 +28,17 @@ import {
 } from './resource-files';
 
 export const resourcesId = 'nixel.resources.modrinth';
-const categories: Record<string, ContentCategory | '整合包'> = {
-  mod: '模组',
-  resourcepack: '资源包',
-  shader: '光影',
-  modpack: '整合包',
+const categories: Record<string, ContentCategory | 'modpacks'> = {
+  mod: 'mods',
+  resourcepack: 'resourcepacks',
+  shader: 'shaders',
+  modpack: 'modpacks',
 };
 const projectTypes: Record<string, string> = {
-  模组: 'mod',
-  资源包: 'resourcepack',
-  光影: 'shader',
-  整合包: 'modpack',
+  mods: 'mod',
+  resourcepacks: 'resourcepack',
+  shaders: 'shader',
+  modpacks: 'modpack',
 };
 const compatible = (version: ProjectVersion, instance: Instance) =>
   version.game_versions.includes(instance.version) &&
@@ -69,7 +71,7 @@ export async function scanContent(host: NixelHost, instance: Instance) {
             id: randomUUID(),
             instance: instance.id,
             name: entry.name.replace(/\.(jar|zip)(\.disabled)?$/i, ''),
-            version: '本地文件',
+            version: tr('resources.localFile'),
             category: category as ContentCategory,
             fileName: entry.name,
             enabled: !entry.name.endsWith('.disabled'),
@@ -124,7 +126,7 @@ export const resourcesPlugin = {
             name: hit.title,
             author: hit.author,
             desc: hit.description,
-            category: categories[hit.project_type] || '模组',
+            category: categories[hit.project_type] || 'mods',
             source: resourcesId,
             downloads: hit.downloads.toLocaleString(),
             version: hit.latest_version,
@@ -156,29 +158,41 @@ export const resourcesPlugin = {
           const selected = resolvedProjects.get(projectId);
           if (selected && selected !== versionId)
             throw new Error(
-              `Modrinth 依赖版本冲突：项目 ${projectId} 同时要求 ${selected} 和 ${versionId}，请调整依赖版本`,
+              tr('resources.modrinthDependencyConflictProjectValueRequiresBoth', {
+                value1: projectId,
+                value2: selected,
+                value3: versionId,
+              }),
             );
           resolvedProjects.set(projectId, versionId);
           if (visited.has(versionId)) return;
           visited.add(versionId);
           const version = await client.getProjectVersion(versionId, task.signal);
-          if (version.project_id !== projectId) throw new Error('资源与版本不匹配');
+          if (version.project_id !== projectId)
+            throw new Error(tr('resources.theResourceAndVersionDoNotMatch'));
           const project = await client.getProject(projectId, task.signal);
           const category = categories[project.project_type];
           const file = version.files.find((entry) => entry.primary) || version.files[0];
-          if (!file) throw new Error('此资源版本没有下载文件');
-          if (category === '整合包') {
+          if (!file) throw new Error(tr('resources.thisResourceVersionHasNoDownloadableFile'));
+          if (category === 'modpacks') {
             const path = inside(host.store.cacheRoot, `${randomUUID()}.mrpack`);
             await download(file.url, path, task.signal, file.hashes, (current, total) =>
-              task.report(total ? (current / total) * 100 : 0, `下载 ${project.title}`),
+              task.report(
+                total ? (current / total) * 100 : 0,
+                tr('curseforge.downloadValue', { value1: project.title }),
+              ),
             );
             await importModpack(host, path, task, project.title);
             return;
           }
-          if (!instance) throw new Error('请先选择目标实例');
+          if (!instance) throw new Error(tr('curseforge.chooseATargetInstanceFirst'));
           const targetInstance = instance;
           if (!compatible(version, targetInstance))
-            throw new Error(`版本 ${version.version_number} 与此实例的游戏版本或加载器不兼容`);
+            throw new Error(
+              tr('resources.versionValueIsIncompatibleWithThisInstance', {
+                value1: version.version_number,
+              }),
+            );
           for (const dependency of version.dependencies.filter(
             (entry) => entry.dependency_type === 'required',
           )) {
@@ -194,15 +208,20 @@ export const resourcesPlugin = {
                   )[0]
                 : undefined;
             if (!required)
-              throw new Error(`无法解析必需依赖：${dependency.project_id || '未知依赖'}`);
+              throw new Error(
+                tr('resources.cannotResolveRequiredDependencyValue', {
+                  value1: dependency.project_id || tr('resources.unknownDependency'),
+                }),
+              );
             await installVersion(required.project_id, required.id, true);
           }
-          if (!category) throw new Error('不支持的资源类型');
+          if (!category) throw new Error(tr('resources.unsupportedResourceType'));
           await installContentFile(host, targetInstance, task, {
             source: resourcesId,
             projectId,
             versionId,
             name: project.title,
+            icon: project.icon_url ?? undefined,
             version: version.version_number,
             category,
             fileName: file.filename,
@@ -270,9 +289,44 @@ export const contentPlugin = {
         host.store.read().settings.providers.resources;
       return { id, instance, provider: host.providers.get<ResourceProvider>('resources', id) };
     };
-    command('resources.search', (query: ResourceQuery) => {
-      const selection = selected(query.instanceId, query.source);
-      return selection.provider.search(query, selection.instance);
+    command('resources.search', async (query: ResourceQuery): Promise<ResourceSearchResult> => {
+      const instance = query.instanceId ? getInstance(host, query.instanceId) : undefined;
+      const source = normalizeResourceSource(query.source);
+      const sources = host.providers
+        .list()
+        .filter(
+          (provider) =>
+            provider.kind === 'resources' &&
+            (!source || source === 'all' || provider.id === source),
+        );
+      const responses = await Promise.allSettled(
+        sources.map((source) =>
+          host.providers.get<ResourceProvider>('resources', source.id).search(query, instance),
+        ),
+      );
+      const pages: ResourceSearchResult['items'][] = [];
+      const warnings: ResourceSearchResult['warnings'] = [];
+      let total = 0;
+      let hasMore = false;
+      responses.forEach((response, index) => {
+        const source = sources[index];
+        if (!source) return;
+        if (response.status === 'rejected') {
+          warnings.push({
+            source: source.name,
+            message:
+              response.reason instanceof Error ? response.reason.message : String(response.reason),
+          });
+          return;
+        }
+        pages.push(response.value.items.map((item) => ({ ...item, source: source.id })));
+        total += response.value.total;
+        hasMore ||= (query.offset ?? 0) + 20 < response.value.total;
+      });
+      const items = Array.from({ length: 20 }, (_, index) =>
+        pages.flatMap((page) => (page[index] ? [page[index]] : [])),
+      ).flat();
+      return { items, total, hasMore, warnings };
     });
     command(
       'resources.versions',
@@ -307,8 +361,8 @@ export const contentPlugin = {
         if (instance) assertInstanceIdle(host, instance.id);
         return {
           taskId: host.tasks.start(
-            '安装资源',
-            '解析资源与依赖',
+            tr('resources.installResource'),
+            tr('resources.resolvingResourcesAndDependencies'),
             async (task: TaskContext) => {
               const current = selected(instanceId, selection.id);
               if (current.instance) assertInstanceIdle(host, current.instance.id, task.taskId);
@@ -345,11 +399,11 @@ export const contentPlugin = {
         const instance = getInstance(host, instanceId);
         assertInstanceIdle(host, instanceId);
         if (!Object.hasOwn(contentDirectories, category) || !Array.isArray(paths) || !paths.length)
-          throw new Error('请选择内容类型与本地文件');
+          throw new Error(tr('resources.chooseAContentTypeAndLocalFiles'));
         return {
           taskId: host.tasks.start(
-            '导入本地内容',
-            '复制本地文件',
+            tr('resources.importLocalContent'),
+            tr('resources.copyingLocalFiles'),
             async (task) => {
               assertInstanceIdle(host, instanceId, task.taskId);
               const directory = join(instance.directory, contentDirectories[category]);
@@ -361,9 +415,9 @@ export const contentPlugin = {
                 const files = [];
                 for (const path of paths) {
                   const name = basename(path);
-                  const extension = category === '模组' ? /\.jar$/i : /\.zip$/i;
+                  const extension = category === 'mods' ? /\.jar$/i : /\.zip$/i;
                   if (!extension.test(name) || !(await lstat(path)).isFile())
-                    throw new Error(`不支持的本地文件：${name}`);
+                    throw new Error(tr('resources.unsupportedLocalFileValue', { value1: name }));
                   const target = inside(directory, name);
                   if (
                     names.has(name.toLowerCase()) ||
@@ -372,7 +426,9 @@ export const contentPlugin = {
                       () => false,
                     ))
                   )
-                    throw new Error(`文件已存在，请先移除或重命名：${name}`);
+                    throw new Error(
+                      tr('resources.fileAlreadyExistsRemoveOrRenameIt', { value1: name }),
+                    );
                   names.add(name.toLowerCase());
                   files.push({ path, target, name });
                 }
@@ -388,11 +444,14 @@ export const contentPlugin = {
                   // Creating the final hard link fails on collisions without replacing user files.
                   await link(temporary, file.target);
                   imported.push(file.target);
-                  task.report(((index + 1) / files.length) * 100, `导入 ${file.name}`);
+                  task.report(
+                    ((index + 1) / files.length) * 100,
+                    tr('resources.importValue', { value1: file.name }),
+                  );
                 }
                 task.signal.throwIfAborted();
                 await scanContent(host, instance);
-                task.log(`已导入 ${files.length} 个本地文件`);
+                task.log(tr('resources.importedValueLocalFiles', { value1: files.length }));
               } catch (error) {
                 await Promise.all(imported.map((path) => rm(path, { force: true })));
                 throw error;
@@ -417,7 +476,7 @@ export const contentPlugin = {
         const entry = host.store
           .read()
           .content.find((entry) => entry.instance === instanceId && entry.id === id);
-        if (!entry) throw new Error('文件不存在，请刷新列表');
+        if (!entry) throw new Error(tr('resources.fileNotFoundRefreshTheList'));
         if (entry.enabled === enabled) return;
         const fileName = enabled
           ? entry.fileName.replace(/\.disabled$/, '')
@@ -430,7 +489,7 @@ export const contentPlugin = {
             () => false,
           )
         )
-          throw new Error('目标文件已存在');
+          throw new Error(tr('resources.targetFileAlreadyExists'));
         await rename(inside(directory, entry.fileName), target);
         await host.store.update((draft) => {
           const item = draft.content.find((entry) => entry.id === id);
@@ -447,7 +506,7 @@ export const contentPlugin = {
       const entry = host.store
         .read()
         .content.find((entry) => entry.instance === instanceId && entry.id === id);
-      if (!entry) throw new Error('文件不存在');
+      if (!entry) throw new Error(tr('resources.fileNotFound'));
       await rm(
         inside(join(instance.directory, contentDirectories[entry.category]), entry.fileName),
         { force: true },

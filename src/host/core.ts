@@ -14,6 +14,8 @@ import type {
   ProviderRegistry,
   StateStore,
 } from '../shared/host-api';
+import { i18n, localizeManifest, setLocale, tr } from '../shared/i18n';
+import { migrateIdentifier } from '../shared/migrate-identifiers';
 import { defaultState } from './defaults';
 import type { HostConfiguration } from './protocol';
 import { JsonStorage } from './storage';
@@ -40,6 +42,11 @@ class HostStore implements StateStore {
   async load() {
     this.state = await this.storage.read('state', this.state);
     this.state.settings = { ...defaultState(this.root).settings, ...this.state.settings };
+    setLocale(this.state.settings.locale);
+    for (const item of this.state.content)
+      item.category = migrateIdentifier(item.category) as typeof item.category;
+    for (const account of this.state.accounts)
+      account.type = migrateIdentifier(account.type) as typeof account.type;
     if ('microsoftClientId' in this.state.settings) {
       delete this.state.settings.microsoftClientId;
     }
@@ -61,6 +68,7 @@ class HostStore implements StateStore {
       mutate(draft);
       await this.storage.write('state', draft);
       this.state = draft;
+      setLocale(draft.settings.locale);
       this.changed();
     });
     this.pending = update.catch(() => {});
@@ -78,7 +86,8 @@ class HostCommands implements CommandRegistry {
     name: string,
     handler: (params: P) => R | Promise<R>,
   ) {
-    if (this.handlers.has(name)) throw new Error(`命令已注册：${name}`);
+    if (this.handlers.has(name))
+      throw new Error(tr('core.commandAlreadyRegisteredValue', { value1: name }));
     const entry = { owner: ctx, handler: handler as (params: never) => unknown };
     return ctx.effect(() => {
       this.handlers.set(name, entry);
@@ -91,7 +100,8 @@ class HostCommands implements CommandRegistry {
 
   async invoke<T = unknown>(name: string, params?: unknown): Promise<T> {
     const entry = this.handlers.get(name);
-    if (!entry) throw new Error(`命令不可用，请检查对应插件是否启用：${name}`);
+    if (!entry)
+      throw new Error(tr('core.commandUnavailableCheckThatItsPluginIs', { value1: name }));
     return (await commandOwner.run(entry.owner, () => entry.handler(params as never))) as T;
   }
 }
@@ -103,7 +113,8 @@ class HostProviders implements ProviderRegistry {
 
   register<T>(ctx: Context, descriptor: ProviderDescriptor, implementation: T) {
     const key = `${descriptor.kind}:${descriptor.id}`;
-    if (this.entries.has(key)) throw new Error(`服务提供者已注册：${descriptor.id}`);
+    if (this.entries.has(key))
+      throw new Error(tr('core.providerAlreadyRegisteredValue', { value1: descriptor.id }));
     return ctx.effect(() => {
       this.entries.set(key, { descriptor, implementation });
       this.changed();
@@ -116,7 +127,7 @@ class HostProviders implements ProviderRegistry {
 
   get<T>(kind: ProviderKind, id: string): T {
     const entry = this.entries.get(`${kind}:${id}`);
-    if (!entry) throw new Error(`服务提供者未启用：${id}`);
+    if (!entry) throw new Error(tr('core.providerIsDisabledValue', { value1: id }));
     return entry.implementation as T;
   }
 
@@ -155,6 +166,7 @@ export class NixelService extends Service implements NixelHost {
   }
 
   async initialize() {
+    setLocale('system', this.configuration.systemLocale);
     await this.store.load();
     await this.tasks.load();
     this.initialized = true;
@@ -173,8 +185,19 @@ export class NixelService extends Service implements NixelHost {
     const state = this.store.read();
     return {
       ...state,
-      plugins: structuredClone(this.pluginSnapshot),
-      providers: this.providers.list(),
+      plugins: this.pluginSnapshot.map((item) => {
+        const manifest = localizeManifest(item.manifest);
+        return {
+          ...structuredClone(item),
+          name: manifest.name,
+          desc: manifest.description,
+          category: manifest.category,
+        };
+      }),
+      providers: this.providers.list().map((provider) => ({
+        ...provider,
+        name: provider.locales?.[i18n.language]?.name ?? provider.name,
+      })),
       tasks: this.tasks.list(),
       running: [...this.running],
       host: { status: this.ready ? 'ready' : 'starting', pid: process.pid },

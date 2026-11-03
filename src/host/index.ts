@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Context } from 'cordis';
 import { builtinPlugins } from '../plugins/builtin';
 import type { HostPlatform } from '../shared/host-api';
+import { tr } from '../shared/i18n';
 import { NixelService } from './core';
 import { HostPlugins } from './plugins';
 import type { HostToMain, MainToHost, PlatformOperation } from './protocol';
@@ -52,7 +53,7 @@ async function handle(message: MainToHost) {
     }
     case 'command': {
       try {
-        if (!service) throw new Error('插件 Host 尚未就绪。');
+        if (!service) throw new Error(tr('index.thePluginHostIsNotReady'));
         const value = await service.commands.invoke(message.command, message.payload);
         send({ type: 'command-result', id: message.id, value });
       } catch (error) {

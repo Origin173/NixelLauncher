@@ -3,12 +3,13 @@ import { rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ContentCategory, Instance } from '../shared/contracts';
 import type { NixelHost, TaskContext } from '../shared/host-api';
+import { tr } from '../shared/i18n';
 import { download, inside } from './files';
 
 export const contentDirectories: Record<ContentCategory, string> = {
-  模组: 'mods',
-  资源包: 'resourcepacks',
-  光影: 'shaderpacks',
+  mods: 'mods',
+  resourcepacks: 'resourcepacks',
+  shaders: 'shaderpacks',
 };
 
 export function normalizeResourceSource(source?: string) {
@@ -33,10 +34,13 @@ export function assertRequiredContentEnabled(
         !entry.enabled,
     );
   if (disabled)
-    throw new Error(`必需依赖「${disabled.name}」当前已禁用，请先在实例内容中启用后再安装`);
+    throw new Error(
+      tr('resource-files.requiredDependencyValueIsDisabledEnableIt', { value1: disabled.name }),
+    );
 }
 
 interface ContentDownload {
+  icon?: string;
   source: string;
   projectId: string;
   versionId: string;
@@ -70,7 +74,9 @@ export async function installContentFile(
       !previous.some((old) => old.id === entry.id),
   );
   if (collision)
-    throw new Error(`文件 ${file.fileName} 已由其他资源或本地文件使用，请先移除冲突文件`);
+    throw new Error(
+      tr('resource-files.fileValueIsUsedByAnotherResource', { value1: file.fileName }),
+    );
   if (
     !previous.some((entry) => entry.category === file.category && entry.fileName === fileName) &&
     (await stat(target).then(
@@ -78,10 +84,15 @@ export async function installContentFile(
       () => false,
     ))
   )
-    throw new Error(`目标文件已存在：${fileName}，请先移除冲突文件`);
-  task.log(`安装 ${file.name} ${file.version}`);
+    throw new Error(
+      tr('resource-files.targetFileAlreadyExistsValueRemoveThe', { value1: fileName }),
+    );
+  task.log(tr('minecraft-engine.installValueValue', { value1: file.name, value2: file.version }));
   await download(file.url, target, task.signal, file.hashes, (current, total) =>
-    task.report(total ? (current / total) * 100 : 0, `下载 ${file.name}`),
+    task.report(
+      total ? (current / total) * 100 : 0,
+      tr('curseforge.downloadValue', { value1: file.name }),
+    ),
   );
   for (const entry of previous)
     if (entry.category !== file.category || entry.fileName !== fileName)
@@ -102,6 +113,7 @@ export async function installContentFile(
       id: previous[0]?.id || randomUUID(),
       instance: instance.id,
       name: file.name,
+      icon: file.icon,
       version: file.version,
       category: file.category,
       fileName,

@@ -27,8 +27,10 @@
     "@xmcl/unzip": "^2.2.0",
     "@xmcl/user": "^4.4.2",
     "cordis": "4.0.0-rc.12",
+    "i18next": "^26.7.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
+    "react-i18next": "^17.1.11",
     "yazl": "^3.3.1"
   },
   "devDependencies": {

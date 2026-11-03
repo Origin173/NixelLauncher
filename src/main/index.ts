@@ -13,9 +13,11 @@ import {
   shell,
   Tray,
 } from 'electron';
+import appIcon from '../../resources/nixel.png?asset';
 import { defaultState } from '../host/defaults';
 import type { PlatformOperation } from '../host/protocol';
 import type { LauncherSnapshot, PathOptions } from '../shared/contracts';
+import { i18n, setLocale, tr } from '../shared/i18n';
 import { loadEnvironment } from './environment';
 import { HostClient } from './host-client';
 import { SecretStorage } from './secrets';
@@ -54,30 +56,22 @@ function showWindow() {
 
 function hideToTray() {
   if (!tray) {
-    const pixels = Buffer.alloc(24 * 24 * 4);
-    for (let y = 0; y < 24; y++) {
-      for (let x = 0; x < 24; x++) {
-        const index = (y * 24 + x) * 4;
-        const mark =
-          y > 4 && y < 19 && ((x > 4 && x < 8) || (x > 15 && x < 19) || Math.abs(x - y) < 2);
-        pixels[index] = mark ? 240 : 84;
-        pixels[index + 1] = mark ? 245 : 111;
-        pixels[index + 2] = mark ? 240 : 82;
-        pixels[index + 3] = 255;
-      }
-    }
-    tray = new Tray(nativeImage.createFromBitmap(pixels, { width: 24, height: 24 }));
+    tray = new Tray(nativeImage.createFromPath(appIcon).resize({ width: 24, height: 24 }));
     tray.setToolTip('NixelLauncher');
-    tray.setContextMenu(
-      Menu.buildFromTemplate([
-        { label: '显示 NixelLauncher', click: showWindow },
-        { type: 'separator' },
-        { label: '退出 NixelLauncher', click: () => app.quit() },
-      ]),
-    );
+    updateTrayMenu();
     tray.on('double-click', showWindow);
   }
   window?.hide();
+}
+
+function updateTrayMenu() {
+  tray?.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: tr('index.showNixellauncher'), click: showWindow },
+      { type: 'separator' },
+      { label: tr('index.quitNixellauncher'), click: () => app.quit() },
+    ]),
+  );
 }
 
 function pushSnapshot() {
@@ -91,7 +85,7 @@ function validateSender(event: IpcMainInvokeEvent) {
     event.senderFrame !== window.webContents.mainFrame ||
     event.senderFrame.url !== rendererUrl
   )
-    throw new Error('IPC 来源无效。');
+    throw new Error(tr('index.invalidIpcSender'));
 }
 
 function handle<Args extends unknown[]>(channel: string, handler: (...args: Args) => unknown) {
@@ -115,14 +109,14 @@ async function loadInterface(path = '') {
     customInterface = '';
     rendererUrl = pathToFileURL(defaultRenderer).href;
     await window.loadURL(rendererUrl);
-    throw new Error(`界面插件加载失败：${String(error)}`);
+    throw new Error(tr('index.failedToLoadInterfacePluginValue', { value1: String(error) }));
   }
 }
 
 async function selectPath(options: PathOptions): Promise<string | null> {
   if (!window) return null;
   if (!options || !['file', 'directory', 'save'].includes(options.kind))
-    throw new Error('路径选择类型无效。');
+    throw new Error(tr('index.invalidPathSelectionType'));
   const shared = {
     title: options.title,
     defaultPath: options.defaultPath,
@@ -141,12 +135,13 @@ async function selectPath(options: PathOptions): Promise<string | null> {
 
 async function openExternal(value: string) {
   const url = new URL(value);
-  if (!['https:', 'http:'].includes(url.protocol)) throw new Error('仅支持 HTTP 与 HTTPS 链接。');
+  if (!['https:', 'http:'].includes(url.protocol))
+    throw new Error(tr('index.onlyHttpAndHttpsLinksAreSupported'));
   await shell.openExternal(url.href);
 }
 
 async function openPath(path: string) {
-  if (!isAbsolute(path)) throw new Error('路径必须是绝对路径。');
+  if (!isAbsolute(path)) throw new Error(tr('index.thePathMustBeAbsolute'));
   const error = await shell.openPath(path);
   if (error) throw new Error(error);
 }
@@ -169,7 +164,10 @@ async function platform(operation: PlatformOperation, payload: unknown) {
     case 'directory.select':
       return selectPath({ kind: 'directory' });
     case 'plugin.select':
-      return selectPath({ kind: 'directory', title: '选择可信本地插件目录' });
+      return selectPath({
+        kind: 'directory',
+        title: tr('index.chooseATrustedLocalPluginDirectory'),
+      });
   }
 }
 
@@ -177,9 +175,8 @@ function registerIpc() {
   handle('nixel:snapshot', () => snapshot);
   handle('nixel:invoke', (command: string, params?: unknown) => {
     if (typeof command !== 'string' || !/^[a-zA-Z][\w.-]+$/.test(command))
-      throw new Error('命令格式无效。');
-    if (snapshot.host.status !== 'ready')
-      throw new Error('插件 Host 尚未就绪，请等待或重启 Host。');
+      throw new Error(tr('index.invalidCommandFormat'));
+    if (snapshot.host.status !== 'ready') throw new Error(tr('index.thePluginHostIsNotReadyWait'));
     return host.command(command, params);
   });
   handle('nixel:select-path', selectPath);
@@ -187,7 +184,7 @@ function registerIpc() {
   handle('nixel:open-external', openExternal);
   handle('nixel:read-image', async (path: string) => {
     if (path.startsWith('file:')) path = fileURLToPath(path);
-    if (!isAbsolute(path)) throw new Error('图片路径必须是绝对路径。');
+    if (!isAbsolute(path)) throw new Error(tr('index.theImagePathMustBeAbsolute'));
     const mime = {
       '.png': 'image/png',
       '.jpg': 'image/jpeg',
@@ -196,7 +193,7 @@ function registerIpc() {
       '.gif': 'image/gif',
     }[extname(path).toLowerCase()];
     if (!mime || (await stat(path)).size > 20 * 1024 * 1024)
-      throw new Error('请选择 20MB 以内的 PNG、JPEG、WebP 或 GIF 图片。');
+      throw new Error(tr('index.chooseAPngJpegWebpOrGif'));
     const bytes = await readFile(path);
     const valid =
       (mime === 'image/png' &&
@@ -206,7 +203,7 @@ function registerIpc() {
         bytes.toString('ascii', 0, 4) === 'RIFF' &&
         bytes.toString('ascii', 8, 12) === 'WEBP') ||
       (mime === 'image/gif' && ['GIF87a', 'GIF89a'].includes(bytes.toString('ascii', 0, 6)));
-    if (!valid) throw new Error('文件内容不是支持的图片。');
+    if (!valid) throw new Error(tr('index.thisFileIsNotASupportedImage'));
     return `data:${mime};base64,${bytes.toString('base64')}`;
   });
   handle('nixel:window', (action: 'minimize' | 'maximize' | 'close') => {
@@ -214,7 +211,7 @@ function registerIpc() {
     if (action === 'minimize') window.minimize();
     else if (action === 'maximize') window.isMaximized() ? window.unmaximize() : window.maximize();
     else if (action === 'close') window.close();
-    else throw new Error('窗口操作无效。');
+    else throw new Error(tr('index.invalidWindowOperation'));
   });
   handle('nixel:restart-host', async () => {
     await host.restart();
@@ -222,7 +219,9 @@ function registerIpc() {
 }
 
 function createWindow() {
+  app.dock?.setIcon(appIcon);
   window = new BrowserWindow({
+    icon: appIcon,
     title: 'NixelLauncher',
     width: 1080,
     height: 700,
@@ -281,10 +280,18 @@ void app.whenReady().then(async () => {
   secrets = new SecretStorage(dataPath);
   await secrets.load();
   host = new HostClient(
-    { dataPath, appVersion: app.getVersion(), rendererPath: defaultRenderer },
+    {
+      dataPath,
+      appVersion: app.getVersion(),
+      rendererPath: defaultRenderer,
+      systemLocale: app.getLocale(),
+    },
     (value) => {
       const previousRunning = new Set(snapshot.running);
       snapshot = value as LauncherSnapshot;
+      const previousLanguage = i18n.language;
+      setLocale(snapshot.settings.locale, app.getLocale());
+      if (previousLanguage !== i18n.language) updateTrayMenu();
       if (
         snapshot.settings.closeAfterLaunch &&
         snapshot.running.some((id) => !previousRunning.has(id))
@@ -311,7 +318,7 @@ void app.whenReady().then(async () => {
             ? {
                 ...task,
                 status: 'failed',
-                error: 'Host 已退出，请重新发起操作。',
+                error: tr('index.theHostExitedStartTheOperationAgain'),
                 finishedAt: new Date().toISOString(),
               }
             : task,

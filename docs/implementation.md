@@ -46,7 +46,7 @@ CurseForge provider 与插件 ID 为 `nixel.resources.curseforge`。资源命令
 | `accounts.microsoft.start`     | 无（Host 从 `.env` 读取客户端 ID）                          | `DeviceLogin`                                                     |
 | `accounts.microsoft.poll`      | `{ id }`                                                    | `{ status: 'pending' \| 'complete'; account?: Account }`          |
 | `accounts.yggdrasil.login`     | `{ server, username, password }`                            | `Account`                                                         |
-| `resources.search`             | `ResourceQuery`                                             | `{ items: Resource[], total: number }`                            |
+| `resources.search`             | `ResourceQuery`                                             | `ResourceSearchResult`（items、total、hasMore、warnings）         |
 | `resources.versions`           | `{ projectId, instanceId?, source? }`                       | `ResourceVersion[]`                                               |
 | `resources.install`            | `{ projectId, versionId, instanceId?, source? }`            | `{ taskId }`                                                      |
 | `content.list`                 | `{ instanceId }`                                            | `InstalledContent[]`（同步快照）                                  |

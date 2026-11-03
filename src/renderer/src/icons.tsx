@@ -76,9 +76,12 @@ export function Icon({
 }
 export function Brand({ size = 30 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
-      <rect width="32" height="32" rx="9" fill="var(--foreground)" />
-      <path d="M8 23V9h5l6 9V9h5v14h-5l-6-9v9Z" fill="var(--background)" />
-    </svg>
+    <img
+      src={new URL('./assets/nixel.svg', import.meta.url).href}
+      width={size}
+      height={size}
+      alt=""
+      aria-hidden="true"
+    />
   );
 }

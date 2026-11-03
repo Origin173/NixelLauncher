@@ -1,5 +1,7 @@
 import { Avatar, Label, ListBox } from '@heroui/react';
 import type { ReactNode } from 'react';
+import { tr } from '../../shared/i18n';
+import { assetFor, launcherIcon, playerSkin } from './assets';
 import { Icon, type IconName } from './icons';
 
 export function Workspace({
@@ -49,7 +51,9 @@ export function NavList({
       onSelectionChange={(keys) => {
         if (keys !== 'all' && keys.size) onChange(String([...keys][0]));
       }}
-      renderEmptyState={() => <p className="sidebar-no-results">没有匹配的项目</p>}
+      renderEmptyState={() => (
+        <p className="sidebar-no-results">{tr('workspace.noMatchingItems')}</p>
+      )}
     >
       {items.map((item) => (
         <ListBox.Item
@@ -67,25 +71,32 @@ export function NavList({
   );
 }
 
-export function PlaceholderIcon({
-  name,
+export function AssetIcon({
+  src,
+  kind,
+  builtin = false,
   size = 'md',
 }: {
-  name: string;
+  src?: string;
+  kind?: string;
+  builtin?: boolean;
   size?: 'sm' | 'md' | 'lg';
 }) {
-  const initials = /^[a-z]/i.test(name)
-    ? name
-        .split(/\s+/)
-        .filter((part) => /^[a-z]/i.test(part))
-        .map((part) => part[0])
-        .slice(0, 2)
-        .join('')
-        .toUpperCase()
-    : name.slice(0, 1);
+  if (kind === 'account')
+    return (
+      <span
+        className={`skin-avatar skin-avatar--${size}`}
+        style={{ backgroundImage: `url(${playerSkin})` }}
+        aria-hidden="true"
+      />
+    );
+  const image = builtin ? launcherIcon : src || assetFor(kind);
   return (
     <Avatar size={size} className="placeholder-icon" aria-hidden="true">
-      <Avatar.Fallback>{initials}</Avatar.Fallback>
+      {image && <Avatar.Image src={image} alt="" referrerPolicy="no-referrer" />}
+      <Avatar.Fallback>
+        <Icon name={kind === 'plugin' ? 'plugin' : 'box'} />
+      </Avatar.Fallback>
     </Avatar>
   );
 }
