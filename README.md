@@ -1,8 +1,8 @@
 # NixelLauncher
 
-Minecraft Java 版启动器项目，计划采用 Electron + React + HeroUI + Cordis。
+基于 Electron + React + HeroUI v3 + Cordis 的 Minecraft Java 版启动器。
 
-当前仅初始化基础 Electron 脚手架：main、preload、React renderer，以及 TypeScript、Vite、Tailwind CSS 和 Biome 配置。HeroUI 已接入，Cordis 依赖已准备，插件系统与游戏业务尚未实现。
+已接入批准版界面与独立 Cordis Plugin Host。实例、账号与内容管理通过内置插件调用游戏、资源和账号提供者；插件全局启用，实例单独保存提供者与配置。默认界面也以插件注册，可由可信本地界面插件替换。
 
 ## 开发环境
 
@@ -15,6 +15,27 @@ pnpm dev
 ```
 
 安装脚本会准备 Electron 运行时。若本机配置跳过安装脚本，可手动执行 `pnpm run postinstall`。
+
+首次打开按向导设置偏好、添加账号，再创建游戏实例。游戏文件保存在独立实例目录中。Vanilla、Fabric、Forge、NeoForge、Quilt 安装使用 XMCL。默认自动检测并选择对应 Java 主版本；缺少时从 Mojang 官方源下载、校验并安装到启动器管理目录。也可在设置中下载指定主版本或选择本机 Java。Mojang 未提供的系统架构需手动指定 Java。
+
+实例支持导入现有 Minecraft 目录（含多个版本时选择一个启动版本）、复制、修复游戏文件，以及本地模组、资源包、光影导入。导入和复制保留存档与配置，创建独立目录；中断的新实例会被清理。全局与实例均支持 JVM 参数、游戏参数、分辨率和全屏，实例可继承全局设置。参数逐行填写，每行是传给进程的一个参数。
+
+服务配置统一放在项目根目录的 `.env`，首次使用可复制 `.env.example`。填写后重启启动器：
+
+| 变量                  | 用途                                                                        |
+| --------------------- | --------------------------------------------------------------------------- |
+| `MICROSOFT_CLIENT_ID` | 自己的 Microsoft 公开客户端 ID，应用需支持设备代码流程与 Minecraft 服务访问 |
+| `CURSEFORGE_API_KEY`  | 自己的 CurseForge API Key，用于搜索、版本查询和下载                         |
+| `MODRINTH_TOKEN`      | 可选，公开资源搜索与下载无需填写                                            |
+| `NIXEL_DATA_DIR`      | 可选，独立应用数据目录的绝对路径                                            |
+
+优先级为系统环境变量 > `.env.local` > `.env`。加载器保留 `$` 字符原值；包含 `#` 的值请用引号包裹。开发时读取项目根目录，打包后读取可执行文件同目录。配置在运行时加载，不编译进渲染端；Host 缓存服务凭据后从进程环境移除，Java 安装器与游戏不会继承这三项服务凭据。`.env` 与本地覆盖文件由 Git 忽略，仓库只保留空值模板。
+
+离线角色、Microsoft 与第三方 Yggdrasil 认证分别由账号插件提供。玩家登录令牌由主进程系统安全存储加密。更换 Microsoft 客户端 ID 后，新登录使用新配置；已有账号刷新仍使用登录时绑定的客户端 ID。
+
+资源页和实例的“添加内容”支持切换 **Modrinth / CurseForge**，搜索模组、资源包、光影和整合包，按游戏版本与加载器获取兼容版本。同一实例可以混合安装两个来源的内容，检查更新按已安装文件来源分发。整合包支持 `.mrpack` 与 CurseForge `manifest.json` ZIP 导入，导出为 `.mrpack`。CurseForge 下载遵循作者的第三方分发设置；未开放的文件可通过项目页面获取。
+
+任务支持进度、日志、取消和重启后手动重试。重试通过当前已启用的插件重新执行原命令。设置、账号记录、实例与插件配置保存在应用数据目录，重启后恢复。脱敏启动输出保存在实例的 `nixel-launch.log`，日志页可读取历史输出和打开崩溃报告。同一数据目录只运行一个启动器窗口；启动后自动隐藏的窗口在游戏退出或 Host 故障时恢复。界面插件启用后，在 **设置 → 外观与背景** 选择默认界面。
 
 ## 命令
 
@@ -32,8 +53,17 @@ pnpm dev
 ```text
 src/main/           Electron 主进程
 src/preload/        渲染进程桥接入口
-src/renderer/       React + HeroUI 界面入口
+src/host/           独立 Cordis Host、状态、任务与插件生命周期
+src/plugins/        内置管理插件与游戏、资源、账号提供者
+src/shared/         公开数据、preload 与 Host 接口
+src/renderer/       React + HeroUI 默认界面插件
+design/             已批准的独立设计原型
+docs/               架构、命令表与本地插件开发说明
 .agents/skills/     项目提交规范
 ```
 
-参考 [electron-vite](https://electron-vite.org/guide/) 与 [HeroUI v3](https://heroui.com/en/docs/react/getting-started/quick-start)。Cordis 固定为上游候选版 `4.0.0-rc.12`，后续设计插件运行时再接入。
+架构见 [运行结构](docs/architecture.md)，扩展方式见 [插件开发](docs/plugins.md)，接口见 [实现约定](docs/implementation.md)。Cordis 固定为 `4.0.0-rc.12`，HeroUI 使用 v3 API。
+
+开发时可用环境变量 `NIXEL_DATA_DIR` 指定独立的绝对数据目录。构建生成主进程、preload、Host 和默认界面；`pnpm start` 运行构建结果。
+
+依赖修补：`@xmcl/unzip@2.2.0` 发布包的入口指向缺失源文件，项目通过 `pnpm patchedDependencies` 将入口修正为随包发布的 `dist` 文件，补丁位于 `patches/`。

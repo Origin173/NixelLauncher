@@ -4,3 +4,6 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - "@vitejs/plugin-react@6.2.1"
+
+patchedDependencies:
+  "@xmcl/unzip@2.2.0": patches/@xmcl__unzip@2.2.0.patch

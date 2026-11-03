@@ -1,7 +1,7 @@
-export {};
+import type { NixelBridge } from '../../shared/contracts';
 
 declare global {
   interface Window {
-    nixel: Readonly<{ platform: string }>;
+    nixel: Readonly<NixelBridge>;
   }
 }
