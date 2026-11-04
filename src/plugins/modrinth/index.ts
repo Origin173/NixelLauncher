@@ -26,14 +26,14 @@ export const resourcesPlugin = {
     const provider: ResourceProvider = {
       downloadModpack: (projectId, versionId, task) =>
         downloadPack(host, client, projectId, versionId, task),
-      planInstall: (roots, instance, retained, signal) =>
+      planInstall: (roots, instance, retained, signal, options) =>
         resolveContentPlan(
           roots,
           contentResolver(client, instance, signal),
           retained,
           signal,
           [],
-          true,
+          options?.pinRetained ?? true,
         ),
       search: (query, instance) => searchProjects(client, query, instance),
       versions: (id, instance, signal) => listVersions(client, id, instance, signal),

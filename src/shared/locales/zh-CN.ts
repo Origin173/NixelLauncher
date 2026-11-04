@@ -1,6 +1,7 @@
 import { accountProfilesZh } from './account-profiles';
 import { appUpdatesZh } from './app-updates';
 import { backupRetentionZh } from './backup-retention';
+import { contentUpdatesZh } from './content-updates';
 import { diagnosticsZh } from './diagnostics';
 import { downloadsZh } from './downloads';
 import { mirrorsZh } from './mirrors';
@@ -13,6 +14,7 @@ import { skinsZh } from './skins';
 import { versionContentZh } from './version-content';
 
 export default {
+  ...contentUpdatesZh,
   ...appUpdatesZh,
   ...proxyAuthZh,
   ...pluginDistributionZh,

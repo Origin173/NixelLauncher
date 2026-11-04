@@ -5,7 +5,8 @@ import { tr } from '../../shared/i18n';
 import { commandsFor } from '../commands';
 import { assertInstanceIdle, getInstance } from '../instance-state';
 import type { ResourceProvider } from '../providers';
-import { normalizeResourceSource, scanContent } from '../resource-files';
+import { installContentFile, normalizeResourceSource, scanContent } from '../resource-files';
+import { planContentUpdates } from './update-plan';
 
 export function registerContentUpdates(ctx: Context) {
   const host = ctx.nixel;
@@ -120,33 +121,47 @@ export function registerContentUpdates(ctx: Context) {
           async (task) => {
             const instance = getInstance(host, instanceId);
             assertInstanceIdle(host, instanceId, task.taskId);
-            await scanContent(host, instance);
-            for (const [index, target] of updates.entries()) {
+            const installed = await scanContent(host, instance);
+            const files = await planContentUpdates(host, instance, updates, installed, task.signal);
+            for (const [index, file] of files.entries()) {
               task.signal.throwIfAborted();
-              const entry = findTarget(instanceId, target);
+              const entry = host.store
+                .read()
+                .content.find(
+                  (entry) =>
+                    entry.instance === instanceId &&
+                    normalizeResourceSource(entry.source) === file.source &&
+                    entry.projectId === file.projectId,
+                );
               const detail = tr('content.updatingFile', {
-                name: entry.name,
+                name: file.name,
                 current: index + 1,
-                total: updates.length,
+                total: files.length,
               });
-              task.report((index / updates.length) * 100, detail);
-              if (entry.versionId === target.versionId) {
+              task.report((index / files.length) * 100, detail);
+              if (
+                entry?.versionId === file.versionId &&
+                entry.category === file.category &&
+                entry.fileName.replace(/\.disabled$/, '') === file.fileName
+              ) {
                 task.log(tr('content.alreadyUpdated', { name: entry.name }));
                 continue;
               }
-              await host.providers
-                .get<ResourceProvider>('resources', target.source)
-                .install(target.projectId, target.versionId, instance, {
+              await installContentFile(
+                host,
+                instance,
+                {
                   ...task,
                   report: (progress) =>
-                    task.report(((index + progress / 100) / updates.length) * 100, detail),
-                });
-              task.log(tr('content.updatedFile', { name: entry.name }));
+                    task.report(((index + progress / 100) / files.length) * 100, detail),
+                },
+                file,
+              );
+              task.log(tr('content.updatedFile', { name: file.name }));
             }
-            // Later dependency installs must not silently replace an earlier selected version.
-            for (const target of updates) {
-              const entry = findTarget(instanceId, target);
-              if (entry.versionId !== target.versionId)
+            for (const file of files) {
+              const entry = findTarget(instanceId, file);
+              if (entry.versionId !== file.versionId)
                 throw new Error(tr('content.updateVersionConflict', { name: entry.name }));
             }
             task.report(100, tr('content.updatedCount', { count: updates.length }));

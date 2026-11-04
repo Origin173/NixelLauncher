@@ -50,6 +50,7 @@ export interface ResourceProvider {
     instance: Instance,
     retained: InstalledContent[],
     signal?: AbortSignal,
+    options?: { pinRetained?: boolean },
   ): Promise<ContentDownload[]>;
   downloadModpack?(projectId: string, versionId: string, task: TaskContext): Promise<string>;
   search(query: ResourceQuery, instance?: Instance): Promise<{ items: Resource[]; total: number }>;

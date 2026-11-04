@@ -18,14 +18,14 @@ export const curseforgePlugin = {
     const host = ctx.nixel;
     const client = new CurseForgeClient();
     const provider: CurseForgeResourceProvider = {
-      planInstall: (roots, instance, retained, signal) =>
+      planInstall: (roots, instance, retained, signal, options) =>
         resolveContentPlan(
           roots,
           contentResolver(client, instance, signal),
           retained,
           signal,
           [],
-          true,
+          options?.pinRetained ?? true,
         ),
       search: (query, instance) => searchProjects(client, query, instance),
       versions: (projectId, instance, signal) => listVersions(client, projectId, instance, signal),
