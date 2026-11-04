@@ -3,6 +3,34 @@ export type Loader = 'Vanilla' | 'Fabric' | 'Forge' | 'NeoForge' | 'Quilt';
 export type ContentCategory = 'mods' | 'resourcepacks' | 'shaders';
 export type ProviderKind = 'game' | 'resources' | 'accounts' | 'interface';
 
+export interface InstanceVersionTarget {
+  version: string;
+  loader: Loader;
+  loaderVersion?: string;
+}
+export interface VersionContentReview {
+  id: string;
+  name: string;
+  fileName: string;
+  icon?: string;
+  category: ContentCategory;
+  enabled: boolean;
+  source?: string;
+  status: 'compatible' | 'update-available' | 'incompatible' | 'unknown';
+  reason?: string;
+}
+export interface InstanceVersionPlan {
+  target: InstanceVersionTarget;
+  fingerprint: string;
+  content: VersionContentReview[];
+}
+export interface ChangeInstanceVersionInput {
+  id: string;
+  target: InstanceVersionTarget;
+  fingerprint: string;
+  acceptRisks: boolean;
+}
+
 export interface Instance {
   id: string;
   name: string;

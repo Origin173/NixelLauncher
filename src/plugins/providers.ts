@@ -12,8 +12,12 @@ import type { TaskContext } from '../shared/host-api';
 import type { GameSession } from './authentication';
 
 export interface GameProvider {
-  versions(): Promise<VersionEntry[]>;
-  loaders(version: string, loader: Instance['loader']): Promise<VersionEntry[]>;
+  versions(signal?: AbortSignal): Promise<VersionEntry[]>;
+  loaders(
+    version: string,
+    loader: Instance['loader'],
+    signal?: AbortSignal,
+  ): Promise<VersionEntry[]>;
   install(instance: Instance, task: TaskContext): Promise<string>;
   launch(instance: Instance, account: Account, task: TaskContext): Promise<void>;
   stop(id: string): void;
@@ -24,7 +28,11 @@ export interface AccountProvider {
 }
 export interface ResourceProvider {
   search(query: ResourceQuery, instance?: Instance): Promise<{ items: Resource[]; total: number }>;
-  versions(projectId: string, instance?: Instance): Promise<ResourceVersion[]>;
+  versions(
+    projectId: string,
+    instance?: Instance,
+    signal?: AbortSignal,
+  ): Promise<ResourceVersion[]>;
   /** Optional catalog extensions; existing providers can still search and install. */
   details?(projectId: string): Promise<ResourceDetails>;
   versionDetails?(projectId: string, versionId: string): Promise<ResourceVersionDetails>;

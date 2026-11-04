@@ -1,0 +1,33 @@
+.version-target-picker .setting-row {
+  min-height: 0;
+  padding: 8px 0;
+}
+.version-target-filter .checkbox {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.version-target-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-weight: 600;
+}
+.version-content-review {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+}
+.version-content-review li {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+}
+.version-content-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

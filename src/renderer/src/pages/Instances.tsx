@@ -161,7 +161,24 @@ export function InstancesPage() {
               <div className="instance-overview">
                 <Group title={tr('Instances.runtime')}>
                   <SettingRow title="Minecraft">
-                    <span className="mono">{i.version}</span>
+                    <div className="row">
+                      <span className="mono">{i.version}</span>
+                      <Action
+                        size="sm"
+                        variant="ghost"
+                        icon="refresh"
+                        isDisabled={
+                          a.running.includes(i.id) ||
+                          i.status === 'installing' ||
+                          a.tasks.some(
+                            (task) => task.instanceId === i.id && task.status === 'running',
+                          )
+                        }
+                        onPress={() => a.setOverlay({ type: 'version-change', instanceId: i.id })}
+                      >
+                        {tr('versionChange.title')}
+                      </Action>
+                    </div>
                   </SettingRow>
                   <SettingRow title={tr('Instances.modLoader')}>
                     <span>

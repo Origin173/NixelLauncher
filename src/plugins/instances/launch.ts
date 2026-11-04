@@ -1,5 +1,5 @@
 import type { Context } from 'cordis';
-import type { Account, Loader } from '../../shared/contracts';
+import type { Account } from '../../shared/contracts';
 import { tr } from '../../shared/i18n';
 import { launchAccountId } from '../../shared/launch-account';
 import { commandsFor } from '../commands';
@@ -9,14 +9,6 @@ import type { GameProvider } from '../providers';
 export function registerInstanceLaunch(ctx: Context) {
   const host = ctx.nixel;
   const command = commandsFor(ctx);
-  command('game.versions', () =>
-    host.providers.get<GameProvider>('game', host.store.read().settings.providers.game).versions(),
-  );
-  command('game.loaders', ({ version, loader }: { version: string; loader: Loader }) =>
-    host.providers
-      .get<GameProvider>('game', host.store.read().settings.providers.game)
-      .loaders(version, loader),
-  );
   command('instances.launch', ({ id, accountId }: { id: string; accountId?: string }) => {
     const instance = getInstance(host, id);
     assertInstanceIdle(host, id);

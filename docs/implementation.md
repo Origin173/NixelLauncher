@@ -23,12 +23,14 @@ CurseForge provider 与插件 ID 为 `nixel.resources.curseforge`。资源命令
 | `plugins.configure`            | `{ id, config }`                                            | `void`                                                            |
 | `plugins.install`              | `{ directory }`（包含 nixel-plugin.json）                   | `void`                                                            |
 | `plugins.remove`               | `{ id }`                                                    | `void`                                                            |
-| `game.versions`                | 无                                                          | `VersionEntry[]`                                                  |
-| `game.loaders`                 | `{ version, loader }`                                       | `VersionEntry[]`                                                  |
+| `game.versions`                | `{ instanceId? }` 或无参                                    | `VersionEntry[]`                                                  |
+| `game.loaders`                 | `{ version, loader, instanceId? }`                          | `VersionEntry[]`                                                  |
 | `instances.create`             | `CreateInstanceInput`                                       | `{ instanceId, taskId? }`                                         |
 | `instances.update`             | `{ id, patch: Partial<Instance> }`                          | `void`                                                            |
 | `instances.delete`             | `{ id, deleteFiles: boolean }`                              | `void`                                                            |
 | `instances.install`            | `{ id }`                                                    | `{ taskId }`                                                      |
+| `instances.planVersionChange`  | `{ id, target: InstanceVersionTarget }`                     | `InstanceVersionPlan`                                             |
+| `instances.changeVersion`      | `ChangeInstanceVersionInput`                                | `{ taskId }`                                                      |
 | `instances.launch`             | `{ id, accountId? }`                                        | `{ taskId }`                                                      |
 | `instances.stop`               | `{ id }`                                                    | `void`                                                            |
 | `instances.files`              | `{ id, kind: 'saves' \| 'screenshots' \| 'crash-reports' }` | `InstanceFile[]`                                                  |
@@ -82,6 +84,14 @@ Microsoft 登录使用 `.env` 的 `MICROSOFT_CLIENT_ID`，CurseForge 使用 `CUR
 `ContentUpdateTarget` 为 `{ source, projectId, versionId }`，以来源与项目 ID 标识更新目标。`content.update` 使用 `content-update` 任务串行安装这些明确目标，保留文件启用状态；当前列表的批量操作遵守分类和搜索筛选，同一来源的同一项目只提交一次。任务中断时保留已完成的项目，重试跳过已安装的目标版本。批次结束检查最终版本，依赖安装替换了其他所选版本时报告冲突。列表扫描保留扫描期间写入的新元数据，避免覆盖安装结果。
 
 资源详情命令必须传项目实际的 `source`。`ResourceDetails` 包含 `description: { content, format: 'markdown' | 'html' }`、`gallery: { url, title?, description? }[]` 与项目 `url`；`ResourceVersionDetails` 包含相同格式的 `changelog` 及依赖列表。依赖有 `name`、`type`，以及可选的 `projectId`、`versionId`、`url`；类型为 `required`、`optional`、`incompatible`、`embedded`、`tool`、`include`、`unknown`。未实现对应可选方法的提供者返回 `null`，接口失败正常抛出错误。内置来源校验版本属于请求的项目，详情读取不修改实例或已安装内容。
+
+## 实例版本变更
+
+`game.versions`、`game.loaders` 传入 `instanceId` 时查询该实例的游戏提供者，省略时使用全局默认值。`InstanceVersionTarget` 为 `{ version, loader, loaderVersion? }`；Vanilla 清空加载器版本，其他加载器要求明确版本。目标必须存在于对应提供者的版本列表。
+
+`instances.planVersionChange` 要求实例空闲，扫描已安装内容，按每个文件的来源查询目标游戏/加载器的版本列表。当前资源版本仍在列表时为 `compatible`，存在其他可用版本时为 `update-available`，无可用版本时为 `incompatible`；来源或版本身份缺失、查询出错时为 `unknown`，错误随条目返回。返回 `{ target, fingerprint, content }`，指纹涵盖当前版本、提供者配置、内容身份、启用状态和兼容结论，不包含展示文案。结论基于来源元数据，不读取模组代码或运行游戏。
+
+`ChangeInstanceVersionInput` 为 `{ id, target, fingerprint, acceptRisks }`。命令启动 `version-change` 任务，重新获取当前预览并核对指纹；若变动，要求重新确认。有启用的非兼容条目时要求 `acceptRisks: true`。随后保存完整备份，安装目标，最后提交 `version`、`loader`、`loaderVersion`、`launchVersion`、`kind` 与就绪状态，并清除过时的内容更新提示。备份 ID 记入任务日志，可从实例备份页恢复。取消或安装失败保留原版本选择和已有内容；已完成的备份保留。重试沿用原目标与确认指纹，实例变化时要求重新预览。
 
 ## 实例备份
 

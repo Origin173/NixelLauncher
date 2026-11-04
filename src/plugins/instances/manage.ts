@@ -49,8 +49,9 @@ export function registerInstanceManagement(ctx: Context) {
       if (patch.javaPath && (!isAbsolute(patch.javaPath) || !(await stat(patch.javaPath)).isFile()))
         throw new Error(tr('game.chooseAnAbsolutePathToTheJava'));
     }
-    if (patch.providers !== undefined) {
+    if (patch.providers !== undefined || patch.providerConfig !== undefined)
       assertInstanceIdle(host, id);
+    if (patch.providers !== undefined) {
       if (!patch.providers || typeof patch.providers !== 'object' || Array.isArray(patch.providers))
         throw new Error(tr('game.invalidInstanceProviderSettings'));
       for (const kind of Object.keys(patch.providers)) {

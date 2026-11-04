@@ -3,12 +3,10 @@ import { tr } from '../../../shared/i18n';
 import { commandsFor } from '../../commands';
 import { assertInstanceIdle, getInstance } from '../../instance-state';
 import { createBackup, restoreBackup } from './operations';
-import { BackupRepository } from './repository';
+import type { BackupRepository } from './repository';
 
-export async function registerBackups(ctx: Context) {
+export function registerBackups(ctx: Context, repository: BackupRepository) {
   const host = ctx.nixel;
-  const repository = new BackupRepository(host.store.root);
-  await repository.initialize();
   const command = commandsFor(ctx);
   const deleting = new Set<string>();
   command('backups.list', (params?: { instanceId?: string }) =>
@@ -21,7 +19,9 @@ export async function registerBackups(ctx: Context) {
       taskId: host.tasks.start(
         tr('backups.createTask', { name: instance.name }),
         tr('backups.preparing'),
-        (task) => createBackup(host, repository, instanceId, task),
+        async (task) => {
+          await createBackup(host, repository, instanceId, task);
+        },
         {
           instanceId,
           kind: 'backup',

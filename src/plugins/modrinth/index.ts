@@ -22,7 +22,7 @@ export const resourcesPlugin = {
     });
     const provider: ResourceProvider = {
       search: (query, instance) => searchProjects(client, query, instance),
-      versions: (id, instance) => listVersions(client, id, instance),
+      versions: (id, instance, signal) => listVersions(client, id, instance, signal),
       details: (id) => projectDetails(client, id),
       versionDetails: (id, versionId) => versionDetails(client, id, versionId),
       install: (id, version, instance, task) =>

@@ -17,8 +17,8 @@ export const gamePlugin = {
     };
     const provider: GameProvider = {
       versions: listMinecraftVersions,
-      async loaders(version, loader) {
-        return (await listLoaderVersions(loaderKind(loader), version)).map((id) => ({
+      async loaders(version, loader, signal) {
+        return (await listLoaderVersions(loaderKind(loader), version, signal)).map((id) => ({
           id,
           type: loader,
         }));

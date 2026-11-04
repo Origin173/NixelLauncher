@@ -32,25 +32,30 @@ Minecraft 安装与启动由 Nixel 游戏提供者实现，版本清单来自 Mo
 
 业务插件按职责组织模块，入口负责注册。实例管理、游戏实现、内容管理与资源来源分别组织：
 
-| 模块                                                                 | 职责                                                                   |
-| -------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `plugins/instances/index.ts`                                         | 组合实例命令、文件、导入与备份功能，绑定 Cordis 作用域                 |
-| `plugins/instances/manage.ts`、`install.ts`、`launch.ts`、`files.ts` | 分别处理实例配置与增删、安装任务、启动命令、文件与日志查询             |
-| `plugins/instances/backups/index.ts`                                 | 注册备份命令、任务与操作占用规则                                       |
-| `plugins/instances/backups/operations.ts`                            | 编排备份和恢复，提交实例与内容记录，清理未完成的新实例                 |
-| `plugins/instances/backups/repository.ts`                            | 备份目录、清单、历史列表与原子提交/删除                                |
-| `plugins/instances/backups/archive.ts`                               | ZIP 文件读写、相对路径边界、进度与取消                                 |
-| `plugins/minecraft/index.ts`、`install.ts`、`processes.ts`           | 注册游戏提供者，协调版本安装，拥有游戏进程和停止/释放逻辑              |
-| `plugins/java-commands.ts`、`java-selection.ts`、`java.ts`           | Java 命令、版本选择规则、运行时检测与安装                              |
-| `plugins/instance-state.ts`、`task-progress.ts`、`launch-logs.ts`    | 内置模块共用的实例访问与占用规则、进度适配、脱敏日志                   |
-| `plugins/content/index.ts`、`commands.ts`、`import.ts`、`updates.ts` | 组合内容插件，管理本地文件、启用状态、导入与更新任务                   |
-| `plugins/catalog/commands.ts`                                        | 资源命令、双来源搜索合并、按明确来源分发详情与安装                     |
-| `plugins/modrinth/`、`plugins/curseforge/`                           | 各来源独立的注册入口、API 客户端、查询、详情、安装、更新检查与协议规则 |
-| `plugins/providers.ts`                                               | 公开的提供者契约，包括资源详情及 CurseForge 整合包文件接口             |
+| 模块                                                                 | 职责                                                                                               |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `plugins/instances/index.ts`                                         | 组合实例命令、文件、导入与备份功能，绑定 Cordis 作用域                                             |
+| `plugins/instances/manage.ts`、`install.ts`、`launch.ts`、`files.ts` | 分别处理实例配置与增删、安装任务、启动命令、文件与日志查询                                         |
+| `plugins/instances/backups/index.ts`                                 | 注册备份命令、任务与操作占用规则                                                                   |
+| `plugins/instances/backups/operations.ts`                            | 编排备份和恢复，提交实例与内容记录，清理未完成的新实例                                             |
+| `plugins/instances/backups/repository.ts`                            | 备份目录、清单、历史列表与原子提交/删除                                                            |
+| `plugins/instances/backups/archive.ts`                               | ZIP 文件读写、相对路径边界、进度与取消                                                             |
+| `plugins/instances/versions/`                                        | `catalog.ts` 查询版本，`compatibility.ts` 检查内容，`plan.ts` 生成预览，`change.ts` 编排备份与安装 |
+| `plugins/minecraft/index.ts`、`install.ts`、`processes.ts`           | 注册游戏提供者，协调版本安装，拥有游戏进程和停止/释放逻辑                                          |
+| `plugins/java-commands.ts`、`java-selection.ts`、`java.ts`           | Java 命令、版本选择规则、运行时检测与安装                                                          |
+| `plugins/instance-state.ts`、`task-progress.ts`、`launch-logs.ts`    | 内置模块共用的实例访问与占用规则、进度适配、脱敏日志                                               |
+| `plugins/content/index.ts`、`commands.ts`、`import.ts`、`updates.ts` | 组合内容插件，管理本地文件、启用状态、导入与更新任务                                               |
+| `plugins/catalog/commands.ts`                                        | 资源命令、双来源搜索合并、按明确来源分发详情与安装                                                 |
+| `plugins/modrinth/`、`plugins/curseforge/`                           | 各来源独立的注册入口、API 客户端、查询、详情、安装、更新检查与协议规则                             |
+| `plugins/providers.ts`                                               | 公开的提供者契约，包括资源详情及 CurseForge 整合包文件接口                                         |
 
 这些模块通过已有 Host 契约和提供者接口协作。`instance-state.ts` 是共享业务模块，不导入具体插件；内容管理无需依赖 Minecraft 插件入口。备份属于实例管理插件，未增加平行注册表或 Host 业务逻辑。
 
 备份先写入 `backups/.pending/<id>/`，归档与清单完成后整体重命名为正式目录。删除先移出正式目录，再清理文件；启动时清理未完成的暂存目录。恢复先校验归档，再创建带 `pendingOperation` 的新实例，解压完成后提交设置和资源记录。取消或失败清理这个新实例；进程中断沿用实例插件的下次启动清理机制。原实例和正式备份保持独立。
+
+备份仓库由实例插件入口创建并初始化，手动备份和版本变更共享同一仓库。版本目录模块从启动命令中分离，支持按实例选择游戏提供者。变更预览由 `plan.ts` 校验目标，`compatibility.ts` 每批最多并行查询四个资源，按输入顺序返回结论；预览指纹包含版本、提供者配置和内容状态。`change.ts` 在任务占用下重新检查预览，调用备份模块，再调用游戏提供者安装，最后一次提交新的版本选择。下载阶段沿用原启动配置；取消、安装失败或 Host 中断不会提前切换版本，已下载的游戏文件可供后续安装复用。资源文件与启用状态不参与此次变更。
+
+默认界面的 `renderer/src/instances/` 分别组织版本选择、兼容性确认与对话框状态，列表展示来源原文，状态与提示使用中英文目录。版本变更和已有的安装、资源任务共用 Host 的实例占用及取消机制。
 
 资源来源目录的 `index.ts` 只组合提供者实现并注册到 Cordis。`client.ts` 请求 API，`catalog.ts` 处理搜索与兼容版本列表，`details.ts` 映射介绍、截图和版本依赖，`install.ts` 与 `updates.ts` 分别拥有安装和更新流程。内容管理依赖 `ResourceProvider`，整合包通过公开的 `CurseForgeResourceProvider` 契约调用批量文件能力，均不导入来源插件内部实现。
 

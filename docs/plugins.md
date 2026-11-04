@@ -58,6 +58,10 @@ ctx.nixel.providers.register(
 
 游戏、资源和账号实现分别遵循 [`providers.ts`](../src/plugins/providers.ts) 的 `GameProvider`、`ResourceProvider`、`AccountProvider`。实例包含 `providers` 和 `providerConfig`；资源安装与游戏启动收到完整实例。账号鉴权实现只向游戏提供者返回会话，公开账号与快照不包含令牌。
 
+游戏提供者的 `versions(signal?)`、`loaders(version, loader, signal?)` 与资源提供者的 `versions(projectId, instance?, signal?)` 可接收取消信号，用于版本变更任务中的目录与兼容性检查；已有实现可继续忽略可选参数。资源版本列表应只返回适用于传入实例的版本，管理插件用准确版本 ID 判断已安装文件是否兼容。
+
+版本变更复用游戏提供者的 `install(instance, task)`：传入实例包含明确的新版本与加载器版本，持久化记录仍保留旧版本选择。提供者按传入目标安装并返回启动版本 ID，管理插件在成功后提交选择。提供者应保留原游戏版本文件、存档、内容与用户配置，不提前更改活动启动版本。任务支持取消；自动备份由实例管理插件完成。
+
 默认界面在 **实例 → 设置 → 服务插件** 中列出已启用的提供者，按实例分别选择。账号服务留空时，使用启动账号自身的提供者。此处的资源来源只是未显式指定来源时的默认值，资源浏览仍可同时搜索多个来源。
 
 资源返回值的 `source` 使用提供者 ID，`icon` 为项目图片 URL。`resources.search` 默认或 `source: 'all'` 时并行查询所有已启用的资源提供者；也可传具体 ID 筛选。每个提供者按 `offset` 返回最多 20 项，管理插件交错合并当前页，返回 `items`、`total`、`hasMore` 与分来源的 `warnings`。页偏移每次增加 20；单个来源失败不会丢弃其他来源结果。分类使用 `mods`、`resourcepacks`、`shaders`、`modpacks`。

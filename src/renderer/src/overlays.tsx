@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import type { Account, DeviceLogin, Loader, VersionEntry } from '../../shared/contracts';
 import { label, tr } from '../../shared/i18n';
 import { Brand, Icon } from './icons';
+import { VersionChangeDialog } from './instances/VersionChangeDialog';
 import { Landscape } from './Landscape';
 import { JavaSettings } from './pages/Settings';
 import { ResourceDialog } from './resources/ResourceDialog';
@@ -40,6 +41,7 @@ function OverlayContent({ overlay: o }: { overlay: Overlay }) {
   const [error, setError] = useState('');
   if (!o) return null;
   if (o.type === 'create') return <CreateDialog />;
+  if (o.type === 'version-change') return <VersionChangeDialog instanceId={o.instanceId} />;
   if (o.type === 'account') return <AccountDialog instanceId={o.instanceId} />;
   if (o.type === 'launch-account')
     return <LaunchAccountDialog instanceId={o.instanceId} accountId={o.accountId} />;

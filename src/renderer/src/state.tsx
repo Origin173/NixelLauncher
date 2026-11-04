@@ -23,6 +23,7 @@ import { launchAccountId } from '../../shared/launch-account';
 export type Overlay =
   | { type: 'create' | 'import' | 'background' | 'wizard' | 'search' | 'local-plugin' }
   | { type: 'account'; instanceId?: string }
+  | { type: 'version-change'; instanceId: string }
   | { type: 'resource'; resource: Resource; instanceId?: string; tab?: 'project' | 'versions' }
   | { type: 'plugin'; pluginId: string }
   | { type: 'launch-account'; instanceId: string; accountId?: string }

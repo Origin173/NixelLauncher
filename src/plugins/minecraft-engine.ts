@@ -29,8 +29,8 @@ const versionManifest = (signal?: AbortSignal) =>
 const loaderMeta = (loader: 'fabric' | 'quilt') =>
   loader === 'fabric' ? 'https://meta.fabricmc.net/v2' : 'https://meta.quiltmc.org/v3';
 
-export async function listMinecraftVersions() {
-  return (await versionManifest()).versions.map(({ id, type, releaseTime }) => ({
+export async function listMinecraftVersions(signal?: AbortSignal) {
+  return (await versionManifest(signal)).versions.map(({ id, type, releaseTime }) => ({
     id,
     type,
     releaseTime,

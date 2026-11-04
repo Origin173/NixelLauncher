@@ -51,8 +51,9 @@ export async function listVersions(
   client: CurseForgeClient,
   projectId: string,
   instance?: Instance,
+  signal?: AbortSignal,
 ) {
-  return (await client.versions(id(projectId), instance)).map((file) => ({
+  return (await client.versions(id(projectId), instance, signal)).map((file) => ({
     id: String(file.id),
     name: file.displayName,
     version: file.displayName,

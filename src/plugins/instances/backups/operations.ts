@@ -42,6 +42,7 @@ export async function createBackup(
       content,
     });
     task.report(100, tr('backups.created'));
+    return pending.id;
   } finally {
     await rm(pending.staging, { recursive: true, force: true });
   }

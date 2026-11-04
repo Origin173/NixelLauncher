@@ -39,13 +39,20 @@ export async function searchProjects(
     })),
   };
 }
-export async function listVersions(client: ModrinthClient, projectId: string, instance?: Instance) {
-  return (await client.getProjectVersions(projectId, versionOptions(instance))).map((version) => ({
-    id: version.id,
-    name: version.name,
-    version: version.version_number,
-    gameVersions: version.game_versions,
-    loaders: version.loaders,
-    publishedAt: version.date_published,
-  }));
+export async function listVersions(
+  client: ModrinthClient,
+  projectId: string,
+  instance?: Instance,
+  signal?: AbortSignal,
+) {
+  return (await client.getProjectVersions(projectId, versionOptions(instance), signal)).map(
+    (version) => ({
+      id: version.id,
+      name: version.name,
+      version: version.version_number,
+      gameVersions: version.game_versions,
+      loaders: version.loaders,
+      publishedAt: version.date_published,
+    }),
+  );
 }

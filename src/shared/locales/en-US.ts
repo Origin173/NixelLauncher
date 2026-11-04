@@ -1,4 +1,35 @@
 export default {
+  'versionChange.title': 'Change version',
+  'versionChange.disabled': 'Disabled',
+  'versionChange.loaderVersion': 'Loader version',
+  'versionChange.loadingVersions': 'Loading available versions…',
+  'versionChange.review': 'Review compatibility',
+  'versionChange.checking': 'Checking target version and installed content…',
+  'versionChange.apply': 'Back up and change version',
+  'versionChange.backupHint':
+    'A full backup is saved before installation. The launch version changes after installation succeeds.',
+  'versionChange.worldWarning':
+    'Opening a world in a different Minecraft version can change its data. Downgrading may make it unreadable. You can restore the backup as a separate instance.',
+  'versionChange.contentTitle': 'Installed content',
+  'versionChange.contentHint':
+    'Compatibility is checked against each source’s version metadata. Existing files and enabled states are preserved; content updates are separate.',
+  'versionChange.noContent': 'No installed content to check.',
+  'versionChange.acceptRisks':
+    'Keep existing content and continue. I will update or disable incompatible and unverified content before playing.',
+  'versionChange.invalidTarget': 'Choose an available Minecraft version and loader.',
+  'versionChange.invalidLoader': 'Choose a loader version available for this Minecraft version.',
+  'versionChange.unchanged': 'This instance already uses the selected versions.',
+  'versionChange.reviewChanged':
+    'The instance or compatibility results changed. Review the version change again.',
+  'versionChange.acceptRequired':
+    'Review and confirm the content compatibility warnings before continuing.',
+  'versionChange.task': 'Change version: {{name}}',
+  'versionChange.backupSaved': 'Backup saved: {{id}}',
+  'versionChange.completed': 'Version changed. Review installed content before launching.',
+  'labels.compatibility-compatible': 'Compatible',
+  'labels.compatibility-update-available': 'Update needed',
+  'labels.compatibility-incompatible': 'No compatible version',
+  'labels.compatibility-unknown': 'Unverified',
   'labels.project': 'About',
   'labels.gallery': 'Screenshots',
   'labels.versions': 'Versions',
