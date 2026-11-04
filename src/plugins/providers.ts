@@ -53,7 +53,15 @@ export interface ResourceProvider {
     options?: { pinRetained?: boolean },
   ): Promise<ContentDownload[]>;
   downloadModpack?(projectId: string, versionId: string, task: TaskContext): Promise<string>;
-  search(query: ResourceQuery, instance?: Instance): Promise<{ items: Resource[]; total: number }>;
+  search(
+    query: ResourceQuery,
+    instance?: Instance,
+  ): Promise<{
+    items: Resource[];
+    total: number;
+    /** Whether this source can serve the next page when its paging limit differs from total. */
+    hasMore?: boolean;
+  }>;
   versions(
     projectId: string,
     instance?: Instance,

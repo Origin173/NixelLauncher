@@ -330,6 +330,7 @@ export default {
   'curseforge.curseforgeDeniedAccessCheckCurseforgeApiKey':
     'CurseForge denied access. Check CURSEFORGE_API_KEY and its permissions in .env',
   'curseforge.curseforgeRequestFailedHttpValue': 'CurseForge request failed: HTTP {{value1}}',
+  'curseforge.invalidSearchTotal': 'CurseForge returned an invalid search result count',
   'curseforge.theCurseforgeProjectAndFileDoNot': 'The CurseForge project and file do not match',
   'curseforge.unsupportedCurseforgeResourceType': 'Unsupported CurseForge resource type',
   'curseforge.modpackFileUnavailableValueValue': 'Modpack file unavailable: {{value1}}/{{value2}}',

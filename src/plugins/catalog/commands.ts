@@ -62,7 +62,7 @@ export function registerCatalog(ctx: Context) {
       }
       pages.push(response.value.items.map((item) => ({ ...item, source: source.id })));
       total += response.value.total;
-      hasMore ||= (query.offset ?? 0) + 20 < response.value.total;
+      hasMore ||= response.value.hasMore ?? (query.offset ?? 0) + 20 < response.value.total;
     });
     const items = Array.from({ length: 20 }, (_, index) =>
       pages.flatMap((page) => (page[index] ? [page[index]] : [])),

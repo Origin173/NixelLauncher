@@ -3,6 +3,9 @@ import { tr } from '../../shared/i18n';
 import type { CurseForgeClient } from './client';
 import type { CurseForgeProject } from './models';
 import { curseforgeId, id, loaderNames, loaderTypes, sortFields } from './rules';
+
+const searchLimit = 10_000;
+
 export async function searchProjects(
   client: CurseForgeClient,
   query: ResourceQuery,
@@ -12,6 +15,9 @@ export async function searchProjects(
   const classId = [...classes].find(([, category]) => category === query.category)?.[0];
   if (query.category && query.category !== 'all' && !classId)
     throw new Error(tr('curseforge.curseforgeDoesNotSupportThisCategory'));
+  const offset = Math.max(0, query.offset ?? 0);
+  const countOnly = offset >= searchLimit;
+  const pageSize = countOnly ? 1 : Math.min(20, searchLimit - offset);
   const result = await client.request<CurseForgeProject[]>('mods/search', {
     gameId: 432,
     classId,
@@ -21,9 +27,14 @@ export async function searchProjects(
       instance && query.category === 'mods' ? loaderTypes[instance.loader] || undefined : undefined,
     sortField: sortFields[query.sort || 'relevance'] || 2,
     sortOrder: 'desc',
-    index: Math.max(0, Math.min(query.offset || 0, 9980)),
-    pageSize: 20,
+    index: countOnly ? 0 : offset,
+    pageSize,
   });
+  const total = result.pagination?.totalCount;
+  if (typeof total !== 'number' || !Number.isSafeInteger(total) || total < 0)
+    throw new Error(tr('curseforge.invalidSearchTotal'));
+  // Past the browsing limit, keep this source's total without replaying any items.
+  if (countOnly) return { items: [], total, hasMore: false };
   const items: Resource[] = result.data.flatMap((project) => {
     const category = classes.get(project.classId);
     return category
@@ -45,7 +56,7 @@ export async function searchProjects(
         ]
       : [];
   });
-  return { items, total: Math.min(result.pagination?.totalCount || items.length, 10000) };
+  return { items, total, hasMore: offset + pageSize < Math.min(total, searchLimit) };
 }
 export async function listVersions(
   client: CurseForgeClient,

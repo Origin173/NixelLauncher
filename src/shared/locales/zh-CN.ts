@@ -293,6 +293,7 @@ export default {
   'curseforge.curseforgeDeniedAccessCheckCurseforgeApiKey':
     'CurseForge 拒绝访问，请检查 .env 中 CURSEFORGE_API_KEY 的有效性与权限',
   'curseforge.curseforgeRequestFailedHttpValue': 'CurseForge 请求失败：HTTP {{value1}}',
+  'curseforge.invalidSearchTotal': 'CurseForge 返回的搜索结果总数无效',
   'curseforge.theCurseforgeProjectAndFileDoNot': 'CurseForge 项目与文件不匹配',
   'curseforge.unsupportedCurseforgeResourceType': '不支持此 CurseForge 资源类型',
   'curseforge.modpackFileUnavailableValueValue': '整合包文件不可用：{{value1}}/{{value2}}',

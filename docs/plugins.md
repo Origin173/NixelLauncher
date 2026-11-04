@@ -70,6 +70,8 @@ ctx.nixel.providers.register(
 
 资源返回值的 `source` 使用提供者 ID，`icon` 为项目图片 URL。`resources.search` 默认或 `source: 'all'` 时并行查询所有已启用的资源提供者；也可传具体 ID 筛选。每个提供者按 `offset` 返回最多 20 项，管理插件交错合并当前页，返回 `items`、`total`、`hasMore` 与分来源的 `warnings`。页偏移每次增加 20；单个来源失败不会丢弃其他来源结果。分类使用 `mods`、`resourcepacks`、`shaders`、`modpacks`。
 
+`ResourceProvider.search` 返回 `{ items, total, hasMore? }`。`total` 是匹配总数；来源限制可浏览范围时，通过 `hasMore` 明确是否能继续翻页。未提供该字段的插件沿用 `offset + 20 < total`，管理插件合并各成功来源的总数和可翻页状态。CurseForge 按[官方分页限制](https://docs.curseforge.com/rest-api/#pagination-limits)最多浏览前 10,000 条；超出范围后只请求一条结果获取同条件的总数，不再返回资源条目，也不阻止其他来源继续翻页。来源返回无效总数时报告来源错误。
+
 安装与版本查询继续使用项目实际的 `source`，明确来源优先于实例默认值。已安装资源使用 `source + projectId` 标识，更新按各自来源分发。任务的 `resourceSource` 与 `resourceId` 共同关联进度。内置来源为 `nixel.resources.modrinth` 和 `nixel.resources.curseforge`。整合包安装可以不传目标实例，由资源提供者创建新实例；普通内容安装必须指定目标实例。
 
 资源提供者可实现 `details(projectId): Promise<ResourceDetails>` 和 `versionDetails(projectId, versionId): Promise<ResourceVersionDetails>`。前者返回介绍原文、截图与项目 URL，后者返回版本说明与依赖关系；结构见 [`contracts.ts`](../src/shared/contracts.ts)。版本详情应校验版本属于请求的项目。介绍和版本说明注明 `markdown` 或 `html` 格式，界面负责清理富文本，外链在系统浏览器打开；提供者无需返回界面组件。默认界面将介绍、截图、版本分为三个标签，依赖类型使用稳定标识，名称保留项目原文。

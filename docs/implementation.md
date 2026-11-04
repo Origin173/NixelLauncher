@@ -18,6 +18,8 @@ CurseForge provider 与插件 ID 为 `nixel.resources.curseforge`。资源命令
 
 `content.update` 对全部准确目标统一解析后再写入；重试也检查已完成根的依赖，`ResourceProvider.planInstall` 的保留版本策略见 [内容更新](content-updates.md)。账号取消与凭据提交边界见 [账号生命周期](account-operation-lifecycle.md)。
 
+`resources.search` 的 `total` 合计成功来源报告的匹配总数，可能超过来源允许浏览的范围。`hasMore` 合并各来源明确返回的可翻页状态；旧提供者未声明时按每页 20 项和总数计算。具体 API 分页上限留在来源提供者，聚合命令不识别来源特有规则，契约见 [插件开发](plugins.md)。
+
 整合包升级命令、文件冲突规则及 `ResourceProvider.downloadModpack` / `CurseForgeResourceProvider.resolvePackFiles` 扩展见 [整合包升级](modpack-upgrade.md)。
 
 `window.nixel.invoke<T>(command, params)` 使用以下命令。返回值为真实数据，长任务返回 `{ taskId: string }` 并通过快照推送进度。
