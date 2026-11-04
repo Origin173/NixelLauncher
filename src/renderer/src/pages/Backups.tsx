@@ -12,7 +12,10 @@ export function Backups({ instance }: { instance?: Instance }) {
   const [refresh, setRefresh] = useState(0);
   const [pending, setPending] = useState(false);
   const taskRevision = a.tasks
-    .filter((task) => task.kind === 'backup' || task.kind === 'version-change')
+    .filter(
+      (task) =>
+        task.kind === 'backup' || task.kind === 'version-change' || task.kind === 'pack-upgrade',
+    )
     .map((task) => `${task.id}:${task.status}`)
     .join(',');
   const busy =
@@ -94,9 +97,11 @@ export function Backups({ instance }: { instance?: Instance }) {
                   {!instance && <small>{date}</small>}
                   <small>
                     {tr(
-                      backup.origin === 'version-change'
-                        ? 'backupRetention.automatic'
-                        : 'backupRetention.manual',
+                      backup.origin === 'modpack-upgrade'
+                        ? 'backupRetention.modpack'
+                        : backup.origin === 'version-change'
+                          ? 'backupRetention.automatic'
+                          : 'backupRetention.manual',
                     )}
                   </small>
                   <small>

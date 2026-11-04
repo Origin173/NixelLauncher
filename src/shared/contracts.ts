@@ -1,5 +1,13 @@
+import type { ModpackState } from './modpack-contracts';
 import type { SavedServer } from './servers';
 
+export type {
+  ModpackState,
+  ModpackUpgradeInput,
+  ModpackUpgradePlan,
+  ModpackUpgradeTarget,
+  PackProvenance,
+} from './modpack-contracts';
 export type Page = 'home' | 'instances' | 'resources' | 'plugins' | 'accounts' | 'settings';
 export type Loader = 'Vanilla' | 'Fabric' | 'Forge' | 'NeoForge' | 'Quilt';
 export type ContentCategory = 'mods' | 'resourcepacks' | 'shaders';
@@ -35,6 +43,7 @@ export interface ChangeInstanceVersionInput {
 
 export interface Instance {
   servers?: SavedServer[];
+  modpack?: ModpackState;
   id: string;
   name: string;
   version: string;
@@ -174,7 +183,7 @@ export interface InstanceFile {
 }
 export interface InstanceBackup {
   /** Absent on older backups, which are preserved as manual backups. */
-  origin?: 'manual' | 'version-change';
+  origin?: 'manual' | 'version-change' | 'modpack-upgrade';
   id: string;
   instanceId: string;
   instanceName: string;

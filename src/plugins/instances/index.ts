@@ -23,7 +23,7 @@ export const instancesPlugin = {
     registerInstanceLaunch(ctx);
     registerInstanceFiles(ctx);
     registerJavaCommands(ctx);
-    registerModpacks(ctx);
+    registerModpacks(ctx, backups);
     registerLocalInstances(ctx);
   },
 };

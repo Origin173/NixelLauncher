@@ -1,10 +1,12 @@
 import { accountProfilesZh } from './account-profiles';
 import { backupRetentionZh } from './backup-retention';
 import { diagnosticsZh } from './diagnostics';
+import { modpackUpgradeZh } from './modpack-upgrade';
 import { networkZh } from './network';
 import { serversZh } from './servers';
 
 export default {
+  ...modpackUpgradeZh,
   ...networkZh,
   ...diagnosticsZh,
   ...serversZh,

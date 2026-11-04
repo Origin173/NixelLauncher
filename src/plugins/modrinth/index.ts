@@ -7,6 +7,7 @@ import { ModrinthClient } from './client';
 import { contentResolver } from './dependencies';
 import { projectDetails, versionDetails } from './details';
 import { installProject } from './install';
+import { downloadPack } from './pack';
 import { resourcesId } from './rules';
 import { checkUpdates } from './updates';
 
@@ -23,6 +24,8 @@ export const resourcesPlugin = {
         : {}),
     });
     const provider: ResourceProvider = {
+      downloadModpack: (projectId, versionId, task) =>
+        downloadPack(host, client, projectId, versionId, task),
       search: (query, instance) => searchProjects(client, query, instance),
       versions: (id, instance, signal) => listVersions(client, id, instance, signal),
       details: (id) => projectDetails(client, id),

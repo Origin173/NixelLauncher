@@ -72,3 +72,5 @@ Minecraft 安装与启动由 Nixel 游戏提供者实现，版本清单来自 Mo
 `nixel.diagnostics` 按收集、脱敏、规则分析、归档拆分模块。收集器只读实例内白名单日志与最近失败启动任务，分析器接收脱敏文本并返回带证据的发现；导出通过 Host 任务服务完成。界面位于独立 `diagnostics/DiagnosticPanel.tsx`，契约与隐私边界见 [崩溃诊断](diagnostics.md)。
 
 `nixel.network` 组合配置验证与 Undici 请求分发，复用全局标准 fetch。主进程只暴露 Electron session 代理配置与系统路由解析；Host 和 Chromium 采用同一配置，连接池绑定插件作用域。网络选择不进入各协议客户端，见 [网络连接](network.md)。
+
+`plugins/modpacks/` 从原单文件拆为清单解析、文件暂存、基线捕获、三方差异、应用回滚和导入导出模块，由实例插件注册业务命令并复用备份仓库。在线包文件通过公开资源提供者接口获取，来源内部 API 不进入整合包模块。新版本先准备并比较，用户确认后备份、安装游戏、应用文件，再提交版本与基线，见 [整合包升级](modpack-upgrade.md)。

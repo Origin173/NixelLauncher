@@ -6,6 +6,7 @@ import { CurseForgeClient } from './client';
 import { contentResolver } from './dependencies';
 import { projectDetails, versionDetails } from './details';
 import { installFiles } from './install';
+import { downloadPack } from './pack';
 import { curseforgeId, id } from './rules';
 import { checkUpdates } from './updates';
 
@@ -35,6 +36,16 @@ export const curseforgePlugin = {
           true,
           options,
         ),
+      resolvePackFiles: async (files, instance, signal) => {
+        await client.prepareFiles(files, signal);
+        const load = contentResolver(client, instance, signal);
+        const result = [];
+        for (const file of files)
+          result.push((await load(String(file.projectID), String(file.fileID))).file);
+        return result;
+      },
+      downloadModpack: (projectId, versionId, task) =>
+        downloadPack(host, client, id(projectId), id(versionId), task),
       prepareFiles: (files, signal) => client.prepareFiles(files, signal),
       installFiles: (files, instance, task) => installFiles(host, client, files, instance, task),
       checkUpdates: (instance, task) => checkUpdates(host, client, instance, task),

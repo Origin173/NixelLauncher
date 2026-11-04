@@ -33,7 +33,11 @@ export async function installProject(
         tr('curseforge.downloadValue', { value1: project.title }),
       ),
     );
-    await importModpack(host, path, task, project.title);
+    await importModpack(host, path, task, project.title, {
+      source: 'nixel.resources.modrinth',
+      projectId,
+      versionId,
+    });
     return;
   }
   if (!instance) throw new Error(tr('curseforge.chooseATargetInstanceFirst'));

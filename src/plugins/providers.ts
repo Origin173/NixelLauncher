@@ -13,6 +13,7 @@ import type {
 import type { TaskContext } from '../shared/host-api';
 import type { GameLaunchOptions } from '../shared/servers';
 import type { GameSession } from './authentication';
+import type { ContentDownload } from './resource-files';
 
 export interface GameProvider {
   versions(signal?: AbortSignal): Promise<VersionEntry[]>;
@@ -35,6 +36,7 @@ export interface AccountProvider {
   session(account: Account, signal: AbortSignal): Promise<GameSession>;
 }
 export interface ResourceProvider {
+  downloadModpack?(projectId: string, versionId: string, task: TaskContext): Promise<string>;
   search(query: ResourceQuery, instance?: Instance): Promise<{ items: Resource[]; total: number }>;
   versions(
     projectId: string,
@@ -65,6 +67,11 @@ export interface CurseForgePackFile {
   required?: boolean;
 }
 export interface CurseForgeResourceProvider extends ResourceProvider {
+  resolvePackFiles(
+    files: CurseForgePackFile[],
+    instance: Instance,
+    signal: AbortSignal,
+  ): Promise<ContentDownload[]>;
   prepareFiles(files: CurseForgePackFile[], signal: AbortSignal): Promise<void>;
   installFiles(files: CurseForgePackFile[], instance: Instance, task: TaskContext): Promise<void>;
 }

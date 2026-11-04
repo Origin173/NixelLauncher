@@ -14,7 +14,9 @@ export async function pruneBackups(
   if (count === 0) return;
   try {
     const backups = (await repository.list(instanceId)).filter(
-      (backup) => backup.origin === 'version-change' && backup.id !== createdId,
+      (backup) =>
+        (backup.origin === 'version-change' || backup.origin === 'modpack-upgrade') &&
+        backup.id !== createdId,
     );
     for (const backup of backups.slice(count - 1)) {
       if (task.signal.aborted) return;

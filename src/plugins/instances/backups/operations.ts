@@ -45,7 +45,8 @@ export async function createBackup(
       instance,
       content,
     });
-    if (origin === 'version-change') await pruneBackups(host, repository, id, pending.id, task);
+    if (origin === 'version-change' || origin === 'modpack-upgrade')
+      await pruneBackups(host, repository, id, pending.id, task);
     task.report(100, tr('backups.created'));
     return pending.id;
   } finally {

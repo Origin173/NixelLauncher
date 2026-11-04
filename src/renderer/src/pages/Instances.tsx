@@ -5,6 +5,7 @@ import { i18n, label, tr } from '../../../shared/i18n';
 import { resourceSource } from '../data';
 import { DiagnosticPanel } from '../diagnostics/DiagnosticPanel';
 import { LaunchButton } from '../LaunchButton';
+import { PackUpgradeSection } from '../modpacks/PackUpgradeSection';
 import { ResourceBrowser } from '../ResourceBrowser';
 import { Servers } from '../servers/Servers';
 import { useApp } from '../state';
@@ -229,6 +230,7 @@ export function InstancesPage() {
                     </Tag>
                   </SettingRow>
                 </Group>
+                <PackUpgradeSection key={i.id} instance={i} />
                 {i.error && <Notice tone="danger">{i.error}</Notice>}
                 {failedGame && (
                   <Notice tone="danger">

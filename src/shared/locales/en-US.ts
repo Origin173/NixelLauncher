@@ -1,10 +1,12 @@
 import { accountProfilesEn } from './account-profiles';
 import { backupRetentionEn } from './backup-retention';
 import { diagnosticsEn } from './diagnostics';
+import { modpackUpgradeEn } from './modpack-upgrade';
 import { networkEn } from './network';
 import { serversEn } from './servers';
 
 export default {
+  ...modpackUpgradeEn,
   ...networkEn,
   ...diagnosticsEn,
   ...serversEn,

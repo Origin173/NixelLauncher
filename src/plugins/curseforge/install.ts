@@ -41,7 +41,11 @@ export async function installFiles(
             tr('curseforge.downloadValue', { value1: project.name }),
           ),
       );
-      await importModpack(host, path, task, project.name);
+      await importModpack(host, path, task, project.name, {
+        source: 'nixel.resources.curseforge',
+        projectId: String(root.projectID),
+        versionId: String(root.fileID),
+      });
       return;
     }
   }
