@@ -73,6 +73,8 @@ Minecraft 安装与启动由 Nixel 游戏提供者实现，版本清单来自 Mo
 
 `nixel.network` 组合配置验证与 Undici 请求分发，复用全局标准 fetch。主进程只暴露 Electron session 代理配置与系统路由解析；Host 和 Chromium 采用同一配置，连接池绑定插件作用域。网络选择不进入各协议客户端，见 [网络连接](network.md)。
 
+`nixel.downloads` 拥有全局队列、传输、续传缓存与限速，按职责拆为五个模块。Host 提供通用任务控制和异步任务作用域，`files.download` 从当前作用域解析下载提供者；暂停保持安装调用栈和实例占用。各协议模块继续提交 URL、目标与哈希，复用网络插件的代理，见 [下载管理](downloads.md)。
+
 `nixel.skins` 负责皮肤文件校验、资料请求生命周期与外观修改任务，通过 `AccountProvider.appearance` 调用账号提供者。Microsoft 模块沿用认证会话实现官方外观协议；渲染端只获得纹理与披风数据，按需加载 `skinview3d`。契约见 [皮肤与披风](skins.md)。
 
 `plugins/modpacks/` 从原单文件拆为清单解析、文件暂存、基线捕获、三方差异、应用回滚和导入导出模块，由实例插件注册业务命令并复用备份仓库。在线包文件通过公开资源提供者接口获取，来源内部 API 不进入整合包模块。新版本先准备并比较，用户确认后备份、安装游戏、应用文件，再提交版本与基线，见 [整合包升级](modpack-upgrade.md)。

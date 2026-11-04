@@ -163,6 +163,7 @@ export class NixelService extends Service implements NixelHost {
       storage,
       () => this.changed(),
       (command, params) => this.commands.invoke<{ taskId: string }>(command, params),
+      () => this.providers,
     );
     this.store = new HostStore(configuration.dataPath, storage, () => this.changed());
     this.commands = new HostCommands(this.tasks);

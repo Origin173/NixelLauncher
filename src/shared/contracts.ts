@@ -11,7 +11,7 @@ export type {
 export type Page = 'home' | 'instances' | 'resources' | 'plugins' | 'accounts' | 'settings';
 export type Loader = 'Vanilla' | 'Fabric' | 'Forge' | 'NeoForge' | 'Quilt';
 export type ContentCategory = 'mods' | 'resourcepacks' | 'shaders';
-export type ProviderKind = 'game' | 'resources' | 'accounts' | 'interface';
+export type ProviderKind = 'game' | 'resources' | 'accounts' | 'interface' | 'downloads';
 
 export interface InstanceVersionTarget {
   version: string;
@@ -194,6 +194,9 @@ export interface InstanceBackup {
   files: number;
 }
 export interface Task {
+  /** Substate of a live task; paused and queued tasks still hold their resources. */
+  activity?: 'paused' | 'queued';
+  canPause?: boolean;
   id: string;
   name: string;
   detail: string;

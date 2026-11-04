@@ -18,12 +18,7 @@ export async function selectJava(
         (java) => java.major === major,
       );
   if (!runtime && !path && task && host.store.read().settings.autoDownloadJava)
-    return installJava(
-      join(host.store.root, 'java'),
-      major,
-      taskProgress(task),
-      host.store.read().settings.downloadConcurrency,
-    );
+    return installJava(join(host.store.root, 'java'), major, taskProgress(task));
   if (!runtime) throw new Error(tr('game.thisVersionRequiresJavaValueChooseA', { value1: major }));
   if (runtime.major !== major)
     throw new Error(

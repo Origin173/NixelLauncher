@@ -22,7 +22,7 @@ export async function installFiles(
   files: InstallFile[],
   progress: WorkProgress,
   message: string,
-  concurrency = 8,
+  concurrency = 32,
 ) {
   const queue = [...new Map(files.map((file) => [file.target, file])).values()];
   let next = 0;

@@ -37,7 +37,6 @@ export async function installGame(host: NixelHost, instance: Instance, task: Tas
       loader: kind,
       loaderVersion,
       java: java?.path || 'java',
-      concurrency: host.store.read().settings.downloadConcurrency,
     },
     taskProgress(task),
   );

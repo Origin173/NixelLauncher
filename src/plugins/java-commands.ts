@@ -15,12 +15,7 @@ export function registerJavaCommands(ctx: Context) {
       tr('game.installJavaValue', { value1: major }),
       tr('game.fetchingTheOfficialMojangJavaRuntime'),
       async (task) => {
-        const runtime = await installJava(
-          join(host.store.root, 'java'),
-          major,
-          taskProgress(task),
-          host.store.read().settings.downloadConcurrency,
-        );
+        const runtime = await installJava(join(host.store.root, 'java'), major, taskProgress(task));
         task.log(`Java ${runtime.version}：${runtime.path}`);
       },
       { kind: 'java', retry: { command: 'java.install', params: { major } } },

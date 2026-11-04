@@ -1,10 +1,9 @@
 import { createHash } from 'node:crypto';
-import { createReadStream, createWriteStream } from 'node:fs';
-import { mkdir, rename, rm } from 'node:fs/promises';
-import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
-import { Readable } from 'node:stream';
-import { pipeline } from 'node:stream/promises';
+import { createReadStream } from 'node:fs';
+import { isAbsolute, relative, resolve, sep } from 'node:path';
+import { type DownloadProvider, downloadsId } from '../shared/downloads';
 import { tr } from '../shared/i18n';
+import { taskScope } from '../shared/task-scope';
 
 export function inside(root: string, path: string) {
   if (isAbsolute(path) || path.includes('\\') || path.includes(':'))
@@ -58,31 +57,11 @@ export async function download(
   hashes?: Record<string, string>,
   progress?: (current: number, total: number) => void,
 ) {
-  if (new URL(url).protocol !== 'https:') throw new Error(tr('files.theDownloadUrlMustUseHttps'));
-  const response = await fetch(url, { signal, headers: { 'User-Agent': 'NixelLauncher/0.1.0' } });
-  if (!response.ok || !response.body)
-    throw new Error(tr('files.downloadFailedHttpValue', { value1: response.status }));
-  await mkdir(dirname(target), { recursive: true });
-  const temporary = `${target}.part`;
-  let current = 0;
-  const total = Number(response.headers.get('content-length')) || 0;
-  const algorithm = ['sha512', 'sha256', 'sha1', 'md5'].find((name) => hashes?.[name]);
-  const digest = algorithm ? createHash(algorithm) : undefined;
-  const source = Readable.fromWeb(response.body as never);
-  source.on('data', (chunk: Buffer) => {
-    current += chunk.length;
-    digest?.update(chunk);
-    progress?.(current, total);
-  });
-  try {
-    await pipeline(source, createWriteStream(temporary), { signal });
-    if (digest && algorithm && digest.digest('hex') !== hashes?.[algorithm]?.toLowerCase())
-      throw new Error(tr('files.fileChecksumVerificationFailed'));
-    await rename(temporary, target);
-  } catch (error) {
-    await rm(temporary, { force: true });
-    throw error;
-  }
+  const execution = taskScope.getStore();
+  if (!execution) throw new Error(tr('downloads.taskRequired'));
+  await execution.providers
+    .get<DownloadProvider>('downloads', downloadsId)
+    .download({ url, target, signal, hashes, progress }, execution.task);
 }
 
 export async function hashFile(path: string, algorithm = 'sha512', signal?: AbortSignal) {

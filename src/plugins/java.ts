@@ -109,7 +109,7 @@ export async function installJava(
   root: string,
   major: number,
   progress: WorkProgress,
-  concurrency = 8,
+  concurrency = 32,
 ) {
   if (!Number.isInteger(major) || major < 8)
     throw new Error(tr('java.chooseAValidJavaMajorVersion'));

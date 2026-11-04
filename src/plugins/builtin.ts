@@ -12,6 +12,7 @@ import {
 import { contentPlugin } from './content';
 import { curseforgeId, curseforgePlugin } from './curseforge';
 import { diagnosticsPlugin } from './diagnostics';
+import { downloadsPlugin } from './downloads';
 import { instancesPlugin } from './instances';
 import { gameId, gamePlugin } from './minecraft';
 import { resourcesId, resourcesPlugin } from './modrinth';
@@ -20,6 +21,21 @@ import { serversPlugin } from './servers';
 import { skinsPlugin } from './skins';
 
 export const builtinPlugins: BuiltinPlugin[] = [
+  {
+    manifest: withTranslations(
+      {
+        id: 'nixel.downloads',
+        dependencies: [networkId],
+        name: tr('downloads.plugin'),
+        description: tr('downloads.description'),
+        version: '0.1.0',
+        apiVersion: 1,
+        category: tr('builtin.core'),
+      },
+      { name: 'downloads.plugin', description: 'downloads.description', category: 'builtin.core' },
+    ),
+    plugin: downloadsPlugin,
+  },
   {
     manifest: withTranslations(
       {
@@ -89,7 +105,7 @@ export const builtinPlugins: BuiltinPlugin[] = [
     manifest: withTranslations(
       {
         id: curseforgeId,
-        dependencies: [networkId],
+        dependencies: [networkId, 'nixel.downloads'],
         name: 'CurseForge',
         description: tr('builtin.searchAndInstallCurseforgeResourcesDependenciesAnd'),
         version: '0.1.0',
@@ -107,6 +123,7 @@ export const builtinPlugins: BuiltinPlugin[] = [
     manifest: withTranslations(
       {
         id: 'nixel.instances',
+        dependencies: ['nixel.downloads'],
         name: tr('builtin.instanceManager'),
         description: tr('builtin.manageIndependentInstancesFilesAndModpacks'),
         version: '0.1.0',
@@ -161,7 +178,7 @@ export const builtinPlugins: BuiltinPlugin[] = [
     manifest: withTranslations(
       {
         id: gameId,
-        dependencies: [networkId],
+        dependencies: [networkId, 'nixel.downloads'],
         name: tr('builtin.minecraftGameService'),
         description: tr('builtin.installAndLaunchVanillaFabricForgeNeoforge'),
         version: '0.1.0',
@@ -180,7 +197,7 @@ export const builtinPlugins: BuiltinPlugin[] = [
     manifest: withTranslations(
       {
         id: resourcesId,
-        dependencies: [networkId],
+        dependencies: [networkId, 'nixel.downloads'],
         name: tr('builtin.modrinthResources'),
         description: tr('builtin.findCompatibleContentResolveRequiredDependenciesAnd'),
         version: '0.1.0',
@@ -236,7 +253,7 @@ export const builtinPlugins: BuiltinPlugin[] = [
     manifest: withTranslations(
       {
         id: yggdrasilId,
-        dependencies: [networkId],
+        dependencies: [networkId, 'nixel.downloads'],
         name: tr('builtin.yggdrasilAccounts'),
         description: tr('builtin.thirdPartyAuthenticationAndAuthlibInjectorSupport'),
         version: '0.1.0',

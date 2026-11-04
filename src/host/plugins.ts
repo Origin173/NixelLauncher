@@ -295,6 +295,12 @@ export class HostPlugins {
     commands.register(this.ctx, 'tasks.cancel', ({ id }: { id: string }) =>
       this.host.tasks.cancel(id),
     );
+    commands.register(this.ctx, 'tasks.pause', ({ id }: { id: string }) =>
+      this.host.tasks.pause(id),
+    );
+    commands.register(this.ctx, 'tasks.resume', ({ id }: { id: string }) =>
+      this.host.tasks.resume(id),
+    );
     commands.register(this.ctx, 'tasks.retry', async ({ id }: { id: string }) => ({
       taskId: await this.host.tasks.retry(id),
     }));

@@ -3,9 +3,10 @@ import { randomUUID } from 'node:crypto';
 import type { Context } from 'cordis';
 import type { Task } from '../shared/contracts';
 import { errorMessage } from '../shared/error-message';
-import type { TaskContext, TaskManager } from '../shared/host-api';
+import type { ProviderRegistry, TaskContext, TaskManager } from '../shared/host-api';
 import { tr } from '../shared/i18n';
 import { migrateIdentifier } from '../shared/migrate-identifiers';
+import { taskScope } from '../shared/task-scope';
 import type { JsonStorage } from './storage';
 
 type Runner = (context: TaskContext) => Promise<void>;
@@ -14,6 +15,7 @@ interface TaskRun {
   promise: Promise<void>;
   run: Runner;
   owner?: Context;
+  controls?: { pause(): void; resume(): void };
 }
 
 export const commandOwner = new AsyncLocalStorage<Context>();
@@ -30,11 +32,14 @@ export class HostTasks implements TaskManager {
       command: string,
       params: Record<string, unknown>,
     ) => Promise<{ taskId: string }>,
+    private readonly providers: () => ProviderRegistry,
   ) {}
 
   async load() {
     this.tasks = await this.storage.read<Task[]>('tasks', []);
     for (const task of this.tasks) {
+      delete task.activity;
+      delete task.canPause;
       if (task.retry && typeof task.retry.params.category === 'string')
         task.retry.params.category = migrateIdentifier(task.retry.params.category);
       if (task.status !== 'running') continue;
@@ -94,9 +99,21 @@ export class HostTasks implements TaskManager {
     const promise = this.persist()
       .then(async () => {
         abort.signal.throwIfAborted();
-        await run({
+        const execution: TaskContext = {
           taskId: task.id,
           signal: abort.signal,
+          setControls: (controls) => {
+            const running = this.runs.get(task.id);
+            if (running) running.controls = controls;
+            task.canPause = Boolean(controls);
+            if (!controls) delete task.activity;
+            this.touch();
+          },
+          setActivity: (activity) => {
+            if (task.status !== 'running') return;
+            task.activity = activity;
+            this.touch();
+          },
           setInstance: (id) => {
             task.instanceId = id;
             this.touch();
@@ -112,7 +129,8 @@ export class HostTasks implements TaskManager {
             if (task.logs.length > 500) task.logs.splice(0, task.logs.length - 500);
             this.touch();
           },
-        });
+        };
+        await taskScope.run({ task: execution, providers: this.providers() }, () => run(execution));
         abort.signal.throwIfAborted();
         task.status = 'completed';
         task.progress = 100;
@@ -122,6 +140,10 @@ export class HostTasks implements TaskManager {
         if (!abort.signal.aborted) task.error = errorMessage(error);
       })
       .then(async () => {
+        delete task.activity;
+        delete task.canPause;
+        const running = this.runs.get(task.id);
+        if (running) delete running.controls;
         task.finishedAt = new Date().toISOString();
         await this.persist();
         this.changed();
@@ -143,6 +165,21 @@ export class HostTasks implements TaskManager {
     const task = this.tasks.find((item) => item.id === id);
     if (!task) throw new Error(tr('tasks.taskNotFound'));
     if (task.status === 'running') this.runs.get(id)?.abort.abort();
+  }
+
+  pause(id: string) {
+    this.controls(id).pause();
+  }
+
+  resume(id: string) {
+    this.controls(id).resume();
+  }
+
+  private controls(id: string) {
+    const task = this.tasks.find((item) => item.id === id);
+    const controls = this.runs.get(id)?.controls;
+    if (task?.status !== 'running' || !controls) throw new Error(tr('tasks.pauseUnavailable'));
+    return controls;
   }
 
   async retry(id: string) {

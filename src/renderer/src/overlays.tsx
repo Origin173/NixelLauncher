@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import type { Loader, VersionEntry } from '../../shared/contracts';
 import { label, tr } from '../../shared/i18n';
 import { AccountDialog } from './accounts/AccountDialog';
+import { TaskControls } from './downloads/TaskControls';
 import { Brand, Icon } from './icons';
 import { VersionChangeDialog } from './instances/VersionChangeDialog';
 import { Landscape } from './Landscape';
@@ -978,16 +979,16 @@ export function TaskDrawer() {
                               : 'default'
                         }
                       >
-                        {
-                          (
-                            {
-                              running: label('running'),
-                              completed: label('completed'),
-                              failed: tr('overlays.failed'),
-                              cancelled: tr('overlays.cancelled'),
-                            } as const
-                          )[t.status]
-                        }
+                        {t.status === 'running' && t.activity
+                          ? tr(`downloads.${t.activity}`)
+                          : (
+                              {
+                                running: label('running'),
+                                completed: label('completed'),
+                                failed: tr('overlays.failed'),
+                                cancelled: tr('overlays.cancelled'),
+                              } as const
+                            )[t.status]}
                       </Tag>
                     </div>
                     <div
@@ -1014,9 +1015,7 @@ export function TaskDrawer() {
                         <Icon name={log === t.id ? 'down' : 'chevron'} size={13} />
                       </button>
                       {t.status === 'running' ? (
-                        <Action size="sm" variant="ghost" onPress={() => a.cancelTask(t.id)}>
-                          {tr('overlays.cancel')}
-                        </Action>
+                        <TaskControls task={t} />
                       ) : (
                         (t.status === 'failed' || t.status === 'cancelled') && (
                           <Action

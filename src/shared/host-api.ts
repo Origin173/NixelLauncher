@@ -36,6 +36,8 @@ export interface TaskContext {
   setInstance(id: string): void;
   report(progress: number, detail?: string): void;
   log(line: string): void;
+  setControls(controls?: { pause(): void; resume(): void }): void;
+  setActivity(activity?: 'paused' | 'queued'): void;
 }
 export interface TaskManager {
   start(
@@ -52,6 +54,8 @@ export interface TaskManager {
   ): string;
   list(): Task[];
   cancel(id: string): void;
+  pause(id: string): void;
+  resume(id: string): void;
   retry(id: string): Promise<string>;
   clear(): void;
 }
