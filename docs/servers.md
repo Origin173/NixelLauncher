@@ -23,6 +23,12 @@ Minecraft 提供者根据合并后的官方版本参数是否声明 `--quickPlay
 
 服务器在线查询和游戏启动是独立操作。查询失败仍可尝试加入；游戏是否成功连接由游戏自身报告，启动器沿用实际游戏进程、退出码与日志。
 
+## 实际连接验证
+
+2026-11-04 使用实际状态查询模块连接公网 Hypixel。`hypixel.net` 的 `_minecraft._tcp` 记录解析为 `mc.hypixel.net:25565`（优先级 1、权重 1），完成状态读取和 Ping/Pong，往返延迟 248 ms；直接查询 `mc.hypixel.net` 时 SRV 返回 `ENODATA`，沿用原域名连接也成功。该操作仅查询公开状态，未登录账号或进入多人游戏。
+
+本地 TCP 分段响应、取消及中英文界面的列表增删改、刷新、账号选择和失败重试已验证。实际多人加入仍需对应的有效游戏账号。
+
 ## 设计依据
 
 列表入口参考 [PrismLauncher ServersPage](https://github.com/PrismLauncher/PrismLauncher/blob/develop/launcher/ui/pages/instance/ServersPage.cpp)，状态协议交互对照其 [McClient 实现](https://github.com/PrismLauncher/PrismLauncher/blob/develop/launcher/ui/pages/instance/McClient.cpp)。仅参考职责和线协议，没有引入或复制启动器代码。Mojang 没有在官网发布完整 Java 状态线协议；Quick Play 参数与旧 `server`/`port` 移除依据 [Mojang 23w14a 发布说明](https://www.minecraft.net/en-us/article/minecraft-snapshot-23w14a)，SRV 选择依据 [RFC 2782](https://www.rfc-editor.org/rfc/rfc2782)。
