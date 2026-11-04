@@ -2329,6 +2329,12 @@ strong {
   transition-duration: 0.01ms !important;
 }
 
+.backup-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 @media (max-width: 800px) {
   .plugin-meta {
     display: none;

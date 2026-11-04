@@ -99,6 +99,16 @@ export interface InstanceFile {
   modifiedAt: string;
   size?: number;
 }
+export interface InstanceBackup {
+  id: string;
+  instanceId: string;
+  instanceName: string;
+  createdAt: string;
+  version: string;
+  loader: Loader;
+  size: number;
+  files: number;
+}
 export interface Task {
   id: string;
   name: string;

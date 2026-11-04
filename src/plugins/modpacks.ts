@@ -9,7 +9,7 @@ import type { NixelHost, TaskContext } from '../shared/host-api';
 import { tr } from '../shared/i18n';
 import type { CurseForgePackFile, CurseForgeResourceProvider } from './curseforge';
 import { download, inside } from './files';
-import { assertInstanceIdle, createInstance, getInstance } from './game';
+import { assertInstanceIdle, createInstance, getInstance } from './instance-state';
 import type { GameProvider } from './providers';
 import { open, openEntryReadStream, readAllEntries, readEntry } from './zip';
 

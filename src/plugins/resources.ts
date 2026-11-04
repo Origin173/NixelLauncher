@@ -16,7 +16,7 @@ import { tr } from '../shared/i18n';
 import { commandsFor } from './commands';
 import { registerContentUpdates } from './content-updates';
 import { download, hashFile, inside } from './files';
-import { assertInstanceIdle, getInstance } from './game';
+import { assertInstanceIdle, getInstance } from './instance-state';
 import { importModpack } from './modpacks';
 import { ModrinthClient, type ProjectVersion } from './modrinth-client';
 import type { ResourceProvider } from './providers';

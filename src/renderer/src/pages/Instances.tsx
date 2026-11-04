@@ -23,12 +23,14 @@ import {
   Toggle,
 } from '../ui';
 import { AssetIcon, NavList, Workspace } from '../workspace';
+import { Backups } from './Backups';
 import { LaunchOptions } from './Settings';
 
 export function InstancesPage() {
   const a = useApp();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('mods');
+  const [allBackups, setAllBackups] = useState(false);
   const i = a.current;
   const failedGame = a.tasks.find(
     (task) =>
@@ -44,9 +46,10 @@ export function InstancesPage() {
           <Search value={query} onChange={setQuery} placeholder={tr('Instances.searchInstances')} />
           <NavList
             label={tr('Instances.gameInstances')}
-            value={i?.id ?? ''}
+            value={allBackups ? '' : (i?.id ?? '')}
             onChange={(id) => {
               a.setSelectedId(id);
+              setAllBackups(false);
               a.setInstanceCatalogOpen(false);
             }}
             items={a.instances
@@ -61,22 +64,37 @@ export function InstancesPage() {
         </>
       }
       footer={
-        <div className="side-bottom">
-          <Action fullWidth icon="plus" onPress={() => a.setOverlay({ type: 'create' })}>
-            {tr('Instances.new')}
-          </Action>
+        <div className="stack-tight">
+          <div className="side-bottom">
+            <Action fullWidth icon="plus" onPress={() => a.setOverlay({ type: 'create' })}>
+              {tr('Instances.new')}
+            </Action>
+            <Action
+              fullWidth
+              variant="secondary"
+              icon="upload"
+              onPress={() => a.setOverlay({ type: 'import' })}
+            >
+              {tr('Instances.import')}
+            </Action>
+          </div>
           <Action
             fullWidth
-            variant="secondary"
-            icon="upload"
-            onPress={() => a.setOverlay({ type: 'import' })}
+            variant={allBackups ? 'secondary' : 'ghost'}
+            aria-pressed={allBackups}
+            icon="clock"
+            onPress={() => setAllBackups(true)}
           >
-            {tr('Instances.import')}
+            {tr('backups.allBackups')}
           </Action>
         </div>
       }
     >
-      {!i ? (
+      {allBackups ? (
+        <section className="workspace-scroll panel-enter">
+          <Backups />
+        </section>
+      ) : !i ? (
         <Empty
           title={tr('Instances.noGameInstancesYet')}
           detail={tr('Instances.startWithAnIndependentInstanceGameFiles')}
@@ -104,7 +122,7 @@ export function InstancesPage() {
           <Segments
             secondary
             value={a.instanceTab}
-            options={['overview', 'content', 'saves', 'screenshots', 'settings', 'logs']}
+            options={['overview', 'content', 'saves', 'screenshots', 'backups', 'settings', 'logs']}
             onChange={a.setInstanceTab}
             label={tr('Instances.instanceTabs')}
           />
@@ -208,6 +226,7 @@ export function InstancesPage() {
               </div>
             )}
             {a.instanceTab === 'settings' && <InstanceSettings key={i.id} instance={i} />}
+            {a.instanceTab === 'backups' && <Backups instance={i} />}
             {(a.instanceTab === 'saves' || a.instanceTab === 'screenshots') && (
               <InstanceFiles id={i.id} kind={a.instanceTab === 'saves' ? 'saves' : 'screenshots'} />
             )}

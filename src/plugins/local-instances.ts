@@ -9,7 +9,7 @@ import type { NixelHost, TaskContext } from '../shared/host-api';
 import { tr } from '../shared/i18n';
 import { commandsFor } from './commands';
 import { inside } from './files';
-import { assertInstanceIdle, createInstance, getInstance } from './game';
+import { assertInstanceIdle, createInstance, getInstance } from './instance-state';
 
 interface LocalVersion {
   id: string;

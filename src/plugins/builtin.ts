@@ -10,7 +10,8 @@ import {
   yggdrasilPlugin,
 } from './accounts';
 import { curseforgeId, curseforgePlugin } from './curseforge';
-import { gameId, gamePlugin, instancesPlugin } from './game';
+import { instancesPlugin } from './instances';
+import { gameId, gamePlugin } from './minecraft';
 import { contentPlugin, resourcesId, resourcesPlugin } from './resources';
 
 export const builtinPlugins: BuiltinPlugin[] = [

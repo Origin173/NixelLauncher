@@ -3,7 +3,7 @@ import type { ContentUpdateTarget } from '../shared/contracts';
 import { errorMessage } from '../shared/error-message';
 import { tr } from '../shared/i18n';
 import { commandsFor } from './commands';
-import { assertInstanceIdle, getInstance } from './game';
+import { assertInstanceIdle, getInstance } from './instance-state';
 import type { ResourceProvider } from './providers';
 import { normalizeResourceSource, scanContent } from './resource-files';
 

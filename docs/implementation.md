@@ -41,6 +41,10 @@ CurseForge provider 与插件 ID 为 `nixel.resources.curseforge`。资源命令
 | `instances.detectDirectory`    | `{ path }`                                                  | `{ versionId, version, loader, loaderVersion?, launchVersion }[]` |
 | `instances.importDirectory`    | `{ path, name?, versionId? }`                               | `{ taskId }`                                                      |
 | `instances.clone`              | `{ id, name? }`                                             | `{ taskId }`                                                      |
+| `backups.list`                 | `{ instanceId? }` 或无参，省略实例时列出全部历史            | `InstanceBackup[]`，按创建时间倒序                                |
+| `backups.create`               | `{ instanceId }`                                            | `{ taskId }`                                                      |
+| `backups.restore`              | `{ id }`，备份 ID                                           | `{ taskId }`，任务的 `instanceId` 指向恢复的新实例                |
+| `backups.delete`               | `{ id }`，备份 ID                                           | `void`                                                            |
 | `content.import`               | `{ instanceId, category, paths: string[] }`                 | `{ taskId }`                                                      |
 | `accounts.addOffline`          | `{ name }`                                                  | `Account`                                                         |
 | `accounts.remove`              | `{ id }`                                                    | `void`                                                            |
@@ -74,6 +78,12 @@ Microsoft 登录使用 `.env` 的 `MICROSOFT_CLIENT_ID`，CurseForge 使用 `CUR
 内容更新检查使用 `content-check` 任务，按来源报告进度并支持取消、重试。检查前清理旧更新提示；单个文件或来源失败会保留其他检查结果，在任务中报告失败详情。`InstalledContent.update` 保存 `{ versionId, version }`；旧的纯文本更新标签在载入时清除，重新检查后获得准确 ID。
 
 `ContentUpdateTarget` 为 `{ source, projectId, versionId }`，以来源与项目 ID 标识更新目标。`content.update` 使用 `content-update` 任务串行安装这些明确目标，保留文件启用状态；当前列表的批量操作遵守分类和搜索筛选，同一来源的同一项目只提交一次。任务中断时保留已完成的项目，重试跳过已安装的目标版本。批次结束检查最终版本，依赖安装替换了其他所选版本时报告冲突。列表扫描保留扫描期间写入的新元数据，避免覆盖安装结果。
+
+## 实例备份
+
+备份由 `nixel.instances` 注册。`InstanceBackup` 提供名称、原实例 ID、创建时间、游戏版本、加载器、归档字节数和文件数；列表不包含实例私有配置。磁盘格式为 `backups/<backupId>/{manifest.json,instance.zip}`，清单 `formatVersion: 1`，包含归档 SHA-256、实例设置与已安装资源记录。创建要求实例无游戏和任务占用。恢复始终创建新实例，保留文件禁用状态和两个来源的项目/版本 ID，重新生成实例与内容记录 ID，清除过时的内容更新提示；已删除账号的引用清空。恢复不依赖原实例仍存在，也不会更改主页的启动目标。归档损坏时停止恢复，不创建实例。
+
+备份不收集 Host 的账号密钥存储；归档排除实例根目录的 `.nixel`、`launcher_accounts.json`、`launcher_profiles.json`、`launcher_profiles_microsoft_store.json`。支持空目录和文件修改时间，Unix 系统恢复文件权限。符号链接报告错误，不跟随到实例外部。
 
 ## 开发检查
 
