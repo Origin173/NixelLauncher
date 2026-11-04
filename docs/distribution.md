@@ -51,7 +51,9 @@ AppImage 同目录的 `.env.local` 仅设置独立 `NIXEL_DATA_DIR`；未通过�
 
 该 WSL 环境需要补充 `libnspr4`、`libnss3`、`libasound2t64`。验收只把经 Ubuntu 包元数据 SHA-256 核对的依赖解包到独立目录，通过进程级 `LD_LIBRARY_PATH` 使用；其他桌面运行库来自现有系统。因为缺少 FUSE 2 运行库，AppImage 使用官方 [extract-and-run](https://docs.appimage.org/user-guide/troubleshooting/fuse.html#extract-and-run-type-2-appimages) 方式启动；FUSE 挂载和桌面集成尚未验证。
 
-该会话未配置可用的系统密钥库，Electron 返回 `available=false` / `basic_text`，现有凭据存储会拒绝保存。在线账号令牌持久化需要可用的桌面 Secret Service/keyring 会话，尚未在此环境验证。当前证据覆盖 WSLg 客户端启动，不代表原生 Linux、DEB 安装或 Linux 游戏运行已通过。
+该会话未配置可用的系统密钥库，Electron 返回 `available=false` / `basic_text`，现有凭据存储会拒绝保存。在线账号令牌持久化需要可用的桌面 Secret Service/keyring 会话，尚未在此环境验证。当前证据覆盖 WSLg 客户端启动；原生 Linux 与 DEB 安装仍待验收。
+
+随后通过真实 Host 在独立目录完成 Vanilla 1.21.1 安装，8 个 Linux LWJGL 原生库全部匹配 Mojang SHA-1。启动所需的官方 Java 21.0.7 下载在约 98.48% 时出现 `fetch failed`，一次手动重试在运行时清单请求阶段再次失败，随即停止。Java 安装和游戏启动尚未完成，因此没有计入 Linux 图形、声音或纹理初始化通过；任务与文件校验保存在同一验收目录。现有记录没有底层网络错误码，无法据此判断具体网络原因。
 
 ## 设计参考
 

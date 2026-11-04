@@ -58,7 +58,7 @@
 
 Windows 解包版和单文件便携版在独立数据目录实际启动，主进程、preload、Cordis Host 与默认界面正常；核对打包归档无 `.env`、设计原型或玩家数据，便携版读取同目录 `.env.local` 优先于 `.env`。NSIS 在无既有 Nixel 安装的环境实际静默安装到独立目录，再由生成的卸载器卸载；安装目录、卸载注册项和快捷方式移除，独立数据文件校验值保持一致。
 
-Linux 在 Ubuntu 24.04 / WSLg 独立安装依赖、typecheck、lint、build 和 AppImage 打包通过；解包版和 AppImage 均实际启动，Host 就绪、17 个插件 active、渲染 sandbox 保持开启。AppImage 邻接 `.env.local` 的独立数据目录生效，正常退出。WSL 缺少 FUSE 2 时使用官方 extract-and-run；当前会话无安全 keyring，已有实现拒绝 `basic_text` 凭据存储。DEB 因缺项目 `homepage` 停止打包，等待确定的官网或仓库地址。Linux 游戏/原生桌面、macOS/arm64、签名与公证仍待实测，见 [应用分发](distribution.md)。
+Linux 在 Ubuntu 24.04 / WSLg 独立安装依赖、typecheck、lint、build 和 AppImage 打包通过；解包版和 AppImage 均实际启动，Host 就绪、17 个插件 active、渲染 sandbox 保持开启。AppImage 邻接 `.env.local` 的独立数据目录生效，正常退出。Vanilla 1.21.1 游戏文件与 8 个 Linux 原生库安装校验通过；官方 Java 下载及一次重试因网络请求失败而停止，游戏尚未启动。WSL 缺少 FUSE 2 时使用官方 extract-and-run；当前会话无安全 keyring，已有实现拒绝 `basic_text` 凭据存储。DEB 因缺项目 `homepage` 停止打包，等待确定的官网或仓库地址。Linux 游戏/原生桌面、macOS/arm64、签名与公证仍待实测，见 [应用分发](distribution.md)。
 
 带更新配置的已安装应用启动被自动审批拒绝，理由仅返回 `blocked by policy`，因此安装模式识别仍未实测。卸载保留了本次安装器缓存 `%LOCALAPPDATA%/nixellauncher-updater/installer.exe`；限定路径及哈希的缓存清理也被拒绝，文件保持原样。未通过改写命令重试这些动作。
 
