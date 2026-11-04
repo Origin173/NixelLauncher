@@ -1,7 +1,7 @@
 import type { Context } from 'cordis';
 import { serviceEnvironment } from '../../host/service-environment';
 import type { ResourceProvider } from '../providers';
-import { optionalDependencies } from '../resource-dependencies';
+import { optionalDependencies, resolveContentPlan } from '../resource-dependencies';
 import { listVersions, searchProjects } from './catalog';
 import { ModrinthClient } from './client';
 import { contentResolver } from './dependencies';
@@ -26,6 +26,15 @@ export const resourcesPlugin = {
     const provider: ResourceProvider = {
       downloadModpack: (projectId, versionId, task) =>
         downloadPack(host, client, projectId, versionId, task),
+      planInstall: (roots, instance, retained, signal) =>
+        resolveContentPlan(
+          roots,
+          contentResolver(client, instance, signal),
+          retained,
+          signal,
+          [],
+          true,
+        ),
       search: (query, instance) => searchProjects(client, query, instance),
       versions: (id, instance, signal) => listVersions(client, id, instance, signal),
       details: (id) => projectDetails(client, id),

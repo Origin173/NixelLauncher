@@ -6,8 +6,10 @@ import { modpackUpgradeZh } from './modpack-upgrade';
 import { networkZh } from './network';
 import { serversZh } from './servers';
 import { skinsZh } from './skins';
+import { versionContentZh } from './version-content';
 
 export default {
+  ...versionContentZh,
   ...downloadsZh,
   ...skinsZh,
   ...modpackUpgradeZh,

@@ -6,8 +6,10 @@ import { modpackUpgradeEn } from './modpack-upgrade';
 import { networkEn } from './network';
 import { serversEn } from './servers';
 import { skinsEn } from './skins';
+import { versionContentEn } from './version-content';
 
 export default {
+  ...versionContentEn,
   ...downloadsEn,
   ...skinsEn,
   ...modpackUpgradeEn,

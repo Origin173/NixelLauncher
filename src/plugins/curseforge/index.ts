@@ -1,6 +1,6 @@
 import type { Context } from 'cordis';
 import type { CurseForgeResourceProvider } from '../providers';
-import { optionalDependencies } from '../resource-dependencies';
+import { optionalDependencies, resolveContentPlan } from '../resource-dependencies';
 import { listVersions, searchProjects } from './catalog';
 import { CurseForgeClient } from './client';
 import { contentResolver } from './dependencies';
@@ -18,6 +18,15 @@ export const curseforgePlugin = {
     const host = ctx.nixel;
     const client = new CurseForgeClient();
     const provider: CurseForgeResourceProvider = {
+      planInstall: (roots, instance, retained, signal) =>
+        resolveContentPlan(
+          roots,
+          contentResolver(client, instance, signal),
+          retained,
+          signal,
+          [],
+          true,
+        ),
       search: (query, instance) => searchProjects(client, query, instance),
       versions: (projectId, instance, signal) => listVersions(client, projectId, instance, signal),
       details: (id) => projectDetails(client, id),

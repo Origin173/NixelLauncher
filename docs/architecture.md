@@ -78,3 +78,5 @@ Minecraft 安装与启动由 Nixel 游戏提供者实现，版本清单来自 Mo
 `nixel.skins` 负责皮肤文件校验、资料请求生命周期与外观修改任务，通过 `AccountProvider.appearance` 调用账号提供者。Microsoft 模块沿用认证会话实现官方外观协议；渲染端只获得纹理与披风数据，按需加载 `skinview3d`。契约见 [皮肤与披风](skins.md)。
 
 `plugins/modpacks/` 从原单文件拆为清单解析、文件暂存、基线捕获、三方差异、应用回滚和导入导出模块，由实例插件注册业务命令并复用备份仓库。在线包文件通过公开资源提供者接口获取，来源内部 API 不进入整合包模块。新版本先准备并比较，用户确认后备份、安装游戏、应用文件，再提交版本与基线，见 [整合包升级](modpack-upgrade.md)。
+
+版本变更的 `content-plan` 模块通过公开 `ResourceProvider.planInstall`，按来源合并用户选中的版本与依赖；共享依赖解析器生成固定文件清单，`content-state` 记录实际文件指纹。版本变更与整合包升级共用 `file-transaction` 处理短暂的文件提交和回滚，各业务分别提交自己的元数据，见 [版本与内容联动更新](version-content.md)。

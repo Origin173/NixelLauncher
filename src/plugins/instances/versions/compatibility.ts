@@ -14,12 +14,14 @@ export async function reviewContent(
     signal?.throwIfAborted();
     let status: VersionContentReview['status'] = 'unknown';
     let reason: string | undefined;
+    let candidates: VersionContentReview['candidates'] = [];
     const source = normalizeResourceSource(entry.source);
     if (source && entry.projectId && entry.versionId) {
       try {
-        const candidates = await host.providers
+        const versions = await host.providers
           .get<ResourceProvider>('resources', source)
           .versions(entry.projectId, target, signal);
+        candidates = versions.map((version) => ({ id: version.id, name: version.name }));
         status = candidates.some((candidate) => candidate.id === entry.versionId)
           ? 'compatible'
           : candidates.length
@@ -31,6 +33,8 @@ export async function reviewContent(
       }
     }
     return {
+      projectId: entry.projectId,
+      candidates,
       id: entry.id,
       name: entry.name,
       fileName: entry.fileName,

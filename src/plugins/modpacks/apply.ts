@@ -1,9 +1,8 @@
-import { randomUUID } from 'node:crypto';
-import { copyFile, mkdir, rename, rm } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import type { NixelHost, TaskContext } from '../../shared/host-api';
 import { tr } from '../../shared/i18n';
 import type { ModpackUpgradeInput } from '../../shared/modpack-contracts';
+import { FileTransaction } from '../file-transaction';
 import { hashFile, inside } from '../files';
 import { assertInstanceIdle, getInstance } from '../instance-state';
 import { createBackup } from '../instances/backups/operations';
@@ -63,7 +62,8 @@ export async function applyUpgrade(
   if (planFingerprint(instance, currentChanges, plan.target) !== input.fingerprint)
     throw new Error(tr('packUpgrade.changed'));
   const rollbackRoot = join(directory, 'rollback');
-  const applied: { path: string; existed: boolean }[] = [];
+  const transaction = new FileTransaction(instance.directory, rollbackRoot);
+  let applied = 0;
   const replaced = new Map<string, string>();
   const previousStatus = instance.status;
   const previousError = instance.error;
@@ -85,26 +85,13 @@ export async function applyUpgrade(
         continue;
       const actualPath =
         change.disabledHash && !change.currentHash ? `${change.path}.disabled` : change.path;
-      const existed = Boolean(change.currentHash || change.disabledHash);
-      const target = await checkedPath(instance.directory, actualPath);
-      const original = inside(rollbackRoot, actualPath);
-      if (existed) {
-        await mkdir(dirname(original), { recursive: true });
-        await copyFile(target, original);
-      }
-      applied.push({ path: actualPath, existed });
-      if (change.nextHash) {
-        await mkdir(dirname(target), { recursive: true });
-        const temporary = `${target}.${randomUUID()}.nixel-pack-update`;
-        try {
-          await copyFile(inside(filesRoot, change.path), temporary);
-          await rename(temporary, target);
-        } finally {
-          await rm(temporary, { force: true });
-        }
-      } else await rm(target, { force: true });
+      await transaction.write(
+        actualPath,
+        change.nextHash ? inside(filesRoot, change.path) : undefined,
+      );
+      applied++;
       replaced.set(change.path, actualPath);
-      task.report(65 + (applied.length / Math.max(changes.length, 1)) * 30, change.path);
+      task.report(65 + (applied / Math.max(changes.length, 1)) * 30, change.path);
     }
     task.signal.throwIfAborted();
     await host.store.update((draft) => {
@@ -140,18 +127,14 @@ export async function applyUpgrade(
       for (const entry of draft.content) if (entry.instance === input.id) delete entry.update;
     });
   } catch (error) {
-    const failures: unknown[] = [error];
-    for (const item of applied.reverse()) {
-      try {
-        const target = await checkedPath(instance.directory, item.path);
-        if (item.existed) await copyFile(inside(rollbackRoot, item.path), target);
-        else await rm(target, { force: true });
-      } catch (failure) {
-        failures.push(failure);
-      }
+    try {
+      await transaction.rollback();
+    } catch (failure) {
+      throw new AggregateError(
+        [error, failure],
+        tr('packUpgrade.rollbackFailed', { id: backupId }),
+      );
     }
-    if (failures.length > 1)
-      throw new AggregateError(failures, tr('packUpgrade.rollbackFailed', { id: backupId }));
     await host.store.update((draft) => {
       const current = draft.instances.find((entry) => entry.id === input.id);
       if (current) {
@@ -162,7 +145,7 @@ export async function applyUpgrade(
     throw error;
   }
   try {
-    await rm(rollbackRoot, { recursive: true, force: true });
+    await transaction.cleanup();
   } catch (error) {
     task.log(
       tr('packUpgrade.cleanupFailed', {

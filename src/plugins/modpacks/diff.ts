@@ -1,6 +1,4 @@
 import { createHash } from 'node:crypto';
-import { lstat } from 'node:fs/promises';
-import { join } from 'node:path';
 import type { Instance } from '../../shared/contracts';
 import { tr } from '../../shared/i18n';
 import type {
@@ -8,24 +6,11 @@ import type {
   ModpackState,
   ModpackUpgradePlan,
 } from '../../shared/modpack-contracts';
-import { hashFile, inside } from '../files';
+import { checkedPath } from '../file-transaction';
+import { hashFile } from '../files';
 
-export async function checkedPath(root: string, path: string) {
-  const target = inside(root, path);
-  if ((await lstat(root)).isSymbolicLink()) throw new Error(tr('packUpgrade.symlink', { path }));
-  let current = root;
-  for (const part of path.split('/')) {
-    current = join(current, part);
-    const info = await lstat(current).catch((error: NodeJS.ErrnoException) => {
-      if (error.code === 'ENOENT') return undefined;
-      throw error;
-    });
-    if (info?.isSymbolicLink()) throw new Error(tr('packUpgrade.symlink', { path }));
-    if (info && current === target && !info.isFile())
-      throw new Error(tr('packUpgrade.notFile', { path }));
-  }
-  return target;
-}
+export { checkedPath } from '../file-transaction';
+
 async function currentFile(root: string, path: string, signal?: AbortSignal) {
   const target = await checkedPath(root, path);
   return hashFile(target, 'sha256', signal).catch((error: NodeJS.ErrnoException) => {

@@ -1,4 +1,5 @@
 import type {
+  InstalledContent,
   Instance,
   ResourceDependencySelection,
   ResourceOptionalDependency,
@@ -7,7 +8,6 @@ import { errorMessage } from '../shared/error-message';
 import type { NixelHost, TaskContext } from '../shared/host-api';
 import { tr } from '../shared/i18n';
 import {
-  assertRequiredContentEnabled,
   type ContentDownload,
   installContentFile,
   normalizeResourceSource,
@@ -67,13 +67,13 @@ export async function optionalDependencies(root: ContentNode, load: ContentResol
 }
 
 /** Resolve and validate the entire selection before modifying any instance files. */
-export async function installContentPlan(
-  host: NixelHost,
-  instance: Instance,
-  task: TaskContext,
-  roots: ResourceDependencySelection[],
+export async function resolveContentPlan(
+  roots: (ResourceDependencySelection & { enabled?: boolean })[],
   load: ContentResolver,
+  installed: InstalledContent[],
+  signal?: AbortSignal,
   optional: ResourceDependencySelection[] = [],
+  pinInstalled = false,
 ) {
   const pins = new Map<string, string>();
   const nodes = new Map<string, ContentNode>();
@@ -85,6 +85,9 @@ export async function installContentPlan(
       throw new Error(tr('optionalDependencies.conflict', { project: projectId }));
     pins.set(projectId, versionId);
   }
+  if (pinInstalled)
+    for (const entry of installed)
+      if (entry.projectId && entry.versionId) pin(entry.projectId, entry.versionId);
   for (const entry of [...roots, ...optional]) pin(entry.projectId, entry.versionId);
   const rootNodes: ContentNode[] = [];
   for (const entry of roots) rootNodes.push(await load(entry.projectId, entry.versionId));
@@ -99,8 +102,14 @@ export async function installContentPlan(
       ))
   )
     throw new Error(tr('optionalDependencies.selectionChanged'));
+  const enabledFor = (file: ContentDownload) =>
+    roots.find((root) => root.projectId === file.projectId)?.enabled ??
+    installed.find(
+      (entry) =>
+        normalizeResourceSource(entry.source) === file.source && entry.projectId === file.projectId,
+    )?.enabled !== false;
   async function visit(node: ContentNode, dependency = false) {
-    task.signal.throwIfAborted();
+    signal?.throwIfAborted();
     const { file } = node;
     pin(file.projectId, file.versionId);
     if (dependency) dependencies.add(file.projectId);
@@ -109,19 +118,17 @@ export async function installContentPlan(
     for (const entry of node.dependencies.filter((entry) => entry.type === 'required')) {
       const versionId =
         entry.versionId || (entry.projectId ? pins.get(entry.projectId) : undefined);
-      await visit(await load(entry.projectId, versionId), true);
+      await visit(await load(entry.projectId, versionId), enabledFor(file));
     }
     ordered.push(file);
   }
   for (const entry of optional) await visit(await load(entry.projectId, entry.versionId), true);
   for (const node of rootNodes) await visit(node);
-  const installed = host.store.read().content.filter((entry) => entry.instance === instance.id);
   for (const node of nodes.values()) {
     const current = installed.filter(
       (entry) => normalizeResourceSource(entry.source) === node.file.source,
     );
-    const enabled = (file: ContentDownload) =>
-      current.find((entry) => entry.projectId === file.projectId)?.enabled !== false;
+    const enabled = enabledFor;
     const effective = [
       ...current.filter((entry) => entry.enabled && !nodes.has(entry.projectId ?? '')),
       ...ordered.filter(enabled),
@@ -138,9 +145,24 @@ export async function installContentPlan(
       )
         throw new Error(tr('optionalDependencies.conflict', { project: node.file.name }));
     }
-    if (dependencies.has(node.file.projectId))
-      assertRequiredContentEnabled(host, instance, node.file.source, node.file.projectId);
+    if (dependencies.has(node.file.projectId) && !enabled(node.file))
+      throw new Error(
+        tr('resource-files.requiredDependencyValueIsDisabledEnableIt', { value1: node.file.name }),
+      );
   }
+  return ordered;
+}
+
+export async function installContentPlan(
+  host: NixelHost,
+  instance: Instance,
+  task: TaskContext,
+  roots: ResourceDependencySelection[],
+  load: ContentResolver,
+  optional: ResourceDependencySelection[] = [],
+) {
+  const installed = host.store.read().content.filter((entry) => entry.instance === instance.id);
+  const ordered = await resolveContentPlan(roots, load, installed, task.signal, optional);
   for (const [index, file] of ordered.entries())
     await installContentFile(
       host,

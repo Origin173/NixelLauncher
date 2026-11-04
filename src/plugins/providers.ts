@@ -1,5 +1,6 @@
 import type {
   Account,
+  InstalledContent,
   Instance,
   Resource,
   ResourceDetails,
@@ -13,6 +14,7 @@ import type {
 import type { TaskContext } from '../shared/host-api';
 import type { GameLaunchOptions } from '../shared/servers';
 import type { AccountAppearance, SkinModel } from '../shared/skins';
+import type { VersionContentRoot } from '../shared/version-content';
 import type { GameSession } from './authentication';
 import type { ContentDownload } from './resource-files';
 
@@ -43,6 +45,12 @@ export interface AccountProvider {
   session(account: Account, signal: AbortSignal): Promise<GameSession>;
 }
 export interface ResourceProvider {
+  planInstall?(
+    roots: VersionContentRoot[],
+    instance: Instance,
+    retained: InstalledContent[],
+    signal?: AbortSignal,
+  ): Promise<ContentDownload[]>;
   downloadModpack?(projectId: string, versionId: string, task: TaskContext): Promise<string>;
   search(query: ResourceQuery, instance?: Instance): Promise<{ items: Resource[]; total: number }>;
   versions(

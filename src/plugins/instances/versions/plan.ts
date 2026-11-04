@@ -1,11 +1,10 @@
-import { createHash } from 'node:crypto';
 import type { InstanceVersionPlan, InstanceVersionTarget } from '../../../shared/contracts';
 import type { NixelHost } from '../../../shared/host-api';
 import { tr } from '../../../shared/i18n';
 import { assertInstanceIdle, getInstance } from '../../instance-state';
-import { scanContent } from '../../resource-files';
 import { gameProvider } from './catalog';
 import { reviewContent } from './compatibility';
+import { contentState } from './content-state';
 
 export async function planVersionChange(
   host: NixelHost,
@@ -44,34 +43,9 @@ export async function planVersionChange(
     if (!target.loaderVersion || !loaders.some((version) => version.id === target.loaderVersion))
       throw new Error(tr('versionChange.invalidLoader'));
   }
-  const entries = (await scanContent(host, instance)).sort((a, b) => a.id.localeCompare(b.id));
+  const { entries, fingerprint } = await contentState(host, instance, target, signal);
   const proposed = { ...instance, ...target };
   const content = await reviewContent(host, proposed, entries, signal);
   signal?.throwIfAborted();
-  const fingerprint = createHash('sha256')
-    .update(
-      JSON.stringify({
-        target,
-        current: {
-          version: instance.version,
-          loader: instance.loader,
-          loaderVersion: instance.loaderVersion,
-          launchVersion: instance.launchVersion,
-          providers: instance.providers,
-          providerConfig: instance.providerConfig,
-        },
-        content: entries.map((entry, index) => ({
-          id: entry.id,
-          file: entry.fileName,
-          category: entry.category,
-          enabled: entry.enabled,
-          source: entry.source,
-          project: entry.projectId,
-          version: entry.versionId,
-          status: content[index]?.status,
-        })),
-      }),
-    )
-    .digest('hex');
   return { target, fingerprint, content };
 }

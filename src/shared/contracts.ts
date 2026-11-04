@@ -19,6 +19,8 @@ export interface InstanceVersionTarget {
   loaderVersion?: string;
 }
 export interface VersionContentReview {
+  projectId?: string;
+  candidates: { id: string; name: string }[];
   id: string;
   name: string;
   fileName: string;
@@ -35,6 +37,7 @@ export interface InstanceVersionPlan {
   content: VersionContentReview[];
 }
 export interface ChangeInstanceVersionInput {
+  contentPlanId: string;
   id: string;
   target: InstanceVersionTarget;
   fingerprint: string;

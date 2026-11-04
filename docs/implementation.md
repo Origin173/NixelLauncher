@@ -104,9 +104,9 @@ Yggdrasil 登录返回 `{ status: 'complete', account }` 或 `{ status: 'select-
 
 `game.versions`、`game.loaders` 传入 `instanceId` 时查询该实例的游戏提供者，省略时使用全局默认值。`InstanceVersionTarget` 为 `{ version, loader, loaderVersion? }`；Vanilla 清空加载器版本，其他加载器要求明确版本。目标必须存在于对应提供者的版本列表。
 
-`instances.planVersionChange` 要求实例空闲，扫描已安装内容，按每个文件的来源查询目标游戏/加载器的版本列表。当前资源版本仍在列表时为 `compatible`，存在其他可用版本时为 `update-available`，无可用版本时为 `incompatible`；来源或版本身份缺失、查询出错时为 `unknown`，错误随条目返回。返回 `{ target, fingerprint, content }`，指纹涵盖当前版本、提供者配置、内容身份、启用状态和兼容结论，不包含展示文案。结论基于来源元数据，不读取模组代码或运行游戏。
+`instances.planVersionChange` 要求实例空闲，扫描已安装内容，按每个文件的来源查询目标游戏/加载器的版本列表。当前资源版本仍在列表时为 `compatible`，存在其他可用版本时为 `update-available`，无可用版本时为 `incompatible`；来源或版本身份缺失、查询出错时为 `unknown`，错误随条目返回。返回 `{ target, fingerprint, content }`，每项包含兼容版本候选；指纹涵盖当前版本、提供者配置、内容身份、启用状态与实际文件 SHA-256。结论基于来源元数据。
 
-`ChangeInstanceVersionInput` 为 `{ id, target, fingerprint, acceptRisks }`。命令启动 `version-change` 任务，重新获取当前预览并核对指纹；若变动，要求重新确认。有启用的非兼容条目时要求 `acceptRisks: true`。随后保存完整备份，安装目标，最后提交 `version`、`loader`、`loaderVersion`、`launchVersion`、`kind` 与就绪状态，并清除过时的内容更新提示。备份 ID 记入任务日志，可从实例备份页恢复。取消或安装失败保留原版本选择和已有内容；已完成的备份保留。重试沿用原目标与确认指纹，实例变化时要求重新预览。
+`instances.planVersionContent` 接收原指纹与每项 `keep`、`disable` 或 `update` 选择，启动 `version-plan` 任务。通过 `instances.versionContentPlan` 取得最终清单；按来源统一解析精确版本、必需依赖和冲突，缓存下载计划。`ChangeInstanceVersionInput` 为 `{ id, target, fingerprint, contentPlanId, acceptRisks }`，其中指纹取最终清单。`version-change` 任务核对当前文件，完整备份、暂存下载并安装目标；再次核对后提交文件，最后一次更新游戏版本和内容记录。保留非兼容内容或改变 Minecraft 版本时要求明确确认。失败或取消回滚文件，重试沿用固定清单；完整契约见 [版本与内容联动更新](version-content.md)。
 
 ## 实例备份
 
@@ -114,7 +114,7 @@ Yggdrasil 登录返回 `{ status: 'complete', account }` 或 `{ status: 'select-
 
 备份不收集 Host 的账号密钥存储；归档排除实例根目录的 `.nixel`、`launcher_accounts.json`、`launcher_profiles.json`、`launcher_profiles_microsoft_store.json`。支持空目录和文件修改时间，Unix 系统恢复文件权限。符号链接报告错误，不跟随到实例外部。
 
-`settings.backupRetentionCount` 为 0–1000 的整数，默认 0 表示全部保留。新版本变更备份提交后，按实例清理超出数量的旧 `origin: 'version-change'` 备份。`origin: 'manual'` 和未标记来源的历史备份始终保留；正在恢复的备份跳过，删除与跳过结果记录在任务日志中。设置变更本身不立即删除备份。
+`settings.backupRetentionCount` 为 0–1000 的整数，默认 0 表示全部保留。新自动备份提交后，按实例清理超出数量的旧 `origin: 'version-change' | 'modpack-upgrade'` 备份。`origin: 'manual'` 和未标记来源的历史备份始终保留；正在恢复的备份跳过，删除与跳过结果记录在任务日志中。设置变更本身不立即删除备份。
 
 ## 开发检查
 
