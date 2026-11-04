@@ -2,6 +2,7 @@ import { accountProfilesEn } from './account-profiles';
 import { backupRetentionEn } from './backup-retention';
 import { diagnosticsEn } from './diagnostics';
 import { downloadsEn } from './downloads';
+import { mirrorsEn } from './mirrors';
 import { modpackUpgradeEn } from './modpack-upgrade';
 import { networkEn } from './network';
 import { serversEn } from './servers';
@@ -9,6 +10,7 @@ import { skinsEn } from './skins';
 import { versionContentEn } from './version-content';
 
 export default {
+  ...mirrorsEn,
   ...versionContentEn,
   ...downloadsEn,
   ...skinsEn,

@@ -2,6 +2,7 @@ import { accountProfilesZh } from './account-profiles';
 import { backupRetentionZh } from './backup-retention';
 import { diagnosticsZh } from './diagnostics';
 import { downloadsZh } from './downloads';
+import { mirrorsZh } from './mirrors';
 import { modpackUpgradeZh } from './modpack-upgrade';
 import { networkZh } from './network';
 import { serversZh } from './servers';
@@ -9,6 +10,7 @@ import { skinsZh } from './skins';
 import { versionContentZh } from './version-content';
 
 export default {
+  ...mirrorsZh,
   ...versionContentZh,
   ...downloadsZh,
   ...skinsZh,

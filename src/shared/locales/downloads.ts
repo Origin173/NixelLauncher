@@ -20,6 +20,8 @@ export const downloadsEn = {
   'downloads.invalidRange':
     'The server returned an invalid range, changed validator, or encoded download. The partial file was discarded.',
   'downloads.invalidPartial': 'The download cache contains an invalid file or link.',
+  'downloads.invalidRedirect':
+    'The download server returned a missing redirect destination or too many redirects.',
   'downloads.incomplete':
     'The download ended before the declared file length was received. Retry the task to continue it.',
   'downloads.invalidConfiguration':
@@ -50,6 +52,7 @@ export const downloadsZh: Record<keyof typeof downloadsEn, string> = {
   'downloads.invalidRange':
     '服务器返回了无效范围、已改变的验证标识或经过编码的下载。已丢弃文件片段。',
   'downloads.invalidPartial': '下载缓存包含无效文件或链接。',
+  'downloads.invalidRedirect': '下载服务器未提供重定向目标，或重定向次数过多。',
   'downloads.incomplete': '下载在达到声明的文件长度前结束，请重试任务继续下载。',
   'downloads.invalidConfiguration':
     '并发数须为 1 到 32 的整数，限速须为 0 到 1048576 KiB/s 的整数。',

@@ -1,3 +1,4 @@
+import type { DownloadMirrorConfiguration } from './download-mirrors';
 import type { TaskContext } from './host-api';
 
 export const downloadsId = 'nixel.downloads';
@@ -5,6 +6,7 @@ export interface DownloadConfiguration {
   concurrency: number;
   /** Aggregate bytes per second; zero is unlimited. */
   bytesPerSecond: number;
+  mirror: DownloadMirrorConfiguration;
 }
 export interface DownloadRequest {
   url: string;

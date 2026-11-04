@@ -3,6 +3,7 @@ import type { Context } from 'cordis';
 import { type DownloadConfiguration, downloadsId } from '../../shared/downloads';
 import { tr, translatedName } from '../../shared/i18n';
 import { commandsFor } from '../commands';
+import { mirrorConfiguration } from './mirrors/configuration';
 import { DownloadScheduler } from './scheduler';
 
 function configuration(value: Record<string, unknown>, legacy: number): DownloadConfiguration {
@@ -19,7 +20,7 @@ function configuration(value: Record<string, unknown>, legacy: number): Download
     bytesPerSecond > 1024 ** 3
   )
     throw new Error(tr('downloads.invalidConfiguration'));
-  return { concurrency, bytesPerSecond };
+  return { concurrency, bytesPerSecond, mirror: mirrorConfiguration(value.mirror) };
 }
 
 export const downloadsPlugin = {
@@ -45,7 +46,7 @@ export const downloadsPlugin = {
     command('downloads.configure', (input: Record<string, unknown>) =>
       host.commands.invoke('plugins.configure', {
         id: downloadsId,
-        config: configuration(input, config.concurrency),
+        config: configuration({ ...config, ...input }, config.concurrency),
       }),
     );
   },

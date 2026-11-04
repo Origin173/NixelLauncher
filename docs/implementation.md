@@ -92,6 +92,8 @@ Yggdrasil 登录返回 `{ status: 'complete', account }` 或 `{ status: 'select-
 
 `tasks.pause` 与 `tasks.resume` 调用当前下载阶段注册的 `TaskContext.setControls`。暂停或排队使用 `Task.activity` 表示，`Task.status` 仍为 `running`，保持实例和插件占用；阶段结束释放控制，重启清除运行时标记。`downloads.configure` 保存插件的并发与限速，`downloads.status` 读取配置，公开下载提供者见 [下载管理](downloads.md)。
 
+下载配置的 `mirror` 为 `{ mode: 'official' | 'bmclapi' | 'custom', baseUrl }`，缺省为官方。`downloads.configure` 合并顶层更新，镜像与调度表单分别保存自身字段。精确映射范围、重定向和日志约定见 [下载镜像](download-mirrors.md)。
+
 内容更新检查使用 `content-check` 任务，按来源报告进度并支持取消、重试。检查前清理旧更新提示；单个文件或来源失败会保留其他检查结果，在任务中报告失败详情。`InstalledContent.update` 保存 `{ versionId, version }`；旧的纯文本更新标签在载入时清除，重新检查后获得准确 ID。
 
 `ContentUpdateTarget` 为 `{ source, projectId, versionId }`，以来源与项目 ID 标识更新目标。`content.update` 使用 `content-update` 任务串行安装这些明确目标，保留文件启用状态；当前列表的批量操作遵守分类和搜索筛选，同一来源的同一项目只提交一次。任务中断时保留已完成的项目，重试跳过已安装的目标版本。批次结束检查最终版本，依赖安装替换了其他所选版本时报告冲突。列表扫描保留扫描期间写入的新元数据，避免覆盖安装结果。

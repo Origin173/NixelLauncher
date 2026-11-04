@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { JavaRuntime } from '../../../shared/contracts';
 import { label, tr } from '../../../shared/i18n';
 import { DownloadSettings } from '../downloads/DownloadSettings';
+import { MirrorSettings } from '../downloads/MirrorSettings';
 import { Landscape } from '../Landscape';
 import { BackupRetention } from '../settings/BackupRetention';
 import { NetworkSettings } from '../settings/NetworkSettings';
@@ -226,6 +227,7 @@ export function SettingsPage() {
         {a.settingsTab === 'downloads' && (
           <>
             <DownloadSettings />
+            <MirrorSettings />
             <NetworkSettings />
           </>
         )}

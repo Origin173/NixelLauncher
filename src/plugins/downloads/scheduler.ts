@@ -1,7 +1,9 @@
 import { resolve } from 'node:path';
+import { defaultDownloadMirror } from '../../shared/download-mirrors';
 import type { DownloadConfiguration, DownloadRequest } from '../../shared/downloads';
 import type { TaskContext } from '../../shared/host-api';
 import { tr } from '../../shared/i18n';
+import { routeDownload } from './mirrors/routing';
 import { discardPartial, partialPaths } from './partial';
 import { DownloadRateLimit } from './rate-limit';
 import { transferDownload } from './transfer';
@@ -66,6 +68,7 @@ interface QueuedDownload {
 }
 
 export class DownloadScheduler {
+  private readonly sources = new WeakMap<TaskContext, Set<string>>();
   private readonly groups = new Map<string, DownloadGroup>();
   private readonly queue: QueuedDownload[] = [];
   private readonly activeTargets = new Set<string>();
@@ -92,6 +95,22 @@ export class DownloadScheduler {
   }
 
   private async execute(request: DownloadRequest, task: TaskContext) {
+    const route = routeDownload(request, this.config.mirror ?? defaultDownloadMirror);
+    if (route) {
+      const sources = this.sources.get(task) ?? new Set<string>();
+      this.sources.set(task, sources);
+      const sourceKey = `${route.source}:${route.category}`;
+      if (!sources.has(sourceKey)) {
+        sources.add(sourceKey);
+        task.log(
+          tr('mirrors.sourceLog', {
+            source: route.source === 'official' ? tr('mirrors.official') : route.source,
+            category: tr(`mirrors.${route.category}`),
+          }),
+        );
+      }
+      request = { ...request, url: route.url };
+    }
     let group = this.groups.get(task.taskId);
     if (!group) {
       group = new DownloadGroup(task);

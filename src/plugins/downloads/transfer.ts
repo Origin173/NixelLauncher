@@ -14,6 +14,7 @@ import {
   saveIdentity,
 } from './partial';
 import type { DownloadRateLimit } from './rate-limit';
+import { fetchDownload } from './request';
 
 function validator(response: Response): DownloadIdentity['validator'] {
   const etag = response.headers.get('etag');
@@ -85,7 +86,7 @@ export async function transferDownload(
       headers.Range = `bytes=${offset}-`;
       headers['If-Range'] = identity.validator.value;
     }
-    const response = await fetch(url, { signal, headers });
+    const response = await fetchDownload(url, signal, headers);
     if (response.status === 416 && offset) {
       await response.body?.cancel();
       const total = /^bytes \*\/(\d+)$/.exec(response.headers.get('content-range') ?? '')?.[1];
