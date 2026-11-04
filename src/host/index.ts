@@ -31,6 +31,8 @@ function platform<T>(operation: PlatformOperation, payload?: unknown): Promise<T
 }
 
 const system: HostPlatform = {
+  configureProxy: (config) => platform('network.configure', config),
+  resolveProxy: (url) => platform('network.resolveProxy', { url }),
   secretGet: (key) => platform('secret.get', { key }),
   secretSet: (key, value) => platform('secret.set', { key, value }),
   secretDelete: (key) => platform('secret.delete', { key }),

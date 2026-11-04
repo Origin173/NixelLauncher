@@ -7,6 +7,7 @@ import type {
   ProviderKind,
   Task,
 } from './contracts';
+import type { NetworkConfiguration } from './network';
 
 export interface StateStore {
   root: string;
@@ -55,6 +56,8 @@ export interface TaskManager {
   clear(): void;
 }
 export interface HostPlatform {
+  configureProxy(config: NetworkConfiguration): Promise<void>;
+  resolveProxy(url: string): Promise<string>;
   secretGet(key: string): Promise<string | null>;
   secretSet(key: string, value: string): Promise<void>;
   secretDelete(key: string): Promise<void>;

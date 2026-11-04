@@ -6,6 +6,8 @@ export interface HostConfiguration {
 }
 
 export type PlatformOperation =
+  | 'network.configure'
+  | 'network.resolveProxy'
   | 'directory.select'
   | 'plugin.select'
   | 'path.open'

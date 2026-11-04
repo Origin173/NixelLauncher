@@ -18,8 +18,10 @@ import { defaultState } from '../host/defaults';
 import type { PlatformOperation } from '../host/protocol';
 import type { LauncherSnapshot, PathOptions } from '../shared/contracts';
 import { i18n, setLocale, tr } from '../shared/i18n';
+import type { NetworkConfiguration } from '../shared/network';
 import { loadEnvironment } from './environment';
 import { HostClient } from './host-client';
+import { configureProxy, resolveProxy } from './network';
 import { SecretStorage } from './secrets';
 
 let window: BrowserWindow | undefined;
@@ -154,6 +156,10 @@ async function openPath(path: string) {
 async function platform(operation: PlatformOperation, payload: unknown) {
   const values = payload as Record<string, string>;
   switch (operation) {
+    case 'network.configure':
+      return configureProxy(payload as NetworkConfiguration);
+    case 'network.resolveProxy':
+      return resolveProxy(values.url ?? '');
     case 'secret.get':
       return secrets.get(values.key ?? '') ?? null;
     case 'secret.set':

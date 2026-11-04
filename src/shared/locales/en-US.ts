@@ -1,9 +1,11 @@
 import { accountProfilesEn } from './account-profiles';
 import { backupRetentionEn } from './backup-retention';
 import { diagnosticsEn } from './diagnostics';
+import { networkEn } from './network';
 import { serversEn } from './servers';
 
 export default {
+  ...networkEn,
   ...diagnosticsEn,
   ...serversEn,
   ...accountProfilesEn,

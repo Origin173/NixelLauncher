@@ -3,6 +3,7 @@ import type { JavaRuntime } from '../../../shared/contracts';
 import { label, tr } from '../../../shared/i18n';
 import { Landscape } from '../Landscape';
 import { BackupRetention } from '../settings/BackupRetention';
+import { NetworkSettings } from '../settings/NetworkSettings';
 import { useApp } from '../state';
 import {
   Action,
@@ -51,7 +52,7 @@ const settingGroups = () =>
       id: 'downloads',
       name: tr('Settings.downloads'),
       icon: 'download',
-      keywords: tr('Settings.concurrencyModrinthCurseforge'),
+      keywords: tr('network.keywords'),
     },
     {
       id: 'storage',
@@ -222,19 +223,22 @@ export function SettingsPage() {
         )}
         {a.settingsTab === 'java' && <JavaSettings />}
         {a.settingsTab === 'downloads' && (
-          <Group title={tr('Settings.download')}>
-            <SettingRow
-              title={tr('Settings.concurrentDownloads')}
-              description={tr('Settings.usedForGameAssetsAndDependencyDownloads')}
-            >
-              <Choice
-                label={tr('Settings.downloadConcurrency')}
-                value={String(s.downloadConcurrency)}
-                onChange={(v) => void a.updateSettings({ downloadConcurrency: Number(v) })}
-                options={[2, 4, 8, 16].map((v) => ({ id: String(v), name: String(v) }))}
-              />
-            </SettingRow>
-          </Group>
+          <>
+            <Group title={tr('Settings.download')}>
+              <SettingRow
+                title={tr('Settings.concurrentDownloads')}
+                description={tr('Settings.usedForGameAssetsAndDependencyDownloads')}
+              >
+                <Choice
+                  label={tr('Settings.downloadConcurrency')}
+                  value={String(s.downloadConcurrency)}
+                  onChange={(v) => void a.updateSettings({ downloadConcurrency: Number(v) })}
+                  options={[2, 4, 8, 16].map((v) => ({ id: String(v), name: String(v) }))}
+                />
+              </SettingRow>
+            </Group>
+            <NetworkSettings />
+          </>
         )}
         {a.settingsTab === 'storage' && (
           <>

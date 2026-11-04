@@ -15,9 +15,24 @@ import { diagnosticsPlugin } from './diagnostics';
 import { instancesPlugin } from './instances';
 import { gameId, gamePlugin } from './minecraft';
 import { resourcesId, resourcesPlugin } from './modrinth';
+import { networkId, networkPlugin } from './network';
 import { serversPlugin } from './servers';
 
 export const builtinPlugins: BuiltinPlugin[] = [
+  {
+    manifest: withTranslations(
+      {
+        id: networkId,
+        name: tr('network.name'),
+        description: tr('network.description'),
+        version: '0.1.0',
+        apiVersion: 1,
+        category: tr('builtin.core'),
+      },
+      { name: 'network.name', description: 'network.description', category: 'builtin.core' },
+    ),
+    plugin: networkPlugin,
+  },
   {
     manifest: withTranslations(
       {
@@ -59,6 +74,7 @@ export const builtinPlugins: BuiltinPlugin[] = [
     manifest: withTranslations(
       {
         id: curseforgeId,
+        dependencies: [networkId],
         name: 'CurseForge',
         description: tr('builtin.searchAndInstallCurseforgeResourcesDependenciesAnd'),
         version: '0.1.0',
@@ -130,6 +146,7 @@ export const builtinPlugins: BuiltinPlugin[] = [
     manifest: withTranslations(
       {
         id: gameId,
+        dependencies: [networkId],
         name: tr('builtin.minecraftGameService'),
         description: tr('builtin.installAndLaunchVanillaFabricForgeNeoforge'),
         version: '0.1.0',
@@ -148,6 +165,7 @@ export const builtinPlugins: BuiltinPlugin[] = [
     manifest: withTranslations(
       {
         id: resourcesId,
+        dependencies: [networkId],
         name: tr('builtin.modrinthResources'),
         description: tr('builtin.findCompatibleContentResolveRequiredDependenciesAnd'),
         version: '0.1.0',
@@ -184,6 +202,7 @@ export const builtinPlugins: BuiltinPlugin[] = [
     manifest: withTranslations(
       {
         id: microsoftId,
+        dependencies: [networkId],
         name: tr('builtin.microsoftAccounts'),
         description: tr('builtin.signInToMinecraftJavaUsingDevice'),
         version: '0.1.0',
@@ -202,6 +221,7 @@ export const builtinPlugins: BuiltinPlugin[] = [
     manifest: withTranslations(
       {
         id: yggdrasilId,
+        dependencies: [networkId],
         name: tr('builtin.yggdrasilAccounts'),
         description: tr('builtin.thirdPartyAuthenticationAndAuthlibInjectorSupport'),
         version: '0.1.0',
