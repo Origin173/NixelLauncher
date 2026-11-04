@@ -235,10 +235,11 @@ function InstalledList({ instance, category }: { instance: Instance; category: s
   const a = useApp();
   const [query, setQuery] = useState('');
   const [pending, setPending] = useState(false);
-  const busy = pending || a.running.includes(instance.id) || instance.status === 'installing';
-  const providerName =
-    a.providers.find((p) => p.id === instance.providers.resources)?.name ??
-    tr('Instances.resourceCatalog');
+  const busy =
+    pending ||
+    a.running.includes(instance.id) ||
+    instance.status === 'installing' ||
+    a.tasks.some((task) => task.instanceId === instance.id && task.status === 'running');
   const visible =
     a.host.status === 'ready' &&
     a.page === 'instances' &&
@@ -268,19 +269,18 @@ function InstalledList({ instance, category }: { instance: Instance; category: s
           icon="upload"
           isDisabled={busy}
           onPress={async () => {
-            const path = await window.nixel.selectPath({
-              kind: 'file',
+            const paths = await window.nixel.selectFiles({
               title: tr('Instances.importLocalValue', { value1: label(category) }),
               filters: [
                 { name: label(category), extensions: category === 'mods' ? ['jar'] : ['zip'] },
               ],
             });
-            if (path) {
+            if (paths.length) {
               setPending(true);
               await a.command('content.import', {
                 instanceId: instance.id,
                 category,
-                paths: [path],
+                paths,
               });
               a.setTaskOpen(true);
               setPending(false);
@@ -328,7 +328,7 @@ function InstalledList({ instance, category }: { instance: Instance; category: s
                   <div className="flex-1">
                     <strong>{c.name}</strong>
                     <small>
-                      {c.fileName} · {c.version}
+                      {c.fileName} · {c.version || tr('resources.localFile')}
                     </small>
                     {c.update && (
                       <Tag color="accent">
@@ -401,7 +401,7 @@ function InstalledList({ instance, category }: { instance: Instance; category: s
         ) : (
           <Empty
             title={tr('Instances.noValueYet', { value1: label(category) })}
-            detail={tr('Instances.addContentFromValueOrOpenThe', { value1: providerName })}
+            detail={tr('Instances.addContentHint')}
           >
             <Action icon="plus" onPress={() => a.setInstanceCatalogOpen(true)}>
               {tr('Instances.addContent')}
@@ -439,11 +439,11 @@ function InstanceSettings({ instance: i }: { instance: Instance }) {
           <Field hideLabel label={tr('Instances.name')} value={name} onChange={setName} />
         </SettingRow>
         <SettingRow
-          title={tr('Instances.pinnedAccount')}
-          description={tr('Instances.leaveEmptyToUseTheHomePage')}
+          title={tr('Instances.defaultAccount')}
+          description={tr('Instances.accountPriority')}
         >
           <Choice
-            label={tr('Instances.pinnedAccount')}
+            label={tr('Instances.defaultAccount')}
             value={account}
             onChange={setAccount}
             options={[
@@ -517,6 +517,7 @@ function InstanceSettings({ instance: i }: { instance: Instance }) {
         </Action>
       </div>
       <LaunchOptions instanceId={i.id} />
+      <InstanceProviders instance={i} busy={busy} />
       <details className="advanced-settings instance-maintenance">
         <summary>{tr('Instances.maintenance')}</summary>
         <div className="row">
@@ -559,6 +560,53 @@ function InstanceSettings({ instance: i }: { instance: Instance }) {
         </div>
       </details>
     </div>
+  );
+}
+
+function InstanceProviders({ instance, busy }: { instance: Instance; busy: boolean }) {
+  const a = useApp();
+  const [saving, setSaving] = useState(false);
+  const services = [
+    { kind: 'game', name: tr('builtin.minecraftGameService') },
+    { kind: 'resources', name: tr('ResourceBrowser.resourceSource') },
+    { kind: 'accounts', name: tr('launch.accountService') },
+  ] as const;
+  return (
+    <details className="advanced-settings">
+      <summary>{tr('launch.servicePlugins')}</summary>
+      <div className="stack">
+        {services.map(({ kind, name }) => {
+          const current = instance.providers[kind];
+          const options = a.providers
+            .filter((provider) => provider.kind === kind)
+            .map((provider) => ({ id: provider.id, name: provider.name }));
+          if (kind === 'accounts') options.unshift({ id: '', name: tr('launch.followAccount') });
+          if (current && !options.some((option) => option.id === current))
+            options.push({
+              id: current,
+              name: tr('launch.providerUnavailable', { name: current }),
+            });
+          return (
+            <SettingRow key={kind} title={name}>
+              <Choice
+                label={name}
+                value={current}
+                options={options}
+                isDisabled={busy || saving}
+                onChange={async (value) => {
+                  setSaving(true);
+                  await a.command('instances.update', {
+                    id: instance.id,
+                    patch: { providers: { [kind]: value } },
+                  });
+                  setSaving(false);
+                }}
+              />
+            </SettingRow>
+          );
+        })}
+      </div>
+    </details>
   );
 }
 

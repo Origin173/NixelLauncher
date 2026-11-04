@@ -15,6 +15,7 @@ import type {
 import { errorMessage } from '../shared/error-message';
 import type { NixelHost, TaskContext } from '../shared/host-api';
 import { tr } from '../shared/i18n';
+import { launchAccountId } from '../shared/launch-account';
 import { validateLaunchOptions } from '../shared/launch-options';
 import { commandsFor } from './commands';
 import { discoverJava, inspectJava, installJava } from './java';
@@ -227,6 +228,12 @@ export const gamePlugin = {
       },
       async launch(instance, account, task) {
         if (host.running.has(instance.id)) throw new Error(tr('game.thisInstanceIsAlreadyRunning'));
+        const accountProvider = host.providers.get<AccountProvider>(
+          'accounts',
+          instance.providers.accounts || account.provider,
+        );
+        if (instance.providers.accounts && account.provider !== instance.providers.accounts)
+          throw new Error(tr('game.theAccountDoesNotMatchTheInstance'));
         const version = await Version.parse(
           instance.directory,
           instance.launchVersion || instance.version,
@@ -240,12 +247,6 @@ export const gamePlugin = {
             8,
           task,
         );
-        const accountProvider = host.providers.get<AccountProvider>(
-          'accounts',
-          instance.providers.accounts || account.provider,
-        );
-        if (instance.providers.accounts && account.provider !== instance.providers.accounts)
-          throw new Error(tr('game.theAccountDoesNotMatchTheInstance'));
         const session = await accountProvider.session(account, task.signal);
         task.signal.throwIfAborted();
         task.report(0, tr('game.startingTheGame'));
@@ -473,6 +474,10 @@ export const instancesPlugin = {
         await host.store.update((draft) => {
           draft.instances = draft.instances.filter((entry) => entry.id !== id);
           draft.content = draft.content.filter((entry) => entry.instance !== id);
+          if (draft.settings.launchInstance === id) {
+            draft.settings.launchInstance = draft.instances[0]?.id ?? '';
+            draft.settings.launchAccount = '';
+          }
         });
       },
     );
@@ -481,11 +486,7 @@ export const instancesPlugin = {
       const instance = getInstance(host, id);
       assertInstanceIdle(host, id);
       if (instance.status !== 'ready') throw new Error(tr('game.installThisInstanceFirst'));
-      const selected =
-        accountId ||
-        instance.account ||
-        host.store.read().settings.launchAccount ||
-        host.store.read().settings.defaultAccount;
+      const selected = launchAccountId(instance, host.store.read().settings, accountId);
       const account: Account | undefined = host.store
         .read()
         .accounts.find((item) => item.id === selected);
@@ -499,13 +500,13 @@ export const instancesPlugin = {
             assertInstanceIdle(host, id, task.taskId);
             if (current.status !== 'ready') throw new Error(tr('game.installThisInstanceFirst'));
             const state = host.store.read();
-            const currentAccountId =
-              accountId ||
-              current.account ||
-              state.settings.launchAccount ||
-              state.settings.defaultAccount;
-            const currentAccount = state.accounts.find((entry) => entry.id === currentAccountId);
+            const currentAccount = state.accounts.find((entry) => entry.id === account.id);
             if (!currentAccount) throw new Error(tr('game.addAndSelectAGameAccountFirst'));
+            await host.store.update((draft) => {
+              draft.settings.launchInstance = id;
+              draft.settings.launchAccount = currentAccount.id;
+            });
+            task.signal.throwIfAborted();
             await host.providers
               .get<GameProvider>('game', current.providers.game)
               .launch(current, currentAccount, task);

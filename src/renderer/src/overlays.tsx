@@ -1,6 +1,12 @@
 import { Drawer } from '@heroui/react';
 import { useEffect, useState } from 'react';
-import type { DeviceLogin, Loader, ResourceVersion, VersionEntry } from '../../shared/contracts';
+import type {
+  Account,
+  DeviceLogin,
+  Loader,
+  ResourceVersion,
+  VersionEntry,
+} from '../../shared/contracts';
 import { i18n, label, tr } from '../../shared/i18n';
 import type { Resource } from './data';
 import { resourceSource } from './data';
@@ -41,7 +47,9 @@ function OverlayContent({ overlay: o }: { overlay: Overlay }) {
   const [error, setError] = useState('');
   if (!o) return null;
   if (o.type === 'create') return <CreateDialog />;
-  if (o.type === 'account') return <AccountDialog />;
+  if (o.type === 'account') return <AccountDialog instanceId={o.instanceId} />;
+  if (o.type === 'launch-account')
+    return <LaunchAccountDialog instanceId={o.instanceId} accountId={o.accountId} />;
   if (o.type === 'resource')
     return <ResourceDialog resource={o.resource} instanceId={o.instanceId} />;
   if (o.type === 'plugin') return <PluginDialog id={o.pluginId} />;
@@ -304,7 +312,92 @@ function CreateDialog() {
   );
 }
 
-function AccountDialog() {
+function LaunchAccountDialog({
+  instanceId,
+  accountId,
+}: {
+  instanceId: string;
+  accountId?: string;
+}) {
+  const a = useApp();
+  const instance = a.instances.find((entry) => entry.id === instanceId);
+  const [selected, setSelected] = useState(accountId ?? '');
+  const accounts = a.accounts.filter(
+    (account) =>
+      instance &&
+      (!instance.providers.accounts || instance.providers.accounts === account.provider) &&
+      a.providers.some(
+        (provider) => provider.kind === 'accounts' && provider.id === account.provider,
+      ),
+  );
+  const selectedId = accounts.some((account) => account.id === selected)
+    ? selected
+    : (accounts[0]?.id ?? '');
+  return (
+    <Dialog
+      open={a.overlay !== null}
+      onClose={() => a.setOverlay(null)}
+      title={tr('Home.chooseLaunchAccount')}
+      description={instance?.name}
+      footer={
+        <>
+          <Action variant="secondary" onPress={() => a.setOverlay(null)}>
+            {tr('overlays.cancel')}
+          </Action>
+          <Action
+            icon="play"
+            isDisabled={!selectedId}
+            onPress={() => {
+              a.setOverlay(null);
+              a.launch(instanceId, selectedId);
+            }}
+          >
+            {tr('LaunchButton.launchGame')}
+          </Action>
+        </>
+      }
+    >
+      <div className="stack">
+        {accounts.length ? (
+          <Choice
+            label={tr('Home.launchAccount')}
+            value={selectedId}
+            onChange={setSelected}
+            options={accounts.map((account) => ({
+              id: account.id,
+              name: `${account.name} · ${label(account.type)}`,
+            }))}
+          />
+        ) : (
+          <Notice>{tr('launch.noCompatibleAccount')}</Notice>
+        )}
+        <div className="row">
+          <Action
+            variant="secondary"
+            icon="plus"
+            onPress={() => a.setOverlay({ type: 'account', instanceId })}
+          >
+            {tr('overlays.addAccount')}
+          </Action>
+          {instance && (
+            <Action
+              variant="ghost"
+              icon="settings"
+              onPress={() => {
+                a.setOverlay(null);
+                a.openInstance(instanceId, 'settings');
+              }}
+            >
+              {tr('launch.configureServices')}
+            </Action>
+          )}
+        </div>
+      </div>
+    </Dialog>
+  );
+}
+
+function AccountDialog({ instanceId }: { instanceId?: string }) {
   const a = useApp();
   const [type, setType] = useState('microsoft');
   const [name, setName] = useState('');
@@ -328,13 +421,17 @@ function AccountDialog() {
         return;
       }
       try {
-        const result = await window.nixel.invoke<{ status: 'pending' | 'complete' }>(
-          'accounts.microsoft.poll',
-          { id: device.id },
-        );
+        const result = await window.nixel.invoke<{
+          status: 'pending' | 'complete';
+          account?: Account;
+        }>('accounts.microsoft.poll', { id: device.id });
         if (!active) return;
         if (result.status === 'complete') {
-          a.setOverlay(null);
+          a.setOverlay(
+            instanceId
+              ? { type: 'launch-account', instanceId, accountId: result.account?.id }
+              : null,
+          );
           return;
         }
         timer = setTimeout(() => void poll(), device.interval * 1000);
@@ -350,7 +447,7 @@ function AccountDialog() {
       active = false;
       clearTimeout(timer);
     };
-  }, [device, visible, type, a.setOverlay]);
+  }, [device, visible, type, instanceId, a.setOverlay]);
   const submit = async () => {
     setPending(true);
     setError('');
@@ -360,11 +457,13 @@ function AccountDialog() {
         setDevice(result);
         await window.nixel.openExternal(result.verificationUri);
       } else {
-        await window.nixel.invoke(
+        const account = await window.nixel.invoke<Account>(
           type === 'offline' ? 'accounts.addOffline' : 'accounts.yggdrasil.login',
           type === 'offline' ? { name: name.trim() } : { server, username, password },
         );
-        a.setOverlay(null);
+        a.setOverlay(
+          instanceId ? { type: 'launch-account', instanceId, accountId: account.id } : null,
+        );
       }
     } catch (e) {
       setError(message(e));

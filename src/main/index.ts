@@ -180,6 +180,16 @@ function registerIpc() {
     return host.command(command, params);
   });
   handle('nixel:select-path', selectPath);
+  handle('nixel:select-files', async (options: Omit<PathOptions, 'kind'>) => {
+    if (!window) return [];
+    const result = await dialog.showOpenDialog(window, {
+      title: options.title,
+      defaultPath: options.defaultPath,
+      filters: options.filters,
+      properties: ['openFile', 'multiSelections'],
+    });
+    return result.canceled ? [] : result.filePaths;
+  });
   handle('nixel:open-path', openPath);
   handle('nixel:open-external', openExternal);
   handle('nixel:read-image', async (path: string) => {

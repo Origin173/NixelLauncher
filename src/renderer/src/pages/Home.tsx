@@ -1,6 +1,7 @@
 import { Button, Card, Description, Label, ListBox, Popover } from '@heroui/react';
 import { useState } from 'react';
 import { label, tr } from '../../../shared/i18n';
+import { launchAccountId } from '../../../shared/launch-account';
 import { Icon } from '../icons';
 import { LaunchButton } from '../LaunchButton';
 import { useApp } from '../state';
@@ -11,12 +12,11 @@ function QuickPicker({ kind }: { kind: 'instance' | 'account' }) {
   const a = useApp();
   const [open, setOpen] = useState(false);
   const instance = a.launchInstance;
-  const accountId = a.launchAccountId || instance?.account || a.defaultAccount;
+  const accountId = instance ? launchAccountId(instance, a.settings) : a.defaultAccount;
   const account = a.accounts.find((p) => p.id === accountId);
   function choose(id: string) {
     if (kind === 'instance') {
       a.setLaunchId(id);
-      a.setLaunchAccountId('');
     } else a.setLaunchAccountId(id);
     setOpen(false);
   }
@@ -188,7 +188,7 @@ export function Home() {
               <div className="dock-actions">
                 <LaunchButton
                   instanceId={instance.id}
-                  accountId={a.launchAccountId || instance.account || a.defaultAccount}
+                  accountId={launchAccountId(instance, a.settings)}
                   fullWidth
                   className="launch-main-action"
                 />

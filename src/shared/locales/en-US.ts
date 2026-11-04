@@ -1,4 +1,11 @@
 export default {
+  'launch.noCompatibleAccount':
+    'No enabled account matches this instance. Add an account or adjust its account service.',
+  'launch.configureServices': 'Instance settings',
+  'launch.accountService': 'Account service',
+  'launch.servicePlugins': 'Service plugins',
+  'launch.followAccount': 'Follow selected account',
+  'launch.providerUnavailable': '{{name}} (unavailable)',
   'resources.unknownDependency': 'Unknown dependency',
   'core.commandAlreadyRegisteredValue': 'Command already registered: {{value1}}',
   'core.commandUnavailableCheckThatItsPluginIs':
@@ -545,14 +552,13 @@ export default {
   'Instances.deleteThisContentFileFromTheCurrent':
     'Delete this content file from the current instance.',
   'Instances.noValueYet': 'No {{value1}} yet',
-  'Instances.addContentFromValueOrOpenThe':
-    'Add content from {{value1}}, or open the directory to add local files.',
+  'Instances.addContentHint': 'Browse online resources, or import multiple local files at once.',
   'Instances.addContent': 'Add content',
   'Instances.instanceConfiguration': 'Instance configuration',
   'Instances.name': 'Name',
-  'Instances.pinnedAccount': 'Pinned account',
-  'Instances.leaveEmptyToUseTheHomePage':
-    'Leave empty to use the home page selection or global default account.',
+  'Instances.defaultAccount': 'Instance default account',
+  'Instances.accountPriority':
+    'The home page choice takes priority, then this account. Leave empty to use the global default.',
   'Instances.useGlobalDefault': 'Use global default',
   'Instances.useGlobalMemoryLimit': 'Use global memory limit',
   'Instances.memoryLimit': 'Memory limit',

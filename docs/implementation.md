@@ -58,6 +58,10 @@ Microsoft 登录使用 `.env` 的 `MICROSOFT_CLIENT_ID`，CurseForge 使用 `CUR
 
 内存字段统一存储 MiB，默认 `4096`；界面以 GB 展示时换算。实例 `memory: null` 继承全局值。账号鉴权按账号记录的 `provider` 解析；实例账号 provider 为空时继承所选账号。
 
+启动账号由共享 `launchAccountId` 解析：显式 `accountId` > 当前主页实例的 `launchAccount` > 实例默认账号 > 全局默认账号。主页选择不会泄漏到其他实例；切换实例会清空临时账号选择。启动任务绑定提交时的账号，重试也使用该账号；删除账号会清理全局、主页与实例引用。默认界面在账号不可用时显示选择弹窗，添加账号后回到启动确认。
+
+实例设置中的“服务插件”按已启用提供者生成选项，保存到实例的 `providers`；账号服务可选择跟随所选账号。preload 的 `selectPath` 选择单文件或目录，`selectFiles` 使用原生多选文件窗口，取消返回空数组。本地内容导入将所选路径列表一次交给 `content.import`，由内容插件处理任务、冲突检查与文件复制。
+
 启动选项为 `jvmArgs`、`gameArgs`（每个数组元素为一个原样传递的参数）、`resolution: { width, height }` 和 `fullscreen`。实例字段省略或为 `null` 时继承全局值；默认分辨率为 854×480。`autoDownloadJava` 默认启用，托管运行时位于数据目录的 `java/`，按主版本与平台隔离。已有游戏启动从本地版本文件读取 Java 要求；离线角色无需联网认证。
 
 `instances.install` 同时用于已安装实例的文件修复，通过安装清单验证校验值。目录导入会复制来源目录，排除已知启动器账号文件；实例复制保留已安装内容元数据与启动设置。两者及整合包导入通过 `pendingOperation` 标记尚未完成的新实例，实例插件启动时清理遗留目录和记录。

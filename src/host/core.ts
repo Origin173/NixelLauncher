@@ -15,7 +15,7 @@ import type {
   StateStore,
 } from '../shared/host-api';
 import { i18n, localizeManifest, setLocale, tr } from '../shared/i18n';
-import { migrateIdentifier } from '../shared/migrate-identifiers';
+import { migrateIdentifier, migrateLocalVersion } from '../shared/migrate-identifiers';
 import { defaultState } from './defaults';
 import type { HostConfiguration } from './protocol';
 import { JsonStorage } from './storage';
@@ -43,8 +43,10 @@ class HostStore implements StateStore {
     this.state = await this.storage.read('state', this.state);
     this.state.settings = { ...defaultState(this.root).settings, ...this.state.settings };
     setLocale(this.state.settings.locale);
-    for (const item of this.state.content)
+    for (const item of this.state.content) {
       item.category = migrateIdentifier(item.category) as typeof item.category;
+      if (!item.source && !item.projectId) item.version = migrateLocalVersion(item.version);
+    }
     for (const account of this.state.accounts)
       account.type = migrateIdentifier(account.type) as typeof account.type;
     if ('microsoftClientId' in this.state.settings) {

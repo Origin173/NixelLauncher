@@ -18,11 +18,14 @@ import type {
   ResourceSearchResult,
 } from '../../shared/contracts';
 import { i18n, setLocale, tr } from '../../shared/i18n';
+import { launchAccountId } from '../../shared/launch-account';
 
 export type Overlay =
-  | { type: 'create' | 'import' | 'account' | 'background' | 'wizard' | 'search' | 'local-plugin' }
+  | { type: 'create' | 'import' | 'background' | 'wizard' | 'search' | 'local-plugin' }
+  | { type: 'account'; instanceId?: string }
   | { type: 'resource'; resource: Resource; instanceId?: string }
   | { type: 'plugin'; pluginId: string }
+  | { type: 'launch-account'; instanceId: string; accountId?: string }
   | { type: 'confirm'; title: string; detail: string; action: () => Promise<unknown> }
   | null;
 const defaults: LauncherSettings = {
@@ -175,14 +178,20 @@ function useAppState() {
       return;
     }
     const instance = snapshot.instances.find((i) => i.id === id);
+    if (!instance) return;
+    const selectedId = launchAccountId(instance, s, accountId);
+    const account = snapshot.accounts.find((entry) => entry.id === selectedId);
     if (
-      !snapshot.accounts.some((p) => p.id === (accountId || instance?.account || s.defaultAccount))
+      !account ||
+      !snapshot.providers.some(
+        (provider) => provider.kind === 'accounts' && provider.id === account.provider,
+      ) ||
+      (instance.providers.accounts && instance.providers.accounts !== account.provider)
     ) {
-      setOverlay({ type: 'account' });
+      setOverlay({ type: snapshot.accounts.length ? 'launch-account' : 'account', instanceId: id });
       return;
     }
-    void updateSettings({ launchInstance: id, launchAccount: accountId ?? '' });
-    void command('instances.launch', { id, accountId });
+    void command('instances.launch', { id, accountId: account.id });
   };
   return {
     ...snapshot,
@@ -194,9 +203,17 @@ function useAppState() {
     current,
     launchInstance,
     launchId: s.launchInstance,
-    setLaunchId: (launchInstance: string) => void updateSettings({ launchInstance }),
+    setLaunchId: (launchInstance: string) =>
+      void updateSettings({
+        launchInstance,
+        launchAccount: launchInstance === s.launchInstance ? s.launchAccount : '',
+      }),
     launchAccountId: s.launchAccount,
-    setLaunchAccountId: (launchAccount: string) => void updateSettings({ launchAccount }),
+    setLaunchAccountId: (launchAccount: string) =>
+      void updateSettings({
+        launchAccount,
+        launchInstance: launchInstance?.id ?? '',
+      }),
     defaultAccount: s.defaultAccount,
     setDefaultAccount: (defaultAccount: string) => void updateSettings({ defaultAccount }),
     resourceCategory,

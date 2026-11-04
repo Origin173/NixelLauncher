@@ -238,6 +238,7 @@ export interface NixelBridge {
   invoke<T = unknown>(command: string, params?: unknown): Promise<T>;
   onState(listener: (state: LauncherSnapshot) => void): () => void;
   selectPath(options: PathOptions): Promise<string | null>;
+  selectFiles(options: Omit<PathOptions, 'kind'>): Promise<string[]>;
   openPath(path: string): Promise<void>;
   openExternal(url: string): Promise<void>;
   readImage(path: string): Promise<string>;

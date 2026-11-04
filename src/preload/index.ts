@@ -26,6 +26,7 @@ const bridge: NixelBridge = {
     };
   },
   selectPath: (options) => ipcRenderer.invoke('nixel:select-path', options),
+  selectFiles: (options) => ipcRenderer.invoke('nixel:select-files', options),
   openPath: (path) => ipcRenderer.invoke('nixel:open-path', path),
   openExternal: (url) => ipcRenderer.invoke('nixel:open-external', url),
   readImage: (path) => ipcRenderer.invoke('nixel:read-image', path),

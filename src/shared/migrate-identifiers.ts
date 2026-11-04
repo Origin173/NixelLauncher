@@ -9,3 +9,7 @@ const legacyIds: Record<string, string> = {
   第三方: 'yggdrasil',
 };
 export const migrateIdentifier = (value: string) => legacyIds[value] ?? value;
+
+/** Early local imports stored a translated placeholder in place of a version. */
+export const migrateLocalVersion = (version: string) =>
+  ['本地文件', 'Local file'].includes(version) ? '' : version;

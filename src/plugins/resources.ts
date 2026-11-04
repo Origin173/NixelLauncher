@@ -71,7 +71,7 @@ export async function scanContent(host: NixelHost, instance: Instance) {
             id: randomUUID(),
             instance: instance.id,
             name: entry.name.replace(/\.(jar|zip)(\.disabled)?$/i, ''),
-            version: tr('resources.localFile'),
+            version: '',
             category: category as ContentCategory,
             fileName: entry.name,
             enabled: !entry.name.endsWith('.disabled'),

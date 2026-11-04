@@ -209,6 +209,7 @@ export function Choice({
   className = '',
   leading,
   description,
+  isDisabled = false,
 }: {
   label: string;
   value: string;
@@ -217,9 +218,11 @@ export function Choice({
   className?: string;
   leading?: ReactNode;
   description?: string;
+  isDisabled?: boolean;
 }) {
   return (
     <Select
+      isDisabled={isDisabled}
       className={`choice ${className}`}
       aria-label={label}
       value={value || '__inherit__'}

@@ -347,6 +347,9 @@ export const accountsPlugin = {
         if (draft.settings.defaultAccount === id)
           draft.settings.defaultAccount = draft.accounts[0]?.id || '';
         if (draft.settings.launchAccount === id) draft.settings.launchAccount = '';
+        for (const instance of draft.instances) {
+          if (instance.account === id) instance.account = '';
+        }
       });
     });
     command('accounts.refresh', async ({ id }: { id: string }) => {
