@@ -4,6 +4,8 @@
 
 共享类型位于 `src/shared/contracts.ts`，Host 插件接口位于 `src/shared/host-api.ts`。内置插件由 `src/plugins/builtin.ts` 导出 `builtinPlugins: BuiltinPlugin[]`。每个插件通过 `ctx.nixel.commands.register(ctx, name, handler)` 注册命令，并通过 `providers.register(ctx, descriptor, implementation)` 注册 provider；注册项随 Cordis 插件 dispose 撤销。业务命令通过实例的 provider ID 解析实现。
 
+账号提供者的 `session` 返回 Nixel 的 `GameSession`（`authentication.ts`），包括令牌、角色、账号类型及可选 authlib-injector 参数；Microsoft 会话可附带客户端 ID 与 XUID。该对象只在 Host 的认证与游戏插件之间使用，不进入公开快照。游戏提供者自行解析版本、安装依赖和启动 Java，公共接口不依赖 XMCL 类型。
+
 核心默认 provider ID：`nixel.game.minecraft`、`nixel.resources.modrinth`、`nixel.accounts.offline`。对应 plugin ID 相同；默认界面 ID 为 `nixel.ui.default`。Microsoft 与第三方账号分别用 `nixel.accounts.microsoft`、`nixel.accounts.yggdrasil`。
 
 CurseForge provider 与插件 ID 为 `nixel.resources.curseforge`。资源命令的 `source` 可覆盖实例默认来源，任务使用 `resourceSource + resourceId` 匹配资源。两个来源均可在同一实例中安装，已安装内容的更新由各自 provider 处理。

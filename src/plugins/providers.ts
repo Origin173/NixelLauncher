@@ -1,4 +1,3 @@
-import type { LaunchOption } from '@xmcl/core';
 import type {
   Account,
   Instance,
@@ -8,6 +7,7 @@ import type {
   VersionEntry,
 } from '../shared/contracts';
 import type { TaskContext } from '../shared/host-api';
+import type { GameSession } from './authentication';
 
 export interface GameProvider {
   versions(): Promise<VersionEntry[]>;
@@ -18,10 +18,7 @@ export interface GameProvider {
 }
 export interface AccountProvider {
   refresh(account: Account): Promise<Account>;
-  session(
-    account: Account,
-    signal: AbortSignal,
-  ): Promise<Pick<LaunchOption, 'accessToken' | 'gameProfile' | 'yggdrasilAgent' | 'userType'>>;
+  session(account: Account, signal: AbortSignal): Promise<GameSession>;
 }
 export interface ResourceProvider {
   search(query: ResourceQuery, instance?: Instance): Promise<{ items: Resource[]; total: number }>;

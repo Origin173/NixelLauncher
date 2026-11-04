@@ -1,19 +1,39 @@
 import { execFile } from 'node:child_process';
-import { lstat, mkdir, mkdtemp, readdir, rename, rm } from 'node:fs/promises';
-import { homedir } from 'node:os';
-import { delimiter, join, resolve, sep } from 'node:path';
-import { promisify } from 'node:util';
 import {
-  createDefaultNodeInstallRuntime,
-  createJavaRuntimeInstallWorkflow,
-  DEFAULT_RUNTIME_ALL_URL,
-  executeInstallWorkflow,
-  type JavaRuntimes,
-  ProgressTrackerMultiple,
-} from '@xmcl/installer';
+  chmod,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rename,
+  rm,
+  symlink,
+} from 'node:fs/promises';
+import { homedir } from 'node:os';
+import { delimiter, dirname, join, relative, resolve, sep } from 'node:path';
+import { promisify } from 'node:util';
 import { tr } from '../shared/i18n';
 import { inside, json } from './files';
+import { installFiles } from './install-files';
 import type { WorkProgress } from './minecraft-engine';
+import type { DownloadArtifact } from './minecraft-version';
+
+const runtimeIndex =
+  'https://launchermeta.mojang.com/v1/products/java-runtime/2ec0cc96c44e5a76b9c8b7c39df7210883d12871/all.json';
+interface JavaTarget {
+  version: { name: string; released: string };
+  manifest: DownloadArtifact;
+}
+type JavaRuntimes = Record<string, Record<string, JavaTarget[]>>;
+type RuntimeFile =
+  | { type: 'directory' }
+  | { type: 'link'; target: string }
+  | {
+      type: 'file';
+      executable?: boolean;
+      downloads: { raw: DownloadArtifact };
+    };
 
 const execute = promisify(execFile);
 export interface JavaRuntime {
@@ -84,7 +104,7 @@ export async function discoverJava(
 
 const installing = new Set<string>();
 
-/** Mojang's runtime workflow validates the manifest and every runtime file by SHA-1. */
+/** Install the official runtime manifest and raw files, preserving executable bits and links. */
 export async function installJava(
   root: string,
   major: number,
@@ -113,20 +133,10 @@ export async function installJava(
     throw new Error(tr('java.javaValueIsBeingInstalledWaitFor', { value1: major }));
   installing.add(destination);
   let staging: string | undefined;
-  const tracker = new ProgressTrackerMultiple();
-  const timer = setInterval(
-    () =>
-      progress.update(
-        tr('java.downloadJavaValue', { value1: major }),
-        tracker.progress,
-        tracker.total,
-      ),
-    250,
-  );
   try {
     progress.signal.throwIfAborted();
     progress.update(tr('java.findMojangJavaValue', { value1: major }));
-    const index = await json<JavaRuntimes>(DEFAULT_RUNTIME_ALL_URL, { signal: progress.signal });
+    const index = await json<JavaRuntimes>(runtimeIndex, { signal: progress.signal });
     const targets = index[platform as keyof JavaRuntimes];
     const target = Object.values(targets || {})
       .flat()
@@ -135,15 +145,42 @@ export async function installJava(
     if (!target) throw new Error(tr('java.mojangHasNoJavaValueRuntimeFor', { value1: major }));
     await mkdir(root, { recursive: true });
     staging = await mkdtemp(inside(resolve(root), `java-${major}-${platform}.installing-`));
-    await executeInstallWorkflow(
-      createJavaRuntimeInstallWorkflow({ target, destination: staging }),
-      createDefaultNodeInstallRuntime({
-        signal: progress.signal,
-        tracker,
-        maxConcurrency: concurrency,
-      }),
-      { signal: progress.signal },
+    const manifestPath = join(staging, '.nixel-runtime.json');
+    const message = tr('java.downloadJavaValue', { value1: major });
+    await installFiles([{ ...target.manifest, target: manifestPath }], progress, message, 1);
+    const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as {
+      files: Record<string, RuntimeFile>;
+    };
+    const files = Object.entries(manifest.files);
+    // Resolve all paths before writing any runtime file.
+    for (const [name, file] of files) {
+      const path = inside(staging, name);
+      if (file.type === 'link')
+        inside(
+          staging,
+          relative(staging, resolve(dirname(path), file.target)).replaceAll('\\', '/'),
+        );
+    }
+    await installFiles(
+      files.flatMap(([name, file]) =>
+        file.type === 'file'
+          ? [{ ...file.downloads.raw, target: inside(staging as string, name) }]
+          : [],
+      ),
+      progress,
+      message,
+      concurrency,
     );
+    for (const [name, file] of files) {
+      progress.signal.throwIfAborted();
+      const path = inside(staging, name);
+      if (file.type === 'directory') await mkdir(path, { recursive: true });
+      else if (file.type === 'file' && file.executable) await chmod(path, 0o755);
+      else if (file.type === 'link') {
+        await mkdir(dirname(path), { recursive: true });
+        await symlink(file.target, path);
+      }
+    }
     progress.signal.throwIfAborted();
     // Staging directories are excluded from normal discovery; inspect its known layouts directly.
     const executable = process.platform === 'win32' ? 'java.exe' : 'java';
@@ -171,7 +208,6 @@ export async function installJava(
     progress.update(tr('java.javaValueInstalled', { value1: major }), 1, 1);
     return { ...verified, path: join(destination, relativeExecutable) };
   } finally {
-    clearInterval(timer);
     installing.delete(destination);
     if (staging) await rm(staging, { recursive: true, force: true });
   }

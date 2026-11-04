@@ -3,7 +3,6 @@ import { randomUUID } from 'node:crypto';
 import { appendFile, mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { createInterface } from 'node:readline';
-import { launch, Version } from '@xmcl/core';
 import type { Context } from 'cordis';
 import type {
   Account,
@@ -27,6 +26,8 @@ import {
   listMinecraftVersions,
   requiredJava,
 } from './minecraft-engine';
+import { launchMinecraft } from './minecraft-launch';
+import { readVersion } from './minecraft-version';
 import { registerModpacks } from './modpacks';
 import { cleanupPendingInstances } from './pending-instances';
 import type { AccountProvider, GameProvider } from './providers';
@@ -234,31 +235,24 @@ export const gamePlugin = {
         );
         if (instance.providers.accounts && account.provider !== instance.providers.accounts)
           throw new Error(tr('game.theAccountDoesNotMatchTheInstance'));
-        const version = await Version.parse(
+        const version = await readVersion(
           instance.directory,
           instance.launchVersion || instance.version,
         );
-        const java = await selectJava(
-          host,
-          instance,
-          version.javaVersion?.majorVersion ||
-            (await Version.parse(instance.directory, instance.version).catch(() => undefined))
-              ?.javaVersion?.majorVersion ||
-            8,
-          task,
-        );
+        const java = await selectJava(host, instance, version.javaVersion?.majorVersion ?? 8, task);
         const session = await accountProvider.session(account, task.signal);
         task.signal.throwIfAborted();
         task.report(0, tr('game.startingTheGame'));
         const logPath = join(instance.directory, 'nixel-launch.log');
         await writeFile(logPath, '', 'utf8');
         const memory = instance.memory ?? host.store.read().settings.memory;
-        const process = await launch({
+        const { process, dispose } = await launchMinecraft({
           ...session,
           version,
           gamePath: instance.directory,
-          resourcePath: instance.directory,
           javaPath: java.path,
+          javaMajor: java.major,
+          signal: task.signal,
           maxMemory: memory,
           minMemory: Math.min(512, memory),
           extraJVMArgs: instance.jvmArgs ?? host.store.read().settings.jvmArgs,
@@ -267,9 +261,6 @@ export const gamePlugin = {
             ...(instance.resolution ?? host.store.read().settings.resolution),
             fullscreen: instance.fullscreen ?? host.store.read().settings.fullscreen,
           },
-          launcherName: 'NixelLauncher',
-          launcherBrand: 'NixelLauncher',
-          extraExecOption: { windowsHide: true },
         });
         const started = Date.now();
         stopped.delete(instance.id);
@@ -331,6 +322,7 @@ export const gamePlugin = {
             }
           });
           host.changed();
+          await dispose();
         }
       },
       stop(id) {
@@ -344,7 +336,7 @@ export const gamePlugin = {
         id: gameId,
         pluginId: gameId,
         kind: 'game',
-        name: 'Minecraft · XMCL',
+        name: 'Minecraft · Nixel',
         capabilities: ['Vanilla', 'Fabric', 'Forge', 'NeoForge', 'Quilt'],
       },
       provider,

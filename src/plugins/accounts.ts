@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
-import { getOfflineUUID, MicrosoftAuthenticator, YggdrasilThirdPartyClient } from '@xmcl/user';
 import type { Context } from 'cordis';
 import { serviceEnvironment } from '../host/service-environment';
 import type { Account, DeviceLogin, ProviderDescriptor } from '../shared/contracts';
 import type { NixelHost } from '../shared/host-api';
 import { tr, translatedName } from '../shared/i18n';
+import { minecraftSession, offlineUUID, YggdrasilClient } from './authentication';
 import { commandsFor } from './commands';
 import { download, json } from './files';
 import type { AccountProvider } from './providers';
@@ -56,7 +56,7 @@ export const offlinePlugin = {
       name = name.trim();
       if (!/^[a-zA-Z0-9_]{1,16}$/.test(name))
         throw new Error(tr('accounts.offlineNamesMustContain116Letters'));
-      const uuid = getOfflineUUID(name).replaceAll('-', '');
+      const uuid = offlineUUID(name);
       return save(host, {
         id: `${offlineId}:${uuid}`,
         name,
@@ -80,6 +80,7 @@ interface MicrosoftSecret {
   accessToken: string;
   expiresAt: number;
   clientId: string;
+  xuid?: string;
 }
 const oauth = 'https://login.microsoftonline.com/consumers/oauth2/v2.0';
 const scope = 'XboxLive.signin offline_access';
@@ -99,18 +100,11 @@ export const microsoftPlugin = {
         interval: number;
       }
     >();
-    const authenticator = new MicrosoftAuthenticator();
-    async function complete(tokens: OAuthTokens, clientId: string) {
-      const { minecraftXstsResponse: xbox } = await authenticator.acquireXBoxToken(
-        tokens.access_token,
-      );
-      const minecraft = await authenticator.loginMinecraftWithXBox(
-        xbox.DisplayClaims.xui[0].uhs,
-        xbox.Token,
-      );
+    async function complete(tokens: OAuthTokens, clientId: string, signal?: AbortSignal) {
+      const minecraft = await minecraftSession(tokens.access_token, signal);
       const profile = await json<{ id: string; name: string }>(
         'https://api.minecraftservices.com/minecraft/profile',
-        { headers: { Authorization: `Bearer ${minecraft.access_token}` } },
+        { headers: { Authorization: `Bearer ${minecraft.access_token}` }, signal },
       );
       const id = `${microsoftId}:${profile.id}`;
       const expiresAt = Date.now() + minecraft.expires_in * 1000;
@@ -119,6 +113,7 @@ export const microsoftPlugin = {
         accessToken: minecraft.access_token,
         expiresAt,
         clientId,
+        xuid: minecraft.xuid,
       };
       await host.platform.secretSet(`account:${id}`, JSON.stringify(secret));
       return save(host, {
@@ -132,12 +127,13 @@ export const microsoftPlugin = {
         expiresAt,
       });
     }
-    async function refresh(account: Account) {
+    async function refresh(account: Account, signal?: AbortSignal) {
       const text = await host.platform.secretGet(`account:${account.id}`);
       if (!text) throw new Error(tr('accounts.microsoftCredentialsNotFoundSignInAgain'));
       const secret = JSON.parse(text) as MicrosoftSecret;
       const response = await fetch(`${oauth}/token`, {
         method: 'POST',
+        signal,
         body: new URLSearchParams({
           client_id: secret.clientId,
           grant_type: 'refresh_token',
@@ -150,6 +146,7 @@ export const microsoftPlugin = {
       return complete(
         { ...tokens, refresh_token: tokens.refresh_token || secret.refreshToken },
         secret.clientId,
+        signal,
       );
     }
     register(
@@ -160,14 +157,17 @@ export const microsoftPlugin = {
         refresh,
         async session(account, signal) {
           if (!account.expiresAt || account.expiresAt < Date.now() + 60000)
-            account = await refresh(account);
+            account = await refresh(account, signal);
           signal.throwIfAborted();
           const text = await host.platform.secretGet(`account:${account.id}`);
           if (!text) throw new Error(tr('accounts.microsoftCredentialsNotFound'));
+          const secret = JSON.parse(text) as MicrosoftSecret;
           return {
-            accessToken: (JSON.parse(text) as MicrosoftSecret).accessToken,
+            accessToken: secret.accessToken,
+            clientId: secret.clientId,
+            xuid: secret.xuid,
             gameProfile: { id: account.uuid, name: account.name },
-            userType: 'mojang',
+            userType: 'msa',
           };
         },
       },
@@ -253,13 +253,18 @@ export const yggdrasilPlugin = {
   inject: ['nixel'],
   apply(ctx: Context) {
     const host = ctx.nixel;
-    const client = (server: string) => new YggdrasilThirdPartyClient(server);
-    async function refresh(account: Account) {
+    const client = (server: string) => new YggdrasilClient(server);
+    async function refresh(account: Account, signal?: AbortSignal) {
       if (!account.authServer)
         throw new Error(tr('accounts.theThirdPartyAccountHasNoAuthentication'));
       const text = await host.platform.secretGet(`account:${account.id}`);
       if (!text) throw new Error(tr('accounts.thirdPartyCredentialsNotFoundSignIn'));
-      const result = await client(account.authServer).refresh(JSON.parse(text) as YggdrasilSecret);
+      const result = await client(account.authServer).refresh(
+        JSON.parse(text) as YggdrasilSecret,
+        signal,
+      );
+      if (!result.selectedProfile)
+        throw new Error(tr('accounts.thisAccountHasNoAvailableGameProfile'));
       await host.platform.secretSet(
         `account:${account.id}`,
         JSON.stringify({ accessToken: result.accessToken, clientToken: result.clientToken }),
@@ -273,7 +278,7 @@ export const yggdrasilPlugin = {
     register(ctx, yggdrasilId, translatedName('accounts.yggdrasilAuthentication'), {
       refresh,
       async session(account, signal) {
-        account = await refresh(account);
+        account = await refresh(account, signal);
         const secret = JSON.parse(
           (await host.platform.secretGet(`account:${account.id}`)) || '{}',
         ) as YggdrasilSecret;

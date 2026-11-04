@@ -3,7 +3,6 @@ import { createReadStream, createWriteStream } from 'node:fs';
 import { link, lstat, mkdir, rename, rm, stat } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { pipeline } from 'node:stream/promises';
-import { ModrinthV2Client, type ProjectVersion } from '@xmcl/modrinth';
 import type { Context } from 'cordis';
 import { serviceEnvironment } from '../host/service-environment';
 import type {
@@ -19,6 +18,7 @@ import { registerContentUpdates } from './content-updates';
 import { download, hashFile, inside } from './files';
 import { assertInstanceIdle, getInstance } from './game';
 import { importModpack } from './modpacks';
+import { ModrinthClient, type ProjectVersion } from './modrinth-client';
 import type { ResourceProvider } from './providers';
 import {
   assertRequiredContentEnabled,
@@ -61,13 +61,11 @@ export const resourcesPlugin = {
   inject: ['nixel'],
   apply(ctx: Context) {
     const host = ctx.nixel;
-    const client = new ModrinthV2Client({
-      headers: {
-        'User-Agent': 'NixelLauncher/0.1.0',
-        ...(serviceEnvironment.modrinthToken
-          ? { Authorization: serviceEnvironment.modrinthToken }
-          : {}),
-      },
+    const client = new ModrinthClient({
+      'User-Agent': 'NixelLauncher/0.1.0',
+      ...(serviceEnvironment.modrinthToken
+        ? { Authorization: serviceEnvironment.modrinthToken }
+        : {}),
     });
     const provider: ResourceProvider = {
       async search(query: ResourceQuery, instance?: Instance) {
@@ -101,7 +99,7 @@ export const resourcesPlugin = {
             downloads: hit.downloads.toLocaleString(),
             version: hit.latest_version,
             color: 'green',
-            icon: hit.icon_url,
+            icon: hit.icon_url ?? undefined,
             url: `https://modrinth.com/${hit.project_type}/${hit.slug}`,
           })),
         };

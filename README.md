@@ -16,7 +16,7 @@ pnpm dev
 
 安装脚本会准备 Electron 运行时。若本机配置跳过安装脚本，可手动执行 `pnpm run postinstall`。
 
-首次打开按向导设置偏好、添加账号，再创建游戏实例。游戏文件保存在独立实例目录中。Vanilla、Fabric、Forge、NeoForge、Quilt 安装使用 XMCL。默认自动检测并选择对应 Java 主版本；缺少时从 Mojang 官方源下载、校验并安装到启动器管理目录。也可在设置中下载指定主版本或选择本机 Java。Mojang 未提供的系统架构需手动指定 Java。
+首次打开按向导设置偏好、添加账号，再创建游戏实例。游戏文件保存在独立实例目录中。Vanilla、Fabric、Forge、NeoForge、Quilt 的安装与启动由 Nixel 游戏插件实现：读取官方版本清单、安装加载器与依赖、校验资源并构建启动参数。默认自动检测并选择对应 Java 主版本；缺少时从 Mojang 官方源下载、校验并安装到启动器管理目录。也可在设置中下载指定主版本或选择本机 Java。Mojang 未提供的系统架构需手动指定 Java。
 
 实例支持导入现有 Minecraft 目录（含多个版本时选择一个启动版本）、复制、修复游戏文件，以及本地模组、资源包、光影导入。导入和复制保留存档与配置，创建独立目录；中断的新实例会被清理。全局与实例均支持 JVM 参数、游戏参数、分辨率和全屏，实例可继承全局设置。参数逐行填写，每行是传给进程的一个参数。
 
@@ -72,4 +72,4 @@ docs/               架构、命令表与本地插件开发说明
 
 开发时可用环境变量 `NIXEL_DATA_DIR` 指定独立的绝对数据目录。构建生成主进程、preload、Host 和默认界面；`pnpm start` 运行构建结果。
 
-依赖修补：`@xmcl/unzip@2.2.0` 发布包的入口指向缺失源文件，项目通过 `pnpm patchedDependencies` 将入口修正为随包发布的 `dist` 文件，补丁位于 `patches/`。
+项目不依赖 XMCL 包。Minecraft、Java、Modrinth 与认证协议由 `src/plugins/` 下的模块实现；ZIP 读取和写入使用通用包 `yauzl`、`yazl`。加载器安装按官方配置执行 Forge/NeoForge 提供的 Java 处理工具。功能缺口与验证范围见 [功能状态](docs/feature-status.md)。

@@ -2,7 +2,6 @@ import { createWriteStream } from 'node:fs';
 import { mkdir, readdir, rename, rm, stat } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { pipeline } from 'node:stream/promises';
-import { open, openEntryReadStream, readAllEntries, readEntry } from '@xmcl/unzip';
 import type { Context } from 'cordis';
 import { ZipFile } from 'yazl';
 import type { Loader } from '../shared/contracts';
@@ -12,6 +11,7 @@ import type { CurseForgePackFile, CurseForgeResourceProvider } from './curseforg
 import { download, inside } from './files';
 import { assertInstanceIdle, createInstance, getInstance } from './game';
 import type { GameProvider } from './providers';
+import { open, openEntryReadStream, readAllEntries, readEntry } from './zip';
 
 interface MrpackIndex {
   formatVersion: 1;
