@@ -27,6 +27,10 @@ export class HostTasks implements TaskManager {
   private writeTimer: ReturnType<typeof setTimeout> | undefined;
   private lifecycleBusy = false;
 
+  whileIdle<T>(action: () => Promise<T>) {
+    return this.lifecycle(undefined, action);
+  }
+
   async lifecycle<T>(taskId: string | undefined, action: () => Promise<T>) {
     if (
       this.lifecycleBusy ||

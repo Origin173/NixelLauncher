@@ -6,6 +6,7 @@ export interface HostConfiguration {
 }
 
 export type PlatformOperation =
+  | 'appUpdates'
   | 'network.configure'
   | 'network.resolveProxy'
   | 'directory.select'

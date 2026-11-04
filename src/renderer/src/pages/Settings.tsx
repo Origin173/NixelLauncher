@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { JavaRuntime } from '../../../shared/contracts';
 import { label, tr } from '../../../shared/i18n';
+import { ApplicationUpdates } from '../app-updates/ApplicationUpdates';
 import { DownloadSettings } from '../downloads/DownloadSettings';
 import { MirrorSettings } from '../downloads/MirrorSettings';
 import { Landscape } from '../Landscape';
@@ -54,7 +55,13 @@ const settingGroups = () =>
       id: 'downloads',
       name: tr('Settings.downloads'),
       icon: 'download',
-      keywords: tr('network.keywords'),
+      keywords: [
+        tr('network.keywords'),
+        tr('mirrors.title'),
+        tr('mirrors.bmclapi'),
+        tr('downloads.title'),
+        tr('downloads.limit'),
+      ].join(' '),
     },
     {
       id: 'storage',
@@ -66,7 +73,11 @@ const settingGroups = () =>
       id: 'about',
       name: tr('Settings.aboutNixel'),
       icon: 'info',
-      keywords: tr('Settings.versionPlatformHostServices'),
+      keywords: [
+        tr('Settings.versionPlatformHostServices'),
+        tr('appUpdates.title'),
+        tr('appUpdates.check'),
+      ].join(' '),
     },
   ] as const;
 export function SettingsPage() {
@@ -298,6 +309,7 @@ export function SettingsPage() {
                 </Action>
               </SettingRow>
             </Group>
+            <ApplicationUpdates />
             <p className="muted">{tr('Settings.aMinecraftJavaLauncherBuiltWithElectron')}</p>
           </>
         )}

@@ -9,6 +9,7 @@ import {
   yggdrasilId,
   yggdrasilPlugin,
 } from './accounts';
+import { appUpdatesPlugin } from './app-updates';
 import { contentPlugin } from './content';
 import { curseforgeId, curseforgePlugin } from './curseforge';
 import { diagnosticsPlugin } from './diagnostics';
@@ -22,6 +23,21 @@ import { serversPlugin } from './servers';
 import { skinsPlugin } from './skins';
 
 export const builtinPlugins: BuiltinPlugin[] = [
+  {
+    manifest: withTranslations(
+      {
+        id: 'nixel.app-updates',
+        name: tr('appUpdates.title'),
+        description: tr('appUpdates.description'),
+        version: '0.1.0',
+        apiVersion: 1,
+        category: tr('builtin.core'),
+        dependencies: [networkId],
+      },
+      { name: 'appUpdates.title', description: 'appUpdates.description', category: 'builtin.core' },
+    ),
+    plugin: appUpdatesPlugin,
+  },
   {
     manifest: withTranslations(
       {

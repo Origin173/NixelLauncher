@@ -1,4 +1,5 @@
 import type { Context, Plugin } from 'cordis';
+import type { AppUpdateAction, AppUpdateState } from './app-updates';
 import type {
   LauncherSnapshot,
   NixelPluginManifest,
@@ -41,6 +42,7 @@ export interface TaskContext {
   setActivity(activity?: 'paused' | 'queued'): void;
 }
 export interface TaskManager {
+  whileIdle<T>(action: () => Promise<T>): Promise<T>;
   start(
     name: string,
     detail: string,
@@ -61,6 +63,7 @@ export interface TaskManager {
   clear(): void;
 }
 export interface HostPlatform {
+  appUpdates(action: AppUpdateAction): Promise<AppUpdateState>;
   configureProxy(config: NetworkConfiguration): Promise<void>;
   resolveProxy(url: string): Promise<string>;
   secretGet(key: string): Promise<string | null>;

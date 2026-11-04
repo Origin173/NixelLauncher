@@ -19,6 +19,10 @@ import type { PlatformOperation } from '../host/protocol';
 import type { LauncherSnapshot, PathOptions } from '../shared/contracts';
 import { i18n, setLocale, tr } from '../shared/i18n';
 import type { NetworkConfiguration } from '../shared/network';
+import { readUpdateEnvironment } from './app-updates/configuration';
+import type { ApplicationUpdater } from './app-updates/controller';
+import { UpdateInstallation } from './app-updates/handoff';
+import { createApplicationUpdater } from './app-updates/platform';
 import { loadEnvironment } from './environment';
 import { HostClient } from './host-client';
 import { configureProxy, installProxyAuthentication, resolveProxy } from './network';
@@ -33,6 +37,8 @@ let customInterface = '';
 let tray: Tray | undefined;
 let quitting = false;
 let restoreAfterGame = false;
+let updates: ApplicationUpdater;
+let updateInstallation: UpdateInstallation;
 const defaultRenderer = join(__dirname, '../renderer/index.html');
 
 const environmentDirectory = app.isPackaged
@@ -41,6 +47,7 @@ const environmentDirectory = app.isPackaged
     dirname(app.getPath('exe'))
   : app.getAppPath();
 loadEnvironment(environmentDirectory);
+const updateEnvironment = readUpdateEnvironment();
 
 if (process.env.NIXEL_DATA_DIR && isAbsolute(process.env.NIXEL_DATA_DIR)) {
   mkdirSync(process.env.NIXEL_DATA_DIR, { recursive: true });
@@ -156,6 +163,21 @@ async function openPath(path: string) {
 async function platform(operation: PlatformOperation, payload: unknown) {
   const values = payload as Record<string, string>;
   switch (operation) {
+    case 'appUpdates':
+      switch (values.action) {
+        case 'status':
+          return updates.status();
+        case 'check':
+          return updates.check();
+        case 'download':
+          return updates.download();
+        case 'cancel':
+          return updates.cancel();
+        case 'install':
+          return updateInstallation.request();
+        default:
+          throw new Error(tr('appUpdates.invalidAction'));
+      }
     case 'network.configure':
       return configureProxy(payload as NetworkConfiguration, secrets);
     case 'network.resolveProxy':
@@ -185,6 +207,7 @@ async function platform(operation: PlatformOperation, payload: unknown) {
 function registerIpc() {
   handle('nixel:snapshot', () => snapshot);
   handle('nixel:invoke', (command: string, params?: unknown) => {
+    if (updateInstallation.frozen) throw new Error(tr('appUpdates.installing'));
     if (typeof command !== 'string' || !/^[a-zA-Z][\w.-]+$/.test(command))
       throw new Error(tr('index.invalidCommandFormat'));
     if (snapshot.host.status !== 'ready') throw new Error(tr('index.thePluginHostIsNotReadyWait'));
@@ -235,6 +258,8 @@ function registerIpc() {
     else throw new Error(tr('index.invalidWindowOperation'));
   });
   handle('nixel:restart-host', async () => {
+    if (updateInstallation.frozen) throw new Error(tr('appUpdates.installing'));
+    updates.cancel();
     await host.restart();
   });
 }
@@ -301,6 +326,10 @@ void app.whenReady().then(async () => {
   secrets = new SecretStorage(dataPath);
   await secrets.load();
   installProxyAuthentication();
+  updates = await createApplicationUpdater(
+    updateEnvironment,
+    () => void updateInstallation.failed(new Error('Installer failed')),
+  );
   host = new HostClient(
     {
       dataPath,
@@ -334,6 +363,7 @@ void app.whenReady().then(async () => {
     (status, error) => {
       snapshot.host = { ...snapshot.host, status: status === 'crashed' ? 'error' : status, error };
       if (status === 'crashed') {
+        updates.cancel();
         void configureProxy({ mode: 'system', proxyUrl: '' }, secrets).catch(() => {
           console.warn(tr('proxyAuth.configureFailed'));
         });
@@ -354,6 +384,15 @@ void app.whenReady().then(async () => {
     },
     platform,
   );
+  updateInstallation = new UpdateInstallation(
+    updates,
+    host,
+    () => snapshot,
+    () => {
+      snapshot.host.error = tr('appUpdates.recoveryFailed');
+      pushSnapshot();
+    },
+  );
   registerIpc();
   createWindow();
   host.start();
@@ -364,6 +403,7 @@ void app.whenReady().then(async () => {
 
 let shutdownComplete = false;
 app.on('before-quit', (event) => {
+  updates?.cancel();
   quitting = true;
   if (!host || shutdownComplete) return;
   event.preventDefault();

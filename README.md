@@ -26,12 +26,15 @@ pnpm dev
 
 服务配置统一放在项目根目录的 `.env`，首次使用可复制 `.env.example`。填写后重启启动器：
 
-| 变量                  | 用途                                                                        |
-| --------------------- | --------------------------------------------------------------------------- |
-| `MICROSOFT_CLIENT_ID` | 自己的 Microsoft 公开客户端 ID，应用需支持设备代码流程与 Minecraft 服务访问 |
-| `CURSEFORGE_API_KEY`  | 自己的 CurseForge API Key，用于搜索、版本查询和下载                         |
-| `MODRINTH_TOKEN`      | 可选，公开资源搜索与下载无需填写                                            |
-| `NIXEL_DATA_DIR`      | 可选，独立应用数据目录的绝对路径                                            |
+| 变量                       | 用途                                                                        |
+| -------------------------- | --------------------------------------------------------------------------- |
+| `MICROSOFT_CLIENT_ID`      | 自己的 Microsoft 公开客户端 ID，应用需支持设备代码流程与 Minecraft 服务访问 |
+| `CURSEFORGE_API_KEY`       | 自己的 CurseForge API Key，用于搜索、版本查询和下载                         |
+| `MODRINTH_TOKEN`           | 可选，公开资源搜索与下载无需填写                                            |
+| `NIXEL_DATA_DIR`           | 可选，独立应用数据目录的绝对路径                                            |
+| `NIXEL_UPDATE_FEED_URL`    | 可选，启动器更新的公开 HTTPS 发布目录                                       |
+| `NIXEL_UPDATE_RELEASE_URL` | 可选，手动下载启动器的 HTTPS 发布页面                                       |
+| `NIXEL_UPDATE_PUBLISHER`   | Windows 更新包预期的签名发布者名称                                          |
 
 优先级为系统环境变量 > `.env.local` > `.env`。加载器保留 `$` 字符原值；包含 `#` 的值请用引号包裹。开发时读取项目根目录，打包后读取可执行文件同目录；Windows 便携版与 Linux AppImage 使用原始启动文件所在目录。配置在运行时加载，不编译进渲染端；Host 缓存服务凭据后从进程环境移除，Java 安装器与游戏不会继承这三项服务凭据。`.env` 与本地覆盖文件由 Git 忽略，仓库只保留空值模板。
 
@@ -85,6 +88,8 @@ Microsoft 账号的“皮肤与披风”支持旋转与缩放角色预览、上�
 | `pnpm dist:linux` | Linux AppImage 与 DEB    |
 
 本地打包、配置文件位置与签名说明见 [应用分发](docs/distribution.md)。产物生成到 `release/`，命令默认不发布到远程。
+
+**设置 → 关于 Nixel → 启动器更新** 可检查版本、查看说明、下载并确认重启安装。自动检查默认关闭，游戏和任务结束后才允许安装。更新由独立 `nixel.app-updates` 插件组织，主进程调用通用系统更新库；需要配置真实发布源和对应签名产物，未配置时显示当前状态。平台范围、发布要求及接口见 [启动器更新](docs/application-updates.md)。
 
 ## 目录
 

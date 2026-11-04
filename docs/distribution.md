@@ -1,6 +1,6 @@
 # 安装包与本地分发
 
-构建使用 `electron-vite` 编译主进程、preload、独立 Cordis Host 和默认界面，再由通用工具 `electron-builder` 打包。配置位于 `electron-builder.yml`；产物写入 Git 忽略的 `release/`。不会自动发布或上传产物，未集成自动更新。
+构建使用 `electron-vite` 编译主进程、preload、独立 Cordis Host 和默认界面，再由通用工具 `electron-builder` 打包。配置位于 `electron-builder.yml`；产物写入 Git 忽略的 `release/`。打包命令生成本地产物；应用内更新由 `nixel.app-updates` 插件提供，需要另行配置真实发布源、元数据与平台签名产物，见 [启动器更新](application-updates.md)。
 
 ## 命令与目标
 
