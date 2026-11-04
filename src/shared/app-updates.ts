@@ -22,6 +22,8 @@ export interface AppUpdateState {
   releaseUrl?: string;
   version?: string;
   notes?: string;
+  downloaded?: { version: string; notes?: string };
+  installRestartRequired?: boolean;
   progress?: { percent: number; transferred: number; total: number; bytesPerSecond: number };
   error?: string;
   checkedAt?: string;

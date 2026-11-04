@@ -7,6 +7,8 @@ import type { ApplicationUpdater } from './controller';
 export class UpdateInstallation {
   frozen = false;
   private recovering = false;
+  private failedAttempt = false;
+  private suppressQueuedQuit = false;
   constructor(
     private readonly updates: ApplicationUpdater,
     private readonly host: Pick<HostClient, 'stop' | 'restart'>,
@@ -22,6 +24,8 @@ export class UpdateInstallation {
     )
       throw new Error(tr('appUpdates.installBusy'));
     const result = this.updates.prepareInstall();
+    this.failedAttempt = false;
+    this.suppressQueuedQuit = false;
     this.frozen = true;
     setImmediate(() => void this.install());
     return result;
@@ -35,6 +39,7 @@ export class UpdateInstallation {
     }
   }
   async failed(error: unknown) {
+    this.failedAttempt = true;
     if (this.recovering) return;
     this.recovering = true;
     this.updates.installationFailed(error);
@@ -46,5 +51,15 @@ export class UpdateInstallation {
       this.frozen = false;
       this.recovering = false;
     }
+  }
+  beforeQuitForUpdate() {
+    // BaseUpdater emits this immediately before its queued app.quit(), even after async failure.
+    this.suppressQueuedQuit = this.failedAttempt;
+    this.failedAttempt = false;
+  }
+  consumeFailedUpdateQuit() {
+    const prevent = this.suppressQueuedQuit;
+    this.suppressQueuedQuit = false;
+    return prevent;
   }
 }

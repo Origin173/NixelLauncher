@@ -17,9 +17,12 @@ export function ApplicationUpdates() {
   const busy = a.running.length > 0 || a.tasks.some((task) => task.status === 'running');
   const errors = [
     ...new Set(
-      [error, state?.error, latestTask?.status === 'failed' ? latestTask.error : undefined].filter(
-        Boolean,
-      ),
+      [
+        error,
+        state?.error,
+        state?.installRestartRequired ? tr('appUpdates.restartRequired') : undefined,
+        latestTask?.status === 'failed' ? latestTask.error : undefined,
+      ].filter(Boolean),
     ),
   ].join('\n');
   // biome-ignore lint/correctness/useExhaustiveDependencies: Task changes refresh system status even when a short operation finishes before polling starts.
@@ -78,10 +81,13 @@ export function ApplicationUpdates() {
               max={100}
             />
           )}
-          {state.notes && (
+          {state.downloaded && (
+            <p>{tr('appUpdates.downloadedVersion', { version: state.downloaded.version })}</p>
+          )}
+          {(state.notes ?? state.downloaded?.notes) && (
             <details>
               <summary>{tr('appUpdates.releaseNotes')}</summary>
-              <p style={{ whiteSpace: 'pre-wrap' }}>{state.notes}</p>
+              <p style={{ whiteSpace: 'pre-wrap' }}>{state.notes ?? state.downloaded?.notes}</p>
             </details>
           )}
           <SettingRow title={tr('appUpdates.autoCheck')}>
@@ -123,15 +129,19 @@ export function ApplicationUpdates() {
                 {tr('overlays.cancel')}
               </Action>
             )}
-            {state.phase === 'downloaded' && (
+            {state.downloaded && (
               <Action
                 size="sm"
-                isDisabled={pending || busy}
+                isDisabled={
+                  pending || busy || state.installRestartRequired || state.phase === 'installing'
+                }
                 onPress={() =>
                   a.setOverlay({
                     type: 'confirm',
                     title: tr('appUpdates.install'),
-                    detail: tr('appUpdates.installConfirm'),
+                    detail: tr('appUpdates.installConfirm', {
+                      version: state.downloaded?.version ?? '',
+                    }),
                     action: () => run('appUpdates.install'),
                   })
                 }

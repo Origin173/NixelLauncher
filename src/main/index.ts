@@ -9,6 +9,7 @@ import {
   type IpcMainInvokeEvent,
   ipcMain,
   Menu,
+  autoUpdater as nativeAutoUpdater,
   nativeImage,
   shell,
   Tray,
@@ -328,7 +329,7 @@ void app.whenReady().then(async () => {
   installProxyAuthentication();
   updates = await createApplicationUpdater(
     updateEnvironment,
-    () => void updateInstallation.failed(new Error('Installer failed')),
+    (error) => void updateInstallation.failed(error),
   );
   host = new HostClient(
     {
@@ -394,6 +395,7 @@ void app.whenReady().then(async () => {
     },
   );
   registerIpc();
+  nativeAutoUpdater.on('before-quit-for-update', () => updateInstallation.beforeQuitForUpdate());
   createWindow();
   host.start();
   app.on('activate', () => {
@@ -403,6 +405,10 @@ void app.whenReady().then(async () => {
 
 let shutdownComplete = false;
 app.on('before-quit', (event) => {
+  if (updateInstallation?.consumeFailedUpdateQuit()) {
+    event.preventDefault();
+    return;
+  }
   updates?.cancel();
   quitting = true;
   if (!host || shutdownComplete) return;

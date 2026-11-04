@@ -26,6 +26,8 @@
 
 检查结果的每个资产 URL 必须为 HTTPS、无 URL 凭据，且提供格式有效的 SHA-512；签名和文件完整性最终由 updater 校验。独立 updater 网络 Session 拦截非 HTTPS 远程请求，包括重定向后的降级。macOS 原生 Squirrel 与 updater 本地文件服务间的回环通信由库处理，不经过此远程 Session。
 
+检查结果另经 semver 校验，明确拒绝预发布版本。已下载版本独立保存：后续检查失败、取消、返回其他版本都不会撤销其安装入口；确认框显示实际已下载版本，安装使用库已暂存的文件。开始下载另一版本时清除旧入口，因为 updater 可能替换或清理缓存；不会把新检查结果误认为已下载文件。
+
 Updater Session 注册到现有网络配置。公开 `login` 事件复用主进程的代理凭据匹配函数，只接受当前配置代理的主机、端口、`isProxy` 和 Basic 挑战。每次串行检查或单文件下载至多回应一次凭据，依靠 Session 认证缓存供后续请求复用；再次挑战取消并报告 `PROXY_AUTHENTICATION_FAILED`。需要同一次操作内多次独立认证挑战的代理流程不受支持。不会替换 updater 的私有 HTTP executor。
 
 更新错误只向界面和任务提供安全的错误码说明，库内部包含完整签名 URL 或响应体的日志不公开。取消下载调用 updater 的 CancellationToken；重试需重新检查。取消检查忽略其晚到结果，底层元数据请求由库结束，不承诺取消立即中断已发出的检查请求。Host 停止、崩溃或重启时取消下载；已下载更新不会在普通退出时自动安装。
@@ -39,5 +41,7 @@ Updater Session 注册到现有网络配置。公开 `login` 事件复用主进�
 安装命令不创建普通任务：通过 `TaskManager.whileIdle` 复用 Host 的生命周期短锁，并在锁内检查游戏。主进程再次校验快照、冻结新业务 IPC，返回平台确认，再于下一事件循环停止 Host。插件收到确认后持锁直到作用域 dispose，避免停机期间后台插件启动新任务。Host 停止后才调用 `quitAndInstall`，避免 Host 等平台回复而主进程等 Host 退出的死锁。
 
 冻结前的失败直接返回命令错误并释放锁；平台确认后立即回复安装命令，锁本身继续保持到插件 dispose，避免停机失败时遗留悬挂的命令。冻结后的停止/安装失败记录错误、重新启动 Host 并解除冻结。无法重新启动时窗口显示明确错误，用户可手动重启。交接验证使用隔离数据、Host 任务锁与 fixture updater；真实 UtilityProcess 交接尚未实测，不会在开发验收时执行真实安装器。
+
+Windows updater 在启动安装器后会排队退出。若在该次公开 `before-quit-for-update` 事件之前已收到安装失败，只拦截紧随其后的那一次退出并恢复 Host；之后用户正常退出仍可用。该保证不涵盖退出之后才发生的外部安装器失败，也不代表安装器执行成功。实际调用安装器后失败，需要重启启动器才可再次安装，以重置官方库的安装状态；不修改其私有字段。调用安装器之前的 Host 停止失败不要求此重启。临时 fixture 覆盖保留下载、预发布拒绝、一次性退出消费与失败恢复，未运行真实安装器。
 
 依据：[electron-builder v26 更新文档](https://www.electron.build/v26/docs/features/auto-update/)、[electron-updater 6.8.11 发行代码](https://unpkg.com/electron-updater@6.8.11/out/MacUpdater.js)、[Electron autoUpdater](https://www.electronjs.org/docs/latest/api/auto-updater)。真实签名安装、跨平台退出安装及真实发布源仍需要对应签名发行包和发布环境验证。代理基础能力和操作级登录预算分别验证过，真实 electron-updater 经认证代理完成检查到下载的全链路尚未实测。

@@ -8,7 +8,7 @@ import { ApplicationUpdater } from './controller';
 
 export async function createApplicationUpdater(
   config: UpdateEnvironment,
-  onInstallError: () => void,
+  onInstallError: (error: Error) => void,
 ) {
   const availability = updateAvailability(config, app.isPackaged);
   let updater: AppUpdater | undefined;

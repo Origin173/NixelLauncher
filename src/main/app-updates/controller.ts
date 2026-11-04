@@ -1,5 +1,6 @@
 import type { AuthInfo } from 'electron';
 import type { AppUpdater, UpdateCheckResult } from 'electron-updater';
+import { parse } from 'semver';
 import type { AppUpdateState } from '../../shared/app-updates';
 import { tr } from '../../shared/i18n';
 
@@ -9,12 +10,13 @@ export class ApplicationUpdater {
   private busy = false;
   private credentialsUsed = false;
   private authenticationFailed = false;
+  private installationAttempted = false;
   private errorHandler: (error: Error) => void;
   constructor(
     private readonly updater: AppUpdater | undefined,
     private state: AppUpdateState,
     private readonly feed: string,
-    onInstallError: () => void,
+    onInstallError: (error: Error) => void,
     authenticate?: (
       info: AuthInfo,
       reply: (username?: string, password?: string) => void,
@@ -23,8 +25,8 @@ export class ApplicationUpdater {
     this.errorHandler = (error) => {
       const installing = this.state.phase === 'installing';
       if (installing) {
-        this.fail(error);
-        onInstallError();
+        this.installationFailed(error);
+        onInstallError(error);
       }
     };
     if (updater) {
@@ -67,13 +69,13 @@ export class ApplicationUpdater {
       throw new Error(tr(`appUpdates.${this.state.availability}`));
     return this.updater;
   }
-  private fail(error: unknown) {
+  private fail(error: unknown, installing = false) {
     const code = this.authenticationFailed
       ? 'PROXY_AUTHENTICATION_FAILED'
       : (error as { code?: unknown })?.code;
     this.state.phase = 'error';
     // Updater errors can include complete signed URLs and HTTP response bodies.
-    this.state.error = tr('appUpdates.failed', {
+    this.state.error = tr(installing ? 'appUpdates.installFailed' : 'appUpdates.failed', {
       code: typeof code === 'string' && /^[A-Z0-9_]+$/.test(code) ? code : 'UPDATE_ERROR',
     });
     this.token = undefined;
@@ -89,6 +91,8 @@ export class ApplicationUpdater {
       availability: this.state.availability,
       currentVersion: this.state.currentVersion,
       releaseUrl: this.state.releaseUrl,
+      downloaded: this.state.downloaded,
+      installRestartRequired: this.state.installRestartRequired,
       phase: 'checking',
       checkedAt: new Date().toISOString(),
     };
@@ -98,6 +102,11 @@ export class ApplicationUpdater {
       if (!result) throw new Error('Update check unavailable');
       if (this.authenticationFailed) throw new Error('Proxy authentication failed');
       const info = result.updateInfo;
+      const version = parse(info.version);
+      if (!version || version.prerelease.length)
+        throw Object.assign(new Error('Only stable update versions are supported'), {
+          code: 'ERR_UPDATER_UNSUPPORTED_VERSION',
+        });
       if (
         !info.files?.length ||
         info.files.some((file) => {
@@ -111,7 +120,12 @@ export class ApplicationUpdater {
       )
         throw new Error('Invalid update metadata');
       this.token = result.cancellationToken;
-      this.state.phase = result.isUpdateAvailable ? 'available' : 'current';
+      this.state.phase =
+        this.state.downloaded?.version === info.version
+          ? 'downloaded'
+          : result.isUpdateAvailable
+            ? 'available'
+            : 'current';
       this.state.version = info.version;
       this.state.notes =
         typeof info.releaseNotes === 'string'
@@ -134,12 +148,17 @@ export class ApplicationUpdater {
     this.credentialsUsed = false;
     this.authenticationFailed = false;
     const token = this.token;
+    // A new download can replace/clear the library's cached installer; only checks retain it.
+    this.state.downloaded = undefined;
     this.state.phase = 'downloading';
     this.state.error = undefined;
     try {
       await updater.downloadUpdate(token);
       if (this.authenticationFailed) throw new Error('Proxy authentication failed');
-      if (!token.cancelled) this.state.phase = 'downloaded';
+      if (!token.cancelled) {
+        this.state.phase = 'downloaded';
+        this.state.downloaded = { version: this.state.version as string, notes: this.state.notes };
+      }
     } catch (error) {
       if (!token.cancelled || this.authenticationFailed) {
         this.fail(error);
@@ -153,7 +172,7 @@ export class ApplicationUpdater {
   cancel() {
     if (this.state.phase === 'checking') {
       this.generation++;
-      this.state.phase = 'idle';
+      this.state.phase = this.state.downloaded ? 'downloaded' : 'idle';
     }
     if (this.state.phase === 'downloading') {
       this.token?.cancel();
@@ -164,14 +183,20 @@ export class ApplicationUpdater {
   }
   prepareInstall() {
     this.requireUpdater();
-    if (this.state.phase !== 'downloaded') throw new Error(tr('appUpdates.downloadFirst'));
+    if (this.busy) throw new Error(tr('appUpdates.busy'));
+    if (this.state.installRestartRequired) throw new Error(tr('appUpdates.restartRequired'));
+    if (!this.state.downloaded) throw new Error(tr('appUpdates.downloadFirst'));
+    this.installationAttempted = false;
+    this.authenticationFailed = false;
     this.state.phase = 'installing';
     return this.status();
   }
   install() {
+    this.installationAttempted = true;
     this.requireUpdater().quitAndInstall(false, true);
   }
   installationFailed(error: unknown) {
-    this.fail(error);
+    if (this.installationAttempted) this.state.installRestartRequired = true;
+    this.fail(error, this.installationAttempted);
   }
 }
