@@ -6,7 +6,8 @@
 
 | 项目                  | 当前状态                                                     | 待完成内容                                                            |
 | --------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------- |
-| 应用发行              | Windows 解包/便携版已运行，NSIS 隔离安装、卸载与数据保留通过 | 已安装应用更新模式识别、macOS/Linux/arm64 实测、签名/公证及发布       |
+| Windows 发行          | 解包/便携版已运行，NSIS 隔离安装、卸载与数据保留通过        | 已安装应用更新模式识别、签名及发布                                    |
+| Linux 与其他平台      | Linux x64 AppImage 已打包并在 Ubuntu 24.04 / WSLg 运行       | DEB 缺项目主页；Linux 密钥库/游戏、原生桌面、macOS/arm64 与公证实测 |
 | 启动器更新            | 检查、下载、取消、安装确认与失败恢复已实现                   | 真实发布源、签名安装、UtilityProcess 安装交接及认证代理更新全流程实测 |
 | 在线账号与 CurseForge | Microsoft/Yggdrasil 登录、外观管理及 CurseForge 下载已有实现 | 对应真实账号和 API Key 实测                                           |
 | 组合场景              | 真实 Modrinth 包升级、加载器与内容联动、游戏启动及公网 SRV 通过 | 跨 Minecraft 版本组合、远程插件目录界面与多人加入实测                 |
@@ -55,7 +56,9 @@
 
 通过真实界面为 Minecraft 1.21.1 Fabric 安装 Sodium Extra，并勾选 Reese’s Sodium Options 与 Iris，共用的 Sodium 必需依赖只安装一次；未选的 Greenlight 未安装。CurseForge 以本地 API/下载响应核对真实解析、校验及写入流程，覆盖精确版本、未选跳过、依赖冲突、已有互斥内容和禁用依赖；拒绝场景在下载前停止。线上 CurseForge 仍需 API Key 实测。
 
-Windows 解包版和单文件便携版在独立数据目录实际启动，主进程、preload、Cordis Host 与默认界面正常；核对打包归档无 `.env`、设计原型或玩家数据，便携版读取同目录 `.env.local` 优先于 `.env`。NSIS 在无既有 Nixel 安装的环境实际静默安装到独立目录，再由生成的卸载器卸载；安装目录、卸载注册项和快捷方式移除，独立数据文件校验值保持一致。macOS/Linux/arm64 产物、签名与公证尚未实测。
+Windows 解包版和单文件便携版在独立数据目录实际启动，主进程、preload、Cordis Host 与默认界面正常；核对打包归档无 `.env`、设计原型或玩家数据，便携版读取同目录 `.env.local` 优先于 `.env`。NSIS 在无既有 Nixel 安装的环境实际静默安装到独立目录，再由生成的卸载器卸载；安装目录、卸载注册项和快捷方式移除，独立数据文件校验值保持一致。
+
+Linux 在 Ubuntu 24.04 / WSLg 独立安装依赖、typecheck、lint、build 和 AppImage 打包通过；解包版和 AppImage 均实际启动，Host 就绪、17 个插件 active、渲染 sandbox 保持开启。AppImage 邻接 `.env.local` 的独立数据目录生效，正常退出。WSL 缺少 FUSE 2 时使用官方 extract-and-run；当前会话无安全 keyring，已有实现拒绝 `basic_text` 凭据存储。DEB 因缺项目 `homepage` 停止打包，等待确定的官网或仓库地址。Linux 游戏/原生桌面、macOS/arm64、签名与公证仍待实测，见 [应用分发](distribution.md)。
 
 带更新配置的已安装应用启动被自动审批拒绝，理由仅返回 `blocked by policy`，因此安装模式识别仍未实测。卸载保留了本次安装器缓存 `%LOCALAPPDATA%/nixellauncher-updater/installer.exe`；限定路径及哈希的缓存清理也被拒绝，文件保持原样。未通过改写命令重试这些动作。
 
@@ -67,4 +70,4 @@ Windows 解包版和单文件便携版在独立数据目录实际启动，主进
 
 实例版本管理在独立目录完成 Minecraft 1.21.1 Vanilla → Fabric 0.16.14 的真实界面操作与安装，备份清单保留原 Vanilla 启动信息，归档 SHA-256 与清单一致。Modrinth 内容和本地内容分别显示兼容/未确认；检查后更改文件启用状态会拒绝过期预览。备份中取消保留原选择并清理暂存归档；使用本地验证提供者触发安装失败，确认备份保留且版本选择未提交。中英文选择与确认页、返回后保留目标版本，以及跨 Minecraft 版本预览中的“需要更新”提示已核对。
 
-Microsoft、Yggdrasil 与 CurseForge 已有实现；真实账号登录、令牌刷新及 CurseForge 下载仍需对应账号或 API Key 实测。跨平台分支已有代码，macOS/Linux 运行验证尚未完成。历史 Minecraft/加载器版本需要按具体版本验证兼容性。
+Microsoft、Yggdrasil 与 CurseForge 已有实现；真实账号登录、令牌刷新及 CurseForge 下载仍需对应账号或 API Key 实测。Linux WSLg 客户端已运行，平台密钥库、游戏启动和 macOS 仍待对应环境。历史 Minecraft/加载器版本需要按具体版本验证兼容性。

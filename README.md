@@ -91,6 +91,8 @@ Microsoft 账号的“皮肤与披风”支持旋转与缩放角色预览、上�
 
 本地打包、配置文件位置与签名说明见 [应用分发](docs/distribution.md)。产物生成到 `release/`，命令默认不发布到远程。
 
+Linux AppImage 已在 Ubuntu 24.04 / WSLg 实际启动。DEB 打包需要先在 `package.json` 填写项目已确定的 `homepage`；当前尚未提供官网或仓库地址，因此 `pnpm dist:linux` 的 DEB 阶段会报告该配置缺失。
+
 **设置 → 关于 Nixel → 启动器更新** 可检查版本、查看说明、下载并确认重启安装。自动检查默认关闭，游戏和任务结束后才允许安装。更新由独立 `nixel.app-updates` 插件组织，主进程调用通用系统更新库；需要配置真实发布源和对应签名产物，未配置时显示当前状态。平台范围、发布要求及接口见 [启动器更新](docs/application-updates.md)。
 
 ## 目录
