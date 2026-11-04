@@ -164,6 +164,8 @@ async function copyInstance(
         item.fullscreen = original.fullscreen;
         item.providers = structuredClone(original.providers);
         item.providerConfig = structuredClone(original.providerConfig);
+        item.servers = structuredClone(original.servers);
+        item.modpack = structuredClone(original.modpack);
         draft.content.push(
           ...draft.content
             .filter((entry) => entry.instance === original.id)
