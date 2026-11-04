@@ -6,6 +6,7 @@ import { pipeline } from 'node:stream/promises';
 import { pathToFileURL } from 'node:url';
 import { ZipFile } from 'yazl';
 import { tr } from '../shared/i18n';
+import type { ServerAddress } from '../shared/servers';
 import type { GameSession } from './authentication';
 import { inside } from './files';
 import {
@@ -17,6 +18,7 @@ import {
 import { extractEntry, open, readAllEntries } from './zip';
 
 interface LaunchInput extends GameSession {
+  server?: ServerAddress;
   version: MinecraftVersion;
   gamePath: string;
   javaPath: string;
@@ -154,7 +156,38 @@ export async function launchMinecraft(input: LaunchInput) {
         '--height',
         String(input.resolution.height),
       );
-    game.push(...input.extraMCArgs);
+    if (input.server) {
+      // An explicit quick join replaces saved join targets for this launch only.
+      const targetFlags = new Set([
+        '--server',
+        '--port',
+        '--quickPlaySingleplayer',
+        '--quickPlayMultiplayer',
+        '--quickPlayRealms',
+      ]);
+      let skipTarget = false;
+      for (const arg of input.extraMCArgs) {
+        if (skipTarget) {
+          skipTarget = false;
+          continue;
+        }
+        if (targetFlags.has(arg)) skipTarget = true;
+        else if (![...targetFlags].some((flag) => arg.startsWith(`${flag}=`))) game.push(arg);
+      }
+      const quickPlay = version.arguments?.game?.some((arg) =>
+        (typeof arg === 'string'
+          ? [arg]
+          : Array.isArray(arg.value)
+            ? arg.value
+            : [arg.value]
+        ).includes('--quickPlayMultiplayer'),
+      );
+      game.push(
+        ...(quickPlay
+          ? ['--quickPlayMultiplayer', input.server.address]
+          : ['--server', input.server.host, '--port', String(input.server.port)]),
+      );
+    } else game.push(...input.extraMCArgs);
     let args = [...jvm, version.mainClass, ...game];
     if (input.javaMajor >= 9) {
       // Keep session credentials in process arguments, never in the on-disk JVM argument file.

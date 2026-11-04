@@ -5,6 +5,7 @@ import { i18n, label, tr } from '../../../shared/i18n';
 import { resourceSource } from '../data';
 import { LaunchButton } from '../LaunchButton';
 import { ResourceBrowser } from '../ResourceBrowser';
+import { Servers } from '../servers/Servers';
 import { useApp } from '../state';
 import {
   Action,
@@ -122,7 +123,16 @@ export function InstancesPage() {
           <Segments
             secondary
             value={a.instanceTab}
-            options={['overview', 'content', 'saves', 'screenshots', 'backups', 'settings', 'logs']}
+            options={[
+              'overview',
+              'content',
+              'servers',
+              'saves',
+              'screenshots',
+              'backups',
+              'settings',
+              'logs',
+            ]}
             onChange={a.setInstanceTab}
             label={tr('Instances.instanceTabs')}
           />
@@ -157,6 +167,7 @@ export function InstancesPage() {
             hidden={a.instanceTab === 'content'}
             key={`${i.id}-${a.instanceTab}`}
           >
+            {a.instanceTab === 'servers' && <Servers instance={i} />}
             {a.instanceTab === 'overview' && (
               <div className="instance-overview">
                 <Group title={tr('Instances.runtime')}>

@@ -8,9 +8,11 @@ import { Action, Choice, Dialog, Field, Notice, Segments } from '../ui';
 export function AccountDialog({
   instanceId,
   accountId,
+  joinServer,
 }: {
   instanceId?: string;
   accountId?: string;
+  joinServer?: string;
 }) {
   const a = useApp();
   const account = a.accounts.find((entry) => entry.id === accountId);
@@ -55,7 +57,7 @@ export function AccountDialog({
         if (result.status === 'complete') {
           a.setOverlay(
             instanceId
-              ? { type: 'launch-account', instanceId, accountId: result.account?.id }
+              ? { type: 'launch-account', instanceId, accountId: result.account?.id, joinServer }
               : null,
           );
           return;
@@ -73,7 +75,7 @@ export function AccountDialog({
       active = false;
       clearTimeout(timer);
     };
-  }, [device, visible, type, instanceId, a.setOverlay]);
+  }, [device, visible, type, instanceId, joinServer, a.setOverlay]);
   const submit = async () => {
     setPending(true);
     setError('');
@@ -105,7 +107,9 @@ export function AccountDialog({
           saved = result.account;
         }
         a.setOverlay(
-          instanceId ? { type: 'launch-account', instanceId, accountId: saved.id } : null,
+          instanceId
+            ? { type: 'launch-account', instanceId, accountId: saved.id, joinServer }
+            : null,
         );
       }
     } catch (e) {

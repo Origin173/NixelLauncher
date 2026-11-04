@@ -4,6 +4,7 @@ import { createInterface } from 'node:readline';
 import type { Account, Instance } from '../../shared/contracts';
 import type { NixelHost, TaskContext } from '../../shared/host-api';
 import { tr } from '../../shared/i18n';
+import type { GameLaunchOptions } from '../../shared/servers';
 import { selectJava } from '../java-selection';
 import { createLaunchLog } from '../launch-logs';
 import { launchMinecraft } from '../minecraft-launch';
@@ -14,7 +15,12 @@ export class MinecraftProcesses {
   private processes = new Map<string, ChildProcess>();
   private stopped = new Set<string>();
   constructor(private readonly host: NixelHost) {}
-  async launch(instance: Instance, account: Account, task: TaskContext) {
+  async launch(
+    instance: Instance,
+    account: Account,
+    task: TaskContext,
+    options?: GameLaunchOptions,
+  ) {
     const host = this.host;
     if (host.running.has(instance.id)) throw new Error(tr('game.thisInstanceIsAlreadyRunning'));
     const accountProvider = host.providers.get<AccountProvider>(
@@ -36,6 +42,7 @@ export class MinecraftProcesses {
     const memory = instance.memory ?? host.store.read().settings.memory;
     const { process, dispose } = await launchMinecraft({
       ...session,
+      server: options?.server,
       version,
       gamePath: instance.directory,
       javaPath: java.path,

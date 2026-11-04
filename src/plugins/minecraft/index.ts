@@ -24,7 +24,7 @@ export const gamePlugin = {
         }));
       },
       install: (instance, task) => installGame(host, instance, task),
-      launch: (instance, account, task) => runner.launch(instance, account, task),
+      launch: (instance, account, task, options) => runner.launch(instance, account, task, options),
       stop: (id) => runner.stop(id),
     };
     host.providers.register(
@@ -34,7 +34,7 @@ export const gamePlugin = {
         pluginId: gameId,
         kind: 'game',
         name: 'Minecraft · Nixel',
-        capabilities: ['Vanilla', 'Fabric', 'Forge', 'NeoForge', 'Quilt'],
+        capabilities: ['Vanilla', 'Fabric', 'Forge', 'NeoForge', 'Quilt', 'server-join'],
       },
       provider,
     );

@@ -1,3 +1,5 @@
+import type { SavedServer } from './servers';
+
 export type Page = 'home' | 'instances' | 'resources' | 'plugins' | 'accounts' | 'settings';
 export type Loader = 'Vanilla' | 'Fabric' | 'Forge' | 'NeoForge' | 'Quilt';
 export type ContentCategory = 'mods' | 'resourcepacks' | 'shaders';
@@ -32,6 +34,7 @@ export interface ChangeInstanceVersionInput {
 }
 
 export interface Instance {
+  servers?: SavedServer[];
   id: string;
   name: string;
   version: string;

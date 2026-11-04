@@ -11,6 +11,7 @@ import type {
   VersionEntry,
 } from '../shared/contracts';
 import type { TaskContext } from '../shared/host-api';
+import type { GameLaunchOptions } from '../shared/servers';
 import type { GameSession } from './authentication';
 
 export interface GameProvider {
@@ -21,7 +22,12 @@ export interface GameProvider {
     signal?: AbortSignal,
   ): Promise<VersionEntry[]>;
   install(instance: Instance, task: TaskContext): Promise<string>;
-  launch(instance: Instance, account: Account, task: TaskContext): Promise<void>;
+  launch(
+    instance: Instance,
+    account: Account,
+    task: TaskContext,
+    options?: GameLaunchOptions,
+  ): Promise<void>;
   stop(id: string): void;
 }
 export interface AccountProvider {

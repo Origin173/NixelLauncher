@@ -22,11 +22,11 @@ import { launchAccountId } from '../../shared/launch-account';
 
 export type Overlay =
   | { type: 'create' | 'import' | 'background' | 'wizard' | 'search' | 'local-plugin' }
-  | { type: 'account'; instanceId?: string; accountId?: string }
+  | { type: 'account'; instanceId?: string; accountId?: string; joinServer?: string }
   | { type: 'version-change'; instanceId: string }
   | { type: 'resource'; resource: Resource; instanceId?: string; tab?: 'project' | 'versions' }
   | { type: 'plugin'; pluginId: string }
-  | { type: 'launch-account'; instanceId: string; accountId?: string }
+  | { type: 'launch-account'; instanceId: string; accountId?: string; joinServer?: string }
   | { type: 'confirm'; title: string; detail: string; action: () => Promise<unknown> }
   | null;
 const defaults: LauncherSettings = {
@@ -174,8 +174,9 @@ function useAppState() {
     setInstanceCatalogOpen(false);
     setPage('instances');
   };
-  const launch = (id: string, accountId?: string) => {
+  const launch = (id: string, accountId?: string, joinServer?: string) => {
     if (snapshot.running.includes(id)) {
+      if (joinServer) return;
       void command('instances.stop', { id });
       return;
     }
@@ -190,10 +191,14 @@ function useAppState() {
       ) ||
       (instance.providers.accounts && instance.providers.accounts !== account.provider)
     ) {
-      setOverlay({ type: snapshot.accounts.length ? 'launch-account' : 'account', instanceId: id });
+      setOverlay({
+        type: snapshot.accounts.length ? 'launch-account' : 'account',
+        instanceId: id,
+        joinServer,
+      });
       return;
     }
-    void command('instances.launch', { id, accountId: account.id });
+    void command('instances.launch', { id, accountId: account.id, server: joinServer });
   };
   return {
     ...snapshot,

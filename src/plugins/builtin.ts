@@ -14,8 +14,27 @@ import { curseforgeId, curseforgePlugin } from './curseforge';
 import { instancesPlugin } from './instances';
 import { gameId, gamePlugin } from './minecraft';
 import { resourcesId, resourcesPlugin } from './modrinth';
+import { serversPlugin } from './servers';
 
 export const builtinPlugins: BuiltinPlugin[] = [
+  {
+    manifest: withTranslations(
+      {
+        id: 'nixel.servers',
+        name: tr('servers.pluginName'),
+        description: tr('servers.pluginDescription'),
+        version: '0.1.0',
+        apiVersion: 1,
+        category: tr('builtin.core'),
+      },
+      {
+        name: 'servers.pluginName',
+        description: 'servers.pluginDescription',
+        category: 'builtin.core',
+      },
+    ),
+    plugin: serversPlugin,
+  },
   {
     manifest: withTranslations(
       {

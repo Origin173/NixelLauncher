@@ -31,7 +31,7 @@ CurseForge provider 与插件 ID 为 `nixel.resources.curseforge`。资源命令
 | `instances.install`                | `{ id }`                                                                | `{ taskId }`                                                      |
 | `instances.planVersionChange`      | `{ id, target: InstanceVersionTarget }`                                 | `InstanceVersionPlan`                                             |
 | `instances.changeVersion`          | `ChangeInstanceVersionInput`                                            | `{ taskId }`                                                      |
-| `instances.launch`                 | `{ id, accountId? }`                                                    | `{ taskId }`                                                      |
+| `instances.launch`                 | `{ id, accountId?, server? }`                                           | `{ taskId }`                                                      |
 | `instances.stop`                   | `{ id }`                                                                | `void`                                                            |
 | `instances.files`                  | `{ id, kind: 'saves' \| 'screenshots' \| 'crash-reports' }`             | `InstanceFile[]`                                                  |
 | `instances.logs`                   | `{ id }`                                                                | `string[]`                                                        |

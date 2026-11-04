@@ -44,9 +44,17 @@ function OverlayContent({ overlay: o }: { overlay: Overlay }) {
   if (o.type === 'create') return <CreateDialog />;
   if (o.type === 'version-change') return <VersionChangeDialog instanceId={o.instanceId} />;
   if (o.type === 'account')
-    return <AccountDialog instanceId={o.instanceId} accountId={o.accountId} />;
+    return (
+      <AccountDialog instanceId={o.instanceId} accountId={o.accountId} joinServer={o.joinServer} />
+    );
   if (o.type === 'launch-account')
-    return <LaunchAccountDialog instanceId={o.instanceId} accountId={o.accountId} />;
+    return (
+      <LaunchAccountDialog
+        instanceId={o.instanceId}
+        accountId={o.accountId}
+        joinServer={o.joinServer}
+      />
+    );
   if (o.type === 'resource')
     return <ResourceDialog resource={o.resource} instanceId={o.instanceId} initialTab={o.tab} />;
   if (o.type === 'plugin') return <PluginDialog id={o.pluginId} />;
@@ -312,9 +320,11 @@ function CreateDialog() {
 function LaunchAccountDialog({
   instanceId,
   accountId,
+  joinServer,
 }: {
   instanceId: string;
   accountId?: string;
+  joinServer?: string;
 }) {
   const a = useApp();
   const instance = a.instances.find((entry) => entry.id === instanceId);
@@ -346,7 +356,7 @@ function LaunchAccountDialog({
             isDisabled={!selectedId}
             onPress={() => {
               a.setOverlay(null);
-              a.launch(instanceId, selectedId);
+              a.launch(instanceId, selectedId, joinServer);
             }}
           >
             {tr('LaunchButton.launchGame')}
@@ -372,7 +382,7 @@ function LaunchAccountDialog({
           <Action
             variant="secondary"
             icon="plus"
-            onPress={() => a.setOverlay({ type: 'account', instanceId })}
+            onPress={() => a.setOverlay({ type: 'account', instanceId, joinServer })}
           >
             {tr('overlays.addAccount')}
           </Action>

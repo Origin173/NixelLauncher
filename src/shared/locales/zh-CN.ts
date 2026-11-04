@@ -1,7 +1,9 @@
 import { accountProfilesZh } from './account-profiles';
 import { backupRetentionZh } from './backup-retention';
+import { serversZh } from './servers';
 
 export default {
+  ...serversZh,
   ...accountProfilesZh,
   ...backupRetentionZh,
   'optionalDependencies.title': '可选依赖',

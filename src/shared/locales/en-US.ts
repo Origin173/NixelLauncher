@@ -1,7 +1,9 @@
 import { accountProfilesEn } from './account-profiles';
 import { backupRetentionEn } from './backup-retention';
+import { serversEn } from './servers';
 
 export default {
+  ...serversEn,
   ...accountProfilesEn,
   ...backupRetentionEn,
   'optionalDependencies.title': 'Optional dependencies',
