@@ -896,6 +896,9 @@ export default {
     'Enable a resource plugin on the Plugins page.',
   'ResourceBrowser.previous': 'Previous',
   'ResourceBrowser.next': 'Next',
+  'ResourceBrowser.retryPage': 'Retry this page',
+  'ResourceBrowser.sourceUnavailable':
+    '{{name}} is disabled. Enable it again or select another source.',
   'state.operationFailed': 'Operation failed',
   'state.cannotReadTheBackgroundImageUsingThe':
     'Cannot read the background image. Using the default background.',

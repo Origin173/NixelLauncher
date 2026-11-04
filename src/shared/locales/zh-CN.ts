@@ -815,6 +815,8 @@ export default {
   'ResourceBrowser.enableAResourcePluginOnThePlugins': '在插件页面启用资源插件。',
   'ResourceBrowser.previous': '上一页',
   'ResourceBrowser.next': '下一页',
+  'ResourceBrowser.retryPage': '重试此页',
+  'ResourceBrowser.sourceUnavailable': '{{name}} 未启用，请重新启用该来源或选择其他来源。',
   'state.operationFailed': '操作未完成',
   'state.cannotReadTheBackgroundImageUsingThe': '无法读取背景图片，已使用默认背景。',
   'ui.oneArgumentPerLine': '每行一个参数',
