@@ -37,6 +37,8 @@ Windows 文件名分别为 `NixelLauncher-<版本>-windows-x64-setup.exe` 和 `N
 
 每次发布先更新 `package.json` 的版本，执行 `pnpm typecheck`、`pnpm lint`，然后构建目标平台。用独立 `NIXEL_DATA_DIR` 运行实际产物，检查首次启动、Host 就绪、账号凭据存取及游戏启动。校验归档内文件，不应包含本地凭据或实例数据。可使用 PowerShell `Get-FileHash release/*.exe -Algorithm SHA256` 生成分发校验值。
 
+游戏启动参数中的 `launcher_version` 与 API、下载请求的 `User-Agent` 通过 `shared/launcher-metadata.ts` 读取同一份 `package.json` 版本，并在构建时写入产物。修改应用版本后重新构建即可同步这些标识；插件清单的 `version` 仍表示各插件自己的版本。
+
 本地未提供证书时 Windows 产物没有可信发布者签名，macOS 没有 Developer ID 签名和公证。正式对外发布时通过 electron-builder 的环境变量配置自己的证书（Windows `CSC_LINK` / `CSC_KEY_PASSWORD`；macOS Developer ID 与 Apple 公证凭据），证书和密码不提交到仓库。使用 `CSC_IDENTITY_AUTO_DISCOVERY=false` 可明确禁用本机签名身份自动发现。这里没有设置发布服务器、虚构证书身份或 GitHub 仓库。
 
 `pnpm-workspace.yaml` 把 electron-builder 的 `@electron/get` 固定到 3.1.0：26.18.0 使用该版本新增的下载缓存枚举，3.0.0 会在构建前报错。未使用 Squirrel.Windows，因而不执行其传递依赖 `electron-winstaller` 的安装脚本；NSIS、便携版不受影响。

@@ -5,6 +5,7 @@ import { dirname } from 'node:path';
 import type { DownloadRequest } from '../../shared/downloads';
 import { errorMessage } from '../../shared/error-message';
 import { tr } from '../../shared/i18n';
+import { launcherUserAgent } from '../../shared/launcher-metadata';
 import {
   type DownloadIdentity,
   discardPartial,
@@ -79,7 +80,7 @@ export async function transferDownload(
   while (true) {
     signal.throwIfAborted();
     const headers: Record<string, string> = {
-      'User-Agent': 'NixelLauncher/0.1.0',
+      'User-Agent': launcherUserAgent,
       'Accept-Encoding': 'identity',
     };
     if (offset && identity.validator) {

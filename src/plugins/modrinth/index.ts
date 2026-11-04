@@ -18,7 +18,6 @@ export const resourcesPlugin = {
   apply(ctx: Context) {
     const host = ctx.nixel;
     const client = new ModrinthClient({
-      'User-Agent': 'NixelLauncher/0.1.0',
       ...(serviceEnvironment.modrinthToken
         ? { Authorization: serviceEnvironment.modrinthToken }
         : {}),

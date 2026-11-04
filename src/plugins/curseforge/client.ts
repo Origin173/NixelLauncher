@@ -1,6 +1,7 @@
 import { serviceEnvironment } from '../../host/service-environment';
 import type { Instance } from '../../shared/contracts';
 import { tr } from '../../shared/i18n';
+import { launcherUserAgent } from '../../shared/launcher-metadata';
 import type { CurseForgePackFile } from '../providers';
 import type { ApiResponse, CurseForgeClass, CurseForgeFile, CurseForgeProject } from './models';
 import { assertDownload, type Category, classSlugs, isCompatible, loaderTypes } from './rules';
@@ -24,7 +25,7 @@ export class CurseForgeClient {
       headers: {
         Accept: 'application/json',
         'x-api-key': key,
-        'User-Agent': 'NixelLauncher/0.1.0',
+        'User-Agent': launcherUserAgent,
         ...(body ? { 'Content-Type': 'application/json' } : {}),
       },
       body: body ? JSON.stringify(body) : undefined,

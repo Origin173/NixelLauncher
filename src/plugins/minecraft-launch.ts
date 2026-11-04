@@ -6,6 +6,7 @@ import { pipeline } from 'node:stream/promises';
 import { pathToFileURL } from 'node:url';
 import { ZipFile } from 'yazl';
 import { tr } from '../shared/i18n';
+import { launcherName, launcherVersion } from '../shared/launcher-metadata';
 import type { ServerAddress } from '../shared/servers';
 import type { GameSession } from './authentication';
 import { inside } from './files';
@@ -98,8 +99,8 @@ export async function launchMinecraft(input: LaunchInput) {
       library_directory: join(root, 'libraries'),
       classpath: classpathText,
       classpath_separator: delimiter,
-      launcher_name: 'NixelLauncher',
-      launcher_version: '0.1.0',
+      launcher_name: launcherName,
+      launcher_version: launcherVersion,
       resolution_width: String(input.resolution.width),
       resolution_height: String(input.resolution.height),
       clientid: input.clientId ?? '',

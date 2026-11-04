@@ -3,6 +3,7 @@ import { createReadStream } from 'node:fs';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { type DownloadProvider, downloadsId } from '../shared/downloads';
 import { tr } from '../shared/i18n';
+import { launcherUserAgent } from '../shared/launcher-metadata';
 import { taskScope } from '../shared/task-scope';
 
 export function inside(root: string, path: string) {
@@ -38,7 +39,7 @@ export function inside(root: string, path: string) {
 export async function json<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     ...init,
-    headers: { 'User-Agent': 'NixelLauncher/0.1.0', ...init?.headers },
+    headers: { 'User-Agent': launcherUserAgent, ...init?.headers },
   });
   if (!response.ok)
     throw new Error(
