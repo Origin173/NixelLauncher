@@ -81,9 +81,11 @@ export function installProxyAuthentication() {
   });
 }
 
-async function applySession(target: Session, config: NetworkConfiguration) {
-  await target.closeAllConnections();
-  await target.clearAuthCache();
+async function applySession(target: Session, config: NetworkConfiguration, reconfigure: boolean) {
+  if (reconfigure) {
+    await target.closeAllConnections();
+    await target.clearAuthCache();
+  }
   await target.setProxy(
     config.mode === 'custom'
       ? { mode: 'fixed_servers', proxyRules: config.proxyUrl, proxyBypassRules: '<-loopback>' }
@@ -91,15 +93,15 @@ async function applySession(target: Session, config: NetworkConfiguration) {
   );
 }
 
-async function apply(config: NetworkConfiguration) {
-  await Promise.all([...sessions].map((target) => applySession(target, config)));
+async function apply(config: NetworkConfiguration, reconfigure: boolean) {
+  await Promise.all([...sessions].map((target) => applySession(target, config, reconfigure)));
 }
 
 /** Register another launcher-owned Chromium session before it makes requests. */
 export function registerNetworkSession(target: Session) {
   const operation = pending.then(async () => {
     if (sessions.has(target)) return;
-    await applySession(target, active?.config || { mode: 'system', proxyUrl: '' });
+    await applySession(target, active?.config || { mode: 'system', proxyUrl: '' }, false);
     sessions.add(target);
   });
   pending = operation.then(
@@ -117,11 +119,12 @@ export function configureProxy(config: NetworkConfiguration, secrets: SecretStor
     const previous = active;
     active = undefined;
     try {
-      await apply(config);
+      // First setup has no previous proxy state to clear; preserve in-flight UI modules.
+      await apply(config, Boolean(previous));
       active = { config, credential };
     } catch {
       try {
-        await apply(previous?.config || { mode: 'system', proxyUrl: '' });
+        await apply(previous?.config || { mode: 'system', proxyUrl: '' }, true);
         active = previous;
       } catch {
         throw new Error(tr('proxyAuth.restoreFailed'));

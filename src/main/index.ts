@@ -50,6 +50,10 @@ const environmentDirectory = app.isPackaged
   : app.getAppPath();
 loadEnvironment(environmentDirectory);
 const updateEnvironment = readUpdateEnvironment();
+const developmentRendererUrl =
+  !app.isPackaged && process.env.ELECTRON_RENDERER_URL
+    ? new URL(process.env.ELECTRON_RENDERER_URL).href
+    : undefined;
 
 if (process.env.NIXEL_DATA_DIR && isAbsolute(process.env.NIXEL_DATA_DIR)) {
   mkdirSync(process.env.NIXEL_DATA_DIR, { recursive: true });
@@ -120,10 +124,7 @@ function handle<Args extends unknown[]>(channel: string, handler: (...args: Args
 async function loadInterface(path = '') {
   customInterface = path;
   if (!window || window.isDestroyed()) return;
-  const developmentUrl = !path && !app.isPackaged && process.env.ELECTRON_RENDERER_URL;
-  rendererUrl = developmentUrl
-    ? new URL(developmentUrl).href
-    : pathToFileURL(path || defaultRenderer).href;
+  rendererUrl = (!path && developmentRendererUrl) || pathToFileURL(path || defaultRenderer).href;
   try {
     await window.loadURL(rendererUrl);
   } catch (error) {
@@ -303,7 +304,15 @@ function createWindow() {
   window.webContents.on('did-fail-load', (_event, code, _description, _url, isMainFrame) => {
     if (isMainFrame) applicationLog.record('renderer.load.failed', { code });
   });
-  window.webContents.on('will-navigate', (event) => event.preventDefault());
+  window.webContents.on('will-navigate', (event) => {
+    // Vite reloads the page when its dependency graph changes during development.
+    if (
+      !developmentRendererUrl ||
+      rendererUrl !== developmentRendererUrl ||
+      event.url !== developmentRendererUrl
+    )
+      event.preventDefault();
+  });
   window.webContents.on('will-attach-webview', (event) => event.preventDefault());
   window.webContents.on('before-input-event', (_event, input) => {
     if (input.control && input.shift && input.key === 'F12') {
