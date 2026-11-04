@@ -16,7 +16,7 @@
 
 在对应操作系统构建并验证该平台产物。macOS 的 DMG 与代码签名需要 macOS 主机；Linux DEB 需要 Linux 打包环境。默认 Windows 和 Linux 为 x64，可先 `pnpm build`，再用 `pnpm exec electron-builder --win --arm64 --publish never` 或 `--linux --arm64` 显式选择 arm64；其他架构需要分别验证游戏 Java 与加载器支持。
 
-Linux DEB 还要求项目主页元数据：在 `package.json` 的 `homepage` 填写确定的官网或仓库 URL。当前仓库没有该字段或 Git remote，DEB 阶段会报 `Please specify project homepage`；待项目地址确定后填写。单独生成 AppImage 可在构建后执行 `pnpm exec electron-builder --linux AppImage --publish never`。
+Linux DEB 的项目主页元数据已配置为 `https://nixel.origin173.top`，仓库元数据为 `https://github.com/Origin173/NixelLauncher.git`。仓库地址按用户确定的后续位置记录，打包不会创建仓库或发布产物。单独生成 AppImage 可在构建后执行 `pnpm exec electron-builder --linux AppImage --publish never`。
 
 Windows 文件名分别为 `NixelLauncher-<版本>-windows-x64-setup.exe` 和 `NixelLauncher-<版本>-windows-x64-portable.exe`。安装程序允许选择目录，默认按当前用户安装，不默认创建桌面快捷方式。卸载保留应用数据。便携版免安装，但默认数据目录仍是系统应用数据目录；需要随目录携带数据时，明确设置绝对路径 `NIXEL_DATA_DIR`。
 

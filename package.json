@@ -2,6 +2,11 @@
   "name": "nixellauncher",
   "version": "0.1.0",
   "description": "A local-first Minecraft Java Edition launcher",
+  "homepage": "https://nixel.origin173.top",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Origin173/NixelLauncher.git"
+  },
   "author": "NixelLauncher contributors",
   "private": true,
   "type": "module",
