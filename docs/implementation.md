@@ -14,62 +14,66 @@ CurseForge provider 与插件 ID 为 `nixel.resources.curseforge`。资源命令
 
 `window.nixel.invoke<T>(command, params)` 使用以下命令。返回值为真实数据，长任务返回 `{ taskId: string }` 并通过快照推送进度。
 
-| 命令                           | 参数                                                        | 返回                                                              |
-| ------------------------------ | ----------------------------------------------------------- | ----------------------------------------------------------------- |
-| `settings.update`              | `Partial<LauncherSettings>`                                 | `void`                                                            |
-| `tasks.cancel` / `tasks.retry` | `{ id }`                                                    | `void` / `{ taskId }`                                             |
-| `tasks.clear`                  | 无                                                          | `void`                                                            |
-| `plugins.setEnabled`           | `{ id, enabled }`                                           | `void`                                                            |
-| `plugins.configure`            | `{ id, config }`                                            | `void`                                                            |
-| `plugins.install`              | `{ directory }`（包含 nixel-plugin.json）                   | `void`                                                            |
-| `plugins.remove`               | `{ id }`                                                    | `void`                                                            |
-| `game.versions`                | `{ instanceId? }` 或无参                                    | `VersionEntry[]`                                                  |
-| `game.loaders`                 | `{ version, loader, instanceId? }`                          | `VersionEntry[]`                                                  |
-| `instances.create`             | `CreateInstanceInput`                                       | `{ instanceId, taskId? }`                                         |
-| `instances.update`             | `{ id, patch: Partial<Instance> }`                          | `void`                                                            |
-| `instances.delete`             | `{ id, deleteFiles: boolean }`                              | `void`                                                            |
-| `instances.install`            | `{ id }`                                                    | `{ taskId }`                                                      |
-| `instances.planVersionChange`  | `{ id, target: InstanceVersionTarget }`                     | `InstanceVersionPlan`                                             |
-| `instances.changeVersion`      | `ChangeInstanceVersionInput`                                | `{ taskId }`                                                      |
-| `instances.launch`             | `{ id, accountId? }`                                        | `{ taskId }`                                                      |
-| `instances.stop`               | `{ id }`                                                    | `void`                                                            |
-| `instances.files`              | `{ id, kind: 'saves' \| 'screenshots' \| 'crash-reports' }` | `InstanceFile[]`                                                  |
-| `instances.logs`               | `{ id }`                                                    | `string[]`                                                        |
-| `instances.import`             | `{ path, name? }`                                           | `{ taskId }`                                                      |
-| `instances.export`             | `{ id, path }`                                              | `{ taskId }`                                                      |
-| `java.list`                    | 无                                                          | `JavaRuntime[]`                                                   |
-| `java.inspect`                 | `{ path }`                                                  | `JavaRuntime`                                                     |
-| `java.install`                 | `{ major }`                                                 | `{ taskId }`                                                      |
-| `instances.detectDirectory`    | `{ path }`                                                  | `{ versionId, version, loader, loaderVersion?, launchVersion }[]` |
-| `instances.importDirectory`    | `{ path, name?, versionId? }`                               | `{ taskId }`                                                      |
-| `instances.clone`              | `{ id, name? }`                                             | `{ taskId }`                                                      |
-| `backups.list`                 | `{ instanceId? }` 或无参，省略实例时列出全部历史            | `InstanceBackup[]`，按创建时间倒序                                |
-| `backups.create`               | `{ instanceId }`                                            | `{ taskId }`                                                      |
-| `backups.restore`              | `{ id }`，备份 ID                                           | `{ taskId }`，任务的 `instanceId` 指向恢复的新实例                |
-| `backups.delete`               | `{ id }`，备份 ID                                           | `void`                                                            |
-| `content.import`               | `{ instanceId, category, paths: string[] }`                 | `{ taskId }`                                                      |
-| `accounts.addOffline`          | `{ name }`                                                  | `Account`                                                         |
-| `accounts.remove`              | `{ id }`                                                    | `void`                                                            |
-| `accounts.refresh`             | `{ id }`                                                    | `Account`                                                         |
-| `accounts.microsoft.start`     | 无（Host 从 `.env` 读取客户端 ID）                          | `DeviceLogin`                                                     |
-| `accounts.microsoft.poll`      | `{ id }`                                                    | `{ status: 'pending' \| 'complete'; account?: Account }`          |
-| `accounts.yggdrasil.login`     | `{ server, username, password }`                            | `Account`                                                         |
-| `resources.search`             | `ResourceQuery`                                             | `ResourceSearchResult`（items、total、hasMore、warnings）         |
-| `resources.versions`           | `{ projectId, instanceId?, source? }`                       | `ResourceVersion[]`                                               |
-| `resources.details`            | `{ projectId, source }`                                     | `ResourceDetails \| null`                                         |
-| `resources.versionDetails`     | `{ projectId, versionId, source }`                          | `ResourceVersionDetails \| null`                                  |
-| `resources.install`            | `{ projectId, versionId, instanceId?, source? }`            | `{ taskId }`                                                      |
-| `content.list`                 | `{ instanceId }`                                            | `InstalledContent[]`（同步快照）                                  |
-| `content.setEnabled`           | `{ instanceId, id, enabled }`                               | `void`                                                            |
-| `content.remove`               | `{ instanceId, id }`                                        | `void`                                                            |
-| `content.checkUpdates`         | `{ instanceId }`                                            | `{ taskId }`                                                      |
-| `content.update`               | `{ instanceId, updates: ContentUpdateTarget[] }`            | `{ taskId }`                                                      |
+| 命令                               | 参数                                                        | 返回                                                              |
+| ---------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------- |
+| `settings.update`                  | `Partial<LauncherSettings>`                                 | `void`                                                            |
+| `tasks.cancel` / `tasks.retry`     | `{ id }`                                                    | `void` / `{ taskId }`                                             |
+| `tasks.clear`                      | 无                                                          | `void`                                                            |
+| `plugins.setEnabled`               | `{ id, enabled }`                                           | `void`                                                            |
+| `plugins.configure`                | `{ id, config }`                                            | `void`                                                            |
+| `plugins.install`                  | `{ directory }`（包含 nixel-plugin.json）                   | `void`                                                            |
+| `plugins.remove`                   | `{ id }`                                                    | `void`                                                            |
+| `game.versions`                    | `{ instanceId? }` 或无参                                    | `VersionEntry[]`                                                  |
+| `game.loaders`                     | `{ version, loader, instanceId? }`                          | `VersionEntry[]`                                                  |
+| `instances.create`                 | `CreateInstanceInput`                                       | `{ instanceId, taskId? }`                                         |
+| `instances.update`                 | `{ id, patch: Partial<Instance> }`                          | `void`                                                            |
+| `instances.delete`                 | `{ id, deleteFiles: boolean }`                              | `void`                                                            |
+| `instances.install`                | `{ id }`                                                    | `{ taskId }`                                                      |
+| `instances.planVersionChange`      | `{ id, target: InstanceVersionTarget }`                     | `InstanceVersionPlan`                                             |
+| `instances.changeVersion`          | `ChangeInstanceVersionInput`                                | `{ taskId }`                                                      |
+| `instances.launch`                 | `{ id, accountId? }`                                        | `{ taskId }`                                                      |
+| `instances.stop`                   | `{ id }`                                                    | `void`                                                            |
+| `instances.files`                  | `{ id, kind: 'saves' \| 'screenshots' \| 'crash-reports' }` | `InstanceFile[]`                                                  |
+| `instances.logs`                   | `{ id }`                                                    | `string[]`                                                        |
+| `instances.import`                 | `{ path, name? }`                                           | `{ taskId }`                                                      |
+| `instances.export`                 | `{ id, path }`                                              | `{ taskId }`                                                      |
+| `java.list`                        | 无                                                          | `JavaRuntime[]`                                                   |
+| `java.inspect`                     | `{ path }`                                                  | `JavaRuntime`                                                     |
+| `java.install`                     | `{ major }`                                                 | `{ taskId }`                                                      |
+| `instances.detectDirectory`        | `{ path }`                                                  | `{ versionId, version, loader, loaderVersion?, launchVersion }[]` |
+| `instances.importDirectory`        | `{ path, name?, versionId? }`                               | `{ taskId }`                                                      |
+| `instances.clone`                  | `{ id, name? }`                                             | `{ taskId }`                                                      |
+| `backups.list`                     | `{ instanceId? }` 或无参，省略实例时列出全部历史            | `InstanceBackup[]`，按创建时间倒序                                |
+| `backups.create`                   | `{ instanceId }`                                            | `{ taskId }`                                                      |
+| `backups.restore`                  | `{ id }`，备份 ID                                           | `{ taskId }`，任务的 `instanceId` 指向恢复的新实例                |
+| `backups.delete`                   | `{ id }`，备份 ID                                           | `void`                                                            |
+| `content.import`                   | `{ instanceId, category, paths: string[] }`                 | `{ taskId }`                                                      |
+| `accounts.addOffline`              | `{ name }`                                                  | `Account`                                                         |
+| `accounts.remove`                  | `{ id }`                                                    | `void`                                                            |
+| `accounts.refresh`                 | `{ id }`                                                    | `Account`                                                         |
+| `accounts.microsoft.start`         | 无（Host 从 `.env` 读取客户端 ID）                          | `DeviceLogin`                                                     |
+| `accounts.microsoft.poll`          | `{ id }`                                                    | `{ status: 'pending' \| 'complete'; account?: Account }`          |
+| `accounts.yggdrasil.login`         | `{ server, username, password, accountId? }`                | `YggdrasilLoginResult`：完成或返回待选角色会话                    |
+| `accounts.yggdrasil.selectProfile` | `{ id, profileId }`                                         | `Account`                                                         |
+| `accounts.yggdrasil.cancel`        | `{ id }`                                                    | `void`                                                            |
+| `resources.search`                 | `ResourceQuery`                                             | `ResourceSearchResult`（items、total、hasMore、warnings）         |
+| `resources.versions`               | `{ projectId, instanceId?, source? }`                       | `ResourceVersion[]`                                               |
+| `resources.details`                | `{ projectId, source }`                                     | `ResourceDetails \| null`                                         |
+| `resources.versionDetails`         | `{ projectId, versionId, source }`                          | `ResourceVersionDetails \| null`                                  |
+| `resources.install`                | `{ projectId, versionId, instanceId?, source? }`            | `{ taskId }`                                                      |
+| `content.list`                     | `{ instanceId }`                                            | `InstalledContent[]`（同步快照）                                  |
+| `content.setEnabled`               | `{ instanceId, id, enabled }`                               | `void`                                                            |
+| `content.remove`                   | `{ instanceId, id }`                                        | `void`                                                            |
+| `content.checkUpdates`             | `{ instanceId }`                                            | `{ taskId }`                                                      |
+| `content.update`                   | `{ instanceId, updates: ContentUpdateTarget[] }`            | `{ taskId }`                                                      |
 
 Microsoft 登录使用 `.env` 的 `MICROSOFT_CLIENT_ID`，CurseForge 使用 `CURSEFORGE_API_KEY`，Modrinth 可选 `MODRINTH_TOKEN`。服务配置不进入界面设置或快照；Host 缓存后从环境移除服务凭据。玩家 Token 由主进程 safeStorage 加密保存，只在 Host 与系统桥接内传递。离线角色使用标准 OfflinePlayer UUID。
 
 内存字段统一存储 MiB，默认 `4096`；界面以 GB 展示时换算。实例 `memory: null` 继承全局值。账号鉴权按账号记录的 `provider` 解析；实例账号 provider 为空时继承所选账号。
 
 启动账号由共享 `launchAccountId` 解析：显式 `accountId` > 当前主页实例的 `launchAccount` > 实例默认账号 > 全局默认账号。主页选择不会泄漏到其他实例；切换实例会清空临时账号选择。启动任务绑定提交时的账号，重试也使用该账号；删除账号会清理全局、主页与实例引用。默认界面在账号不可用时显示选择弹窗，添加账号后回到启动确认。
+
+Yggdrasil 登录返回 `{ status: 'complete', account }` 或 `{ status: 'select-profile', id, profiles }`。待选 ID 指向 Host 内存中的未绑定令牌，十分钟过期；`selectProfile` 只接受该会话中的角色，通过 refresh 绑定后保存。传入 `accountId` 表示重新认证并替换已有记录的角色，保留记录 ID、默认引用和原认证服务器；游戏使用中的账号不能切换。刷新已绑定令牌不发送 `selectedProfile`，角色不一致时要求重新登录。
 
 实例设置中的“服务插件”按已启用提供者生成选项，保存到实例的 `providers`；账号服务可选择跟随所选账号。preload 的 `selectPath` 选择单文件或目录，`selectFiles` 使用原生多选文件窗口，取消返回空数组。本地内容导入将所选路径列表一次交给 `content.import`，由内容插件处理任务、冲突检查与文件复制。
 

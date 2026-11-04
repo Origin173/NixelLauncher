@@ -59,6 +59,13 @@ export interface Instance {
   kind: string;
   hours: string;
 }
+export interface AccountProfile {
+  id: string;
+  name: string;
+}
+export type YggdrasilLoginResult =
+  | { status: 'complete'; account: Account }
+  | { status: 'select-profile'; id: string; profiles: AccountProfile[] };
 export interface Account {
   id: string;
   name: string;

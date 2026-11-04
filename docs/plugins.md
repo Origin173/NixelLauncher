@@ -58,6 +58,8 @@ ctx.nixel.providers.register(
 
 游戏、资源和账号实现分别遵循 [`providers.ts`](../src/plugins/providers.ts) 的 `GameProvider`、`ResourceProvider`、`AccountProvider`。实例包含 `providers` 和 `providerConfig`；资源安装与游戏启动收到完整实例。账号鉴权实现只向游戏提供者返回会话，公开账号与快照不包含令牌。
 
+内置 Yggdrasil 提供者按 [服务端协议](https://yushijinhun.github.io/authlib-injector/en/yggdrasil-server-technical-specification.html) 区分未绑定与已绑定令牌：仅未绑定令牌通过 refresh 的 `selectedProfile` 选择角色。账号切换先重新认证；待选流程向界面返回不含令牌的会话 ID 与角色列表，凭据和清理计时器留在 Host 插件作用域。默认界面通过账号命令交互，不直接请求认证服务。
+
 游戏提供者的 `versions(signal?)`、`loaders(version, loader, signal?)` 与资源提供者的 `versions(projectId, instance?, signal?)` 可接收取消信号，用于版本变更任务中的目录与兼容性检查；已有实现可继续忽略可选参数。资源版本列表应只返回适用于传入实例的版本，管理插件用准确版本 ID 判断已安装文件是否兼容。
 
 版本变更复用游戏提供者的 `install(instance, task)`：传入实例包含明确的新版本与加载器版本，持久化记录仍保留旧版本选择。提供者按传入目标安装并返回启动版本 ID，管理插件在成功后提交选择。提供者应保留原游戏版本文件、存档、内容与用户配置，不提前更改活动启动版本。任务支持取消；自动备份由实例管理插件完成。

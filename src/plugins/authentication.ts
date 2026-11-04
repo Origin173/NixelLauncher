@@ -62,26 +62,3 @@ export async function minecraftSession(microsoftToken: string, signal?: AbortSig
   );
   return { ...minecraft, xuid: xsts.DisplayClaims.xui[0]?.xid };
 }
-
-interface YggdrasilResponse {
-  accessToken: string;
-  clientToken: string;
-  selectedProfile?: { id: string; name: string };
-}
-export class YggdrasilClient {
-  constructor(private readonly server: string) {}
-  login(input: { username: string; password: string; clientToken: string }) {
-    return post<YggdrasilResponse>(`${this.server}/authserver/authenticate`, {
-      ...input,
-      agent: { name: 'Minecraft', version: 1 },
-      requestUser: true,
-    });
-  }
-  refresh(input: { accessToken: string; clientToken: string }, signal?: AbortSignal) {
-    return post<YggdrasilResponse>(
-      `${this.server}/authserver/refresh`,
-      { ...input, requestUser: true },
-      signal,
-    );
-  }
-}

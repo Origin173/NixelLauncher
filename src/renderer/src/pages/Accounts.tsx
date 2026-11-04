@@ -52,6 +52,15 @@ export function AccountsPage() {
                   </p>
                 </div>
                 <div className="account-actions">
+                  {p.type === 'yggdrasil' && (
+                    <Action
+                      size="sm"
+                      variant="ghost"
+                      onPress={() => a.setOverlay({ type: 'account', accountId: p.id })}
+                    >
+                      {tr('accountProfiles.switch')}
+                    </Action>
+                  )}
                   {p.type !== 'offline' && (
                     <IconButton
                       icon="refresh"

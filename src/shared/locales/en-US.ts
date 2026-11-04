@@ -1,6 +1,8 @@
+import { accountProfilesEn } from './account-profiles';
 import { backupRetentionEn } from './backup-retention';
 
 export default {
+  ...accountProfilesEn,
   ...backupRetentionEn,
   'versionChange.title': 'Change version',
   'versionChange.disabled': 'Disabled',

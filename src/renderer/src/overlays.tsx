@@ -1,7 +1,8 @@
 import { Drawer } from '@heroui/react';
 import { useEffect, useState } from 'react';
-import type { Account, DeviceLogin, Loader, VersionEntry } from '../../shared/contracts';
+import type { Loader, VersionEntry } from '../../shared/contracts';
 import { label, tr } from '../../shared/i18n';
+import { AccountDialog } from './accounts/AccountDialog';
 import { Brand, Icon } from './icons';
 import { VersionChangeDialog } from './instances/VersionChangeDialog';
 import { Landscape } from './Landscape';
@@ -42,7 +43,8 @@ function OverlayContent({ overlay: o }: { overlay: Overlay }) {
   if (!o) return null;
   if (o.type === 'create') return <CreateDialog />;
   if (o.type === 'version-change') return <VersionChangeDialog instanceId={o.instanceId} />;
-  if (o.type === 'account') return <AccountDialog instanceId={o.instanceId} />;
+  if (o.type === 'account')
+    return <AccountDialog instanceId={o.instanceId} accountId={o.accountId} />;
   if (o.type === 'launch-account')
     return <LaunchAccountDialog instanceId={o.instanceId} accountId={o.accountId} />;
   if (o.type === 'resource')
@@ -387,183 +389,6 @@ function LaunchAccountDialog({
             </Action>
           )}
         </div>
-      </div>
-    </Dialog>
-  );
-}
-
-function AccountDialog({ instanceId }: { instanceId?: string }) {
-  const a = useApp();
-  const [type, setType] = useState('microsoft');
-  const [name, setName] = useState('');
-  const [server, setServer] = useState('');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState('');
-  const [device, setDevice] = useState<DeviceLogin | null>(null);
-  const visible = a.overlay?.type === 'account';
-  useEffect(() => {
-    if (!device || !visible || type !== 'microsoft') return;
-    let active = true;
-    let timer: ReturnType<typeof setTimeout>;
-    const poll = async () => {
-      if (Date.now() > device.expiresAt) {
-        if (active) {
-          setError(tr('overlays.theDeviceCodeHasExpiredRequestA'));
-          setDevice(null);
-        }
-        return;
-      }
-      try {
-        const result = await window.nixel.invoke<{
-          status: 'pending' | 'complete';
-          account?: Account;
-        }>('accounts.microsoft.poll', { id: device.id });
-        if (!active) return;
-        if (result.status === 'complete') {
-          a.setOverlay(
-            instanceId
-              ? { type: 'launch-account', instanceId, accountId: result.account?.id }
-              : null,
-          );
-          return;
-        }
-        timer = setTimeout(() => void poll(), device.interval * 1000);
-      } catch (e) {
-        if (active) {
-          setError(message(e));
-          setDevice(null);
-        }
-      }
-    };
-    timer = setTimeout(() => void poll(), device.interval * 1000);
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [device, visible, type, instanceId, a.setOverlay]);
-  const submit = async () => {
-    setPending(true);
-    setError('');
-    try {
-      if (type === 'microsoft') {
-        const result = await window.nixel.invoke<DeviceLogin>('accounts.microsoft.start');
-        setDevice(result);
-        await window.nixel.openExternal(result.verificationUri);
-      } else {
-        const account = await window.nixel.invoke<Account>(
-          type === 'offline' ? 'accounts.addOffline' : 'accounts.yggdrasil.login',
-          type === 'offline' ? { name: name.trim() } : { server, username, password },
-        );
-        a.setOverlay(
-          instanceId ? { type: 'launch-account', instanceId, accountId: account.id } : null,
-        );
-      }
-    } catch (e) {
-      setError(message(e));
-    } finally {
-      setPending(false);
-    }
-  };
-  const disabled =
-    type === 'microsoft'
-      ? false
-      : type === 'offline'
-        ? !/^[A-Za-z0-9_]{1,16}$/.test(name)
-        : !server || !username || !password;
-  return (
-    <Dialog
-      open={a.overlay !== null}
-      onClose={() => a.setOverlay(null)}
-      title={tr('overlays.addAccount')}
-      footer={
-        <>
-          <Action variant="secondary" onPress={() => a.setOverlay(null)}>
-            {tr('overlays.cancel')}
-          </Action>
-          <Action
-            isPending={pending}
-            isDisabled={disabled || Boolean(device)}
-            icon={type === 'microsoft' ? 'arrow' : 'plus'}
-            onPress={() => void submit()}
-          >
-            {type === 'microsoft' ? tr('overlays.getDeviceCode') : tr('overlays.addAccount')}
-          </Action>
-        </>
-      }
-    >
-      <div className="stack">
-        <Segments
-          value={type}
-          options={['microsoft', 'offline', 'yggdrasil']}
-          onChange={setType}
-          label={tr('overlays.accountType')}
-        />
-        {type === 'microsoft' &&
-          (device ? (
-            <div className="auth-preview">
-              <div className="microsoft-logo">
-                <i />
-                <i />
-                <i />
-                <i />
-              </div>
-              <p>{tr('overlays.signInToMicrosoftInYourBrowser')}</p>
-              <strong className="auth-code">{device.userCode}</strong>
-              <div className="row">
-                <Action
-                  size="sm"
-                  variant="secondary"
-                  icon="copy"
-                  onPress={() => void navigator.clipboard.writeText(device.userCode)}
-                >
-                  {tr('overlays.copyCode')}
-                </Action>
-                <Action
-                  size="sm"
-                  variant="secondary"
-                  onPress={() => void window.nixel.openExternal(device.verificationUri)}
-                >
-                  {tr('overlays.openSignInPage')}
-                </Action>
-              </div>
-              <p className="muted">{tr('overlays.waitingForAuthorization')}</p>
-            </div>
-          ) : (
-            <Notice>{tr('overlays.signInTakesPlaceInYourBrowser')}</Notice>
-          ))}
-        {type === 'offline' && (
-          <>
-            <Field
-              label={tr('overlays.profileName')}
-              value={name}
-              onChange={setName}
-              placeholder="Player"
-              description={tr('overlays.116LettersNumbersOrUnderscores')}
-            />
-            <Notice>{tr('overlays.offlineProfilesWorkWithLocalGamesAnd')}</Notice>
-          </>
-        )}
-        {type === 'yggdrasil' && (
-          <>
-            <Field
-              label={tr('overlays.yggdrasilAuthenticationServer')}
-              type="url"
-              value={server}
-              onChange={setServer}
-              placeholder="https://example.com/api/yggdrasil"
-            />
-            <Field label={tr('overlays.usernameOrEmail')} value={username} onChange={setUsername} />
-            <Field
-              label={tr('overlays.password')}
-              type="password"
-              value={password}
-              onChange={setPassword}
-            />
-          </>
-        )}
-        {error && <Notice tone="danger">{error}</Notice>}
       </div>
     </Dialog>
   );

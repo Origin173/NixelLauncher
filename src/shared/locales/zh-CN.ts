@@ -1,6 +1,8 @@
+import { accountProfilesZh } from './account-profiles';
 import { backupRetentionZh } from './backup-retention';
 
 export default {
+  ...accountProfilesZh,
   ...backupRetentionZh,
   'versionChange.title': '更换版本',
   'versionChange.disabled': '已停用',
