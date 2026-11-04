@@ -5,6 +5,7 @@ import { tr } from '../shared/i18n';
 export class SecretStorage {
   private values: Record<string, string> = {};
   private storage: JsonStorage;
+  private pending: Promise<void> = Promise.resolve();
 
   constructor(directory: string) {
     this.storage = new JsonStorage(directory);
@@ -30,14 +31,28 @@ export class SecretStorage {
     return safeStorage.decryptString(Buffer.from(encrypted, 'base64'));
   }
 
+  private update(mutate: (values: Record<string, string>) => void) {
+    const update = this.pending.then(async () => {
+      const values = { ...this.values };
+      mutate(values);
+      await this.storage.write('secrets', values);
+      this.values = values;
+    });
+    this.pending = update.catch(() => {});
+    return update;
+  }
+
   async set(key: string, value: string) {
     this.assertAvailable();
-    this.values[key] = safeStorage.encryptString(value).toString('base64');
-    await this.storage.write('secrets', this.values);
+    const encrypted = safeStorage.encryptString(value).toString('base64');
+    await this.update((values) => {
+      values[key] = encrypted;
+    });
   }
 
   async delete(key: string) {
-    delete this.values[key];
-    await this.storage.write('secrets', this.values);
+    await this.update((values) => {
+      delete values[key];
+    });
   }
 }
