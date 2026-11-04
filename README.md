@@ -42,6 +42,8 @@ pnpm dev
 
 离线角色、Microsoft 与第三方 Yggdrasil 认证分别由账号插件提供。玩家登录令牌由主进程系统安全存储加密。更换 Microsoft 客户端 ID 后，新登录使用新配置；已有账号刷新仍使用登录时绑定的客户端 ID。
 
+Microsoft 设备授权要求应用支持公共客户端流程。在 Microsoft Entra 应用注册的「身份验证 → 高级设置」中启用移动和桌面的公共客户端流，参见 [Microsoft 配置说明](https://learn.microsoft.com/en-us/troubleshoot/entra/entra-id/app-integration/confidential-client-application-authentication-error-aadsts7000218#resolution)。服务返回 `invalid_client` 时，启动器会提示检查客户端 ID 与此设置；账号授权和 Minecraft 服务访问仍由微软验证。
+
 第三方认证返回多个可用角色时，选择角色后再保存账号。账号页的“切换角色”通过重新登录取得新会话，保留账号记录及实例默认账号引用；已绑定会话刷新时保持原角色。待选凭据只保存在 Host 内存，取消、过期或停用插件后释放。
 
 Microsoft 账号的“皮肤与披风”支持旋转与缩放角色预览、上传 PNG、选择 Classic / Slim 模型、恢复默认皮肤，以及启用或停用账号拥有的披风。外观管理通过独立 `nixel.skins` 插件调用账号提供者，见 [皮肤与披风](docs/skins.md)。

@@ -244,6 +244,8 @@ export default {
   'accounts.microsoftCredentialsNotFound': 'Microsoft 登录凭据不存在',
   'accounts.setMicrosoftClientIdInEnvAnd':
     '请在 .env 配置 MICROSOFT_CLIENT_ID 并重启启动器。该应用需启用设备代码流程与 Minecraft 服务访问权限。',
+  'accounts.microsoftClientConfigurationRejected':
+    'Microsoft 拒绝了应用的登录配置。请检查客户端 ID，并在 Microsoft Entra 应用注册的「身份验证」中确认已启用「允许公共客户端流」（移动和桌面流）。',
   'accounts.cannotStartMicrosoftSignInHttpValue':
     '无法开始 Microsoft 登录：HTTP {{value1}}，请检查客户端 ID 与应用权限',
   'accounts.theDeviceCodeHasExpiredSignIn': '设备代码已过期，请重新登录',

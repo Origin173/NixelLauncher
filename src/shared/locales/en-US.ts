@@ -276,6 +276,8 @@ export default {
   'accounts.microsoftCredentialsNotFound': 'Microsoft credentials not found',
   'accounts.setMicrosoftClientIdInEnvAnd':
     'Set MICROSOFT_CLIENT_ID in .env and restart the launcher. Enable device code flow and Minecraft service access for your application.',
+  'accounts.microsoftClientConfigurationRejected':
+    'Microsoft rejected the app’s sign-in configuration. Check the client ID and confirm that Allow public client flows for mobile and desktop is enabled under Authentication in your Microsoft Entra app registration.',
   'accounts.cannotStartMicrosoftSignInHttpValue':
     'Cannot start Microsoft sign-in: HTTP {{value1}}. Check the client ID and application permissions',
   'accounts.theDeviceCodeHasExpiredSignIn': 'The device code has expired. Sign in again',

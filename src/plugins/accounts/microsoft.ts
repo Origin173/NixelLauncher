@@ -151,10 +151,15 @@ export const microsoftPlugin = {
         signal: lifetime.signal,
         body: new URLSearchParams({ client_id: clientId, scope }),
       });
-      if (!response.ok)
+      if (!response.ok) {
+        const failure: { error?: unknown } | null = await response.json().catch(() => null);
+        lifetime.signal.throwIfAborted();
+        if (failure?.error === 'invalid_client')
+          throw new Error(tr('accounts.microsoftClientConfigurationRejected'));
         throw new Error(
           tr('accounts.cannotStartMicrosoftSignInHttpValue', { value1: response.status }),
         );
+      }
       const code = (await response.json()) as {
         device_code: string;
         user_code: string;
