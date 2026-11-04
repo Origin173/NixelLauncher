@@ -18,17 +18,42 @@ export function registerUpgrade(ctx: Context, backups: BackupRepository) {
   });
   command('modpacks.prepareUpgrade', (input: ModpackUpgradeTarget) => {
     assertInstanceIdle(host, input.id);
+    const currentSource = getInstance(host, input.id).modpack?.provenance;
+    if (
+      input.source !== undefined &&
+      (!input.versionId ||
+        !input.source ||
+        !currentSource ||
+        currentSource.source !== input.source.source ||
+        currentSource.projectId !== input.source.projectId)
+    )
+      throw new Error(tr('packUpgrade.changed'));
+    const provenance =
+      input.versionId && currentSource
+        ? { ...currentSource, versionId: input.versionId }
+        : undefined;
     const planId = newPlanId();
     return {
       planId,
       taskId: host.tasks.start(
         tr('packUpgrade.prepare'),
         tr('packUpgrade.preparing'),
-        (task) => prepareUpgrade(host, input, planId, task),
+        async (task) => {
+          await prepareUpgrade(host, input, provenance, planId, task);
+          return { resultId: planId };
+        },
         {
           instanceId: input.id,
           kind: 'pack-prepare',
-          retry: { command: 'modpacks.prepareUpgrade', params: { ...input } },
+          retry: {
+            command: 'modpacks.prepareUpgrade',
+            params: {
+              id: input.id,
+              path: input.path,
+              versionId: input.versionId,
+              source: provenance && { source: provenance.source, projectId: provenance.projectId },
+            },
+          },
         },
       ),
     };

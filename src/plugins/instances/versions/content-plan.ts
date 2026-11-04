@@ -37,9 +37,13 @@ export async function readContentPlan(
   host: NixelHost,
   id: string,
 ): Promise<PreparedVersionContent> {
-  return JSON.parse(
-    await readFile(join(contentPlanDirectory(host, id), 'plan.json'), 'utf8'),
-  ) as PreparedVersionContent;
+  const raw = await readFile(join(contentPlanDirectory(host, id), 'plan.json'), 'utf8').catch(
+    (error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT') throw new Error(tr('versionContent.expired'));
+      throw error;
+    },
+  );
+  return JSON.parse(raw) as PreparedVersionContent;
 }
 export async function planVersionContent(
   host: NixelHost,

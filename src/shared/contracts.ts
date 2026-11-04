@@ -213,6 +213,8 @@ export interface Task {
   resourceSource?: string;
   createdAt: string;
   finishedAt?: string;
+  /** Public reference to a completed result owned by the task's plugin. */
+  resultId?: string;
   /** Replays a command against the currently enabled plugins; never contains credentials. */
   retry?: { command: string; params: Record<string, unknown> };
 }

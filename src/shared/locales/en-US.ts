@@ -666,6 +666,7 @@ export default {
   'overlays.valueProgress': '{{value1}} progress',
   'overlays.taskLog': 'Task log',
   'overlays.retry': 'Retry',
+  'overlays.viewPlan': 'View plan',
   'overlays.noTaskLogYet': 'No task log yet.',
   'overlays.noTasksYet': 'No tasks yet',
   'overlays.installAGameOrAddResourcesTo': 'Install a game or add resources to see progress here.',

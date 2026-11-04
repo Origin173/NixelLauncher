@@ -1,5 +1,5 @@
 export const modpackUpgradeEn = {
-  'packUpgrade.cleanupFailed': 'Upgrade completed; rollback cache cleanup failed: {{error}}',
+  'packUpgrade.cleanupFailed': 'Upgrade completed; preview cache cleanup failed: {{error}}',
   'packUpgrade.chooseAction': 'Choose an action',
   'packUpgrade.caseChanged':
     'The new pack changes only the casing of this path. Resolve the path names before upgrading: {{path}}',
@@ -45,7 +45,7 @@ export const modpackUpgradeEn = {
   'packUpgrade.target': 'Target: Minecraft {{version}} · {{loader}}',
 } as const;
 export const modpackUpgradeZh = {
-  'packUpgrade.cleanupFailed': '升级已完成，回滚缓存清理失败：{{error}}',
+  'packUpgrade.cleanupFailed': '升级已完成，预览缓存清理失败：{{error}}',
   'packUpgrade.chooseAction': '选择处理方式',
   'packUpgrade.caseChanged': '新版仅修改了此路径的大小写，请先统一路径名称再升级：{{path}}',
   'packUpgrade.interrupted': '整合包升级尚未提交；若进程中断，请在启动前恢复备份 {{id}}。',

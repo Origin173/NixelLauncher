@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { copyFile, mkdir } from 'node:fs/promises';
+import { copyFile, mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ChangeInstanceVersionInput, InstalledContent } from '../../../shared/contracts';
 import { errorMessage } from '../../../shared/error-message';
@@ -155,7 +155,7 @@ export async function changeVersion(
     throw error;
   }
   try {
-    await transaction.cleanup();
+    await rm(directory, { recursive: true, force: true });
   } catch (error) {
     task.log(tr('versionContent.cleanupFailed', { error: errorMessage(error) }));
   }

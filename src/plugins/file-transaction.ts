@@ -71,7 +71,4 @@ export class FileTransaction {
     }
     if (failures.length) throw new AggregateError(failures, tr('fileTransaction.rollbackFailed'));
   }
-  async cleanup() {
-    await rm(this.rollbackRoot, { recursive: true, force: true });
-  }
 }

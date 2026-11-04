@@ -1,3 +1,4 @@
+import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { NixelHost, TaskContext } from '../../shared/host-api';
 import { tr } from '../../shared/i18n';
@@ -145,7 +146,7 @@ export async function applyUpgrade(
     throw error;
   }
   try {
-    await transaction.cleanup();
+    await rm(directory, { recursive: true, force: true });
   } catch (error) {
     task.log(
       tr('packUpgrade.cleanupFailed', {

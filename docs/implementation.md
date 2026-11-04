@@ -96,6 +96,8 @@ Yggdrasil 登录返回 `{ status: 'complete', account }` 或 `{ status: 'select-
 
 内置长任务在 `Task.retry` 中保存 `{ command, params }`，参数不含账号凭据。`tasks.retry` 通过当前命令注册表执行，重新校验实例占用和插件状态；历史任务保持不变，返回新任务 ID。取消或进程中断不会自动重试。插件自定义任务未提供描述符时，仅当前 Host 生命周期内可使用原执行函数重试。
 
+`TaskManager.start` 的执行函数可返回 `void` 或 `{ resultId: string }`。Host 在成功完成后将公开结果引用写入 `Task.resultId` 并持久化，失败和取消任务不发布结果引用；实际内容及有效期由业务插件管理。默认界面按任务类型打开整合包或版本变更确认，使用插件的计划读取命令获取内容。`tasks.retry` 仍只返回 `{ taskId }`，重试成功的任务保存自己的结果引用。
+
 `tasks.pause` 与 `tasks.resume` 调用当前下载阶段注册的 `TaskContext.setControls`。暂停或排队使用 `Task.activity` 表示，`Task.status` 仍为 `running`，保持实例和插件占用；阶段结束释放控制，重启清除运行时标记。`downloads.configure` 保存插件的并发与限速，`downloads.status` 读取配置，公开下载提供者见 [下载管理](downloads.md)。
 
 下载配置的 `mirror` 为 `{ mode: 'official' | 'bmclapi' | 'custom', baseUrl }`，缺省为官方。`downloads.configure` 合并顶层更新，镜像与调度表单分别保存自身字段。精确映射范围、重定向和日志约定见 [下载镜像](download-mirrors.md)。

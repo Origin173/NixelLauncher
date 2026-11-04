@@ -9,7 +9,7 @@ import { migrateIdentifier } from '../shared/migrate-identifiers';
 import { taskScope } from '../shared/task-scope';
 import type { JsonStorage } from './storage';
 
-type Runner = (context: TaskContext) => Promise<void>;
+type Runner = Parameters<TaskManager['start']>[2];
 interface TaskRun {
   abort: AbortController;
   promise: Promise<void>;
@@ -153,8 +153,11 @@ export class HostTasks implements TaskManager {
         };
         const running = this.runs.get(task.id);
         if (running) running.execution = execution;
-        await taskScope.run({ task: execution, providers: this.providers() }, () => run(execution));
+        const result = await taskScope.run({ task: execution, providers: this.providers() }, () =>
+          run(execution),
+        );
         abort.signal.throwIfAborted();
+        if (result) task.resultId = result.resultId;
         task.status = 'completed';
         task.progress = 100;
       })
@@ -174,6 +177,7 @@ export class HostTasks implements TaskManager {
       .catch((error: unknown) => {
         const message = error instanceof Error ? error.message : String(error);
         task.status = 'failed';
+        delete task.resultId;
         task.error = [task.error, tr('tasks.couldNotSaveTaskStateValue', { value1: message })]
           .filter(Boolean)
           .join('\n');

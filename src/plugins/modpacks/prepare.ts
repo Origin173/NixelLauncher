@@ -7,6 +7,7 @@ import type {
   ModpackState,
   ModpackUpgradePlan,
   ModpackUpgradeTarget,
+  PackProvenance,
 } from '../../shared/modpack-contracts';
 import { assertInstanceIdle, getInstance } from '../instance-state';
 import type { ResourceProvider } from '../providers';
@@ -24,13 +25,18 @@ export function upgradeDirectory(host: NixelHost, id: string) {
   return join(host.store.cacheRoot, 'pack-upgrades', id);
 }
 export async function readPrepared(host: NixelHost, id: string): Promise<PreparedUpgrade> {
-  return JSON.parse(
-    await readFile(join(upgradeDirectory(host, id), 'plan.json'), 'utf8'),
-  ) as PreparedUpgrade;
+  const raw = await readFile(join(upgradeDirectory(host, id), 'plan.json'), 'utf8').catch(
+    (error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT') throw new Error(tr('packUpgrade.expired'));
+      throw error;
+    },
+  );
+  return JSON.parse(raw) as PreparedUpgrade;
 }
 export async function prepareUpgrade(
   host: NixelHost,
   input: ModpackUpgradeTarget,
+  provenance: PackProvenance | undefined,
   planId: string,
   task: TaskContext,
 ) {
@@ -42,9 +48,6 @@ export async function prepareUpgrade(
   await rm(directory, { recursive: true, force: true });
   let archive = input.path;
   let downloaded = false;
-  const oldSource = instance.modpack.provenance;
-  const provenance =
-    input.versionId && oldSource ? { ...oldSource, versionId: input.versionId } : undefined;
   try {
     if (!archive) {
       if (!provenance) throw new Error(tr('packUpgrade.chooseArchive'));

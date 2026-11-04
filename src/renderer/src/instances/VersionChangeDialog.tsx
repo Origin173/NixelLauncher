@@ -1,53 +1,38 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { InstanceVersionPlan, InstanceVersionTarget } from '../../../shared/contracts';
 import { errorMessage } from '../../../shared/error-message';
 import { tr } from '../../../shared/i18n';
 import type { VersionContentChoice, VersionContentPlan } from '../../../shared/version-content';
 import { useApp } from '../state';
 import { Action, Dialog, Notice } from '../ui';
+import { usePreparedPlan } from '../usePreparedPlan';
 import { VersionChangeReview } from './VersionChangeReview';
 import { VersionContentConfirmation } from './VersionContentConfirmation';
 import { VersionTargetPicker } from './VersionTargetPicker';
 
-export function VersionChangeDialog({ instanceId }: { instanceId: string }) {
+export function VersionChangeDialog({
+  instanceId,
+  initialPlanId,
+}: {
+  instanceId: string;
+  initialPlanId?: string;
+}) {
   const a = useApp();
   const instance = a.instances.find((item) => item.id === instanceId);
   const [plan, setPlan] = useState<InstanceVersionPlan>();
   const [choices, setChoices] = useState<Record<string, VersionContentChoice>>({});
-  const [contentPlan, setContentPlan] = useState<VersionContentPlan>();
   const [accepted, setAccepted] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
-  const [job, setJob] = useState<{ planId: string; taskId: string }>();
-  const task = a.tasks.find((task) => task.id === job?.taskId);
-  const working = pending || task?.status === 'running';
-  useEffect(() => {
-    if (!job || !task || task.status === 'running') return;
-    if (task.status !== 'completed') {
-      setError(task.error || task.detail);
-      setJob(undefined);
-      return;
-    }
-    let active = true;
-    window.nixel
-      .invoke<VersionContentPlan>('instances.versionContentPlan', { planId: job.planId })
-      .then((result) => {
-        if (active) {
-          setContentPlan(result);
-          setAccepted(false);
-          setJob(undefined);
-        }
-      })
-      .catch((error) => {
-        if (active) {
-          setError(errorMessage(error));
-          setJob(undefined);
-        }
-      });
-    return () => {
-      active = false;
-    };
-  }, [job, task]);
+  const [taskId, setTaskId] = useState<string>();
+  const [resumeId, setResumeId] = useState(initialPlanId);
+  const task = a.tasks.find((task) => task.id === taskId);
+  const preview = usePreparedPlan<VersionContentPlan>(
+    'instances.versionContentPlan',
+    resumeId ?? task?.resultId,
+  );
+  const contentPlan = preview.plan;
+  const working = pending || task?.status === 'running' || preview.loading;
   const busy =
     a.running.includes(instanceId) ||
     a.tasks.some((task) => task.instanceId === instanceId && task.status === 'running');
@@ -55,6 +40,8 @@ export function VersionChangeDialog({ instanceId }: { instanceId: string }) {
     setPending(true);
     setError('');
     setAccepted(false);
+    setResumeId(undefined);
+    setTaskId(undefined);
     try {
       const result = await window.nixel.invoke<InstanceVersionPlan>('instances.planVersionChange', {
         id: instanceId,
@@ -75,13 +62,13 @@ export function VersionChangeDialog({ instanceId }: { instanceId: string }) {
     }
   };
   const submit = async () => {
-    if (!plan || !contentPlan) return;
+    if (!contentPlan || contentPlan.instanceId !== instanceId) return;
     setPending(true);
     setError('');
     try {
       await window.nixel.invoke('instances.changeVersion', {
         id: instanceId,
-        target: plan.target,
+        target: contentPlan.target,
         fingerprint: contentPlan.fingerprint,
         contentPlanId: contentPlan.id,
         acceptRisks: accepted,
@@ -98,18 +85,15 @@ export function VersionChangeDialog({ instanceId }: { instanceId: string }) {
     if (!plan) return;
     setPending(true);
     setError('');
+    setTaskId(undefined);
     try {
-      setJob(
-        await window.nixel.invoke<{ planId: string; taskId: string }>(
-          'instances.planVersionContent',
-          {
-            id: instanceId,
-            target: plan.target,
-            fingerprint: plan.fingerprint,
-            choices,
-          },
-        ),
-      );
+      const job = await window.nixel.invoke<{ taskId: string }>('instances.planVersionContent', {
+        id: instanceId,
+        target: plan.target,
+        fingerprint: plan.fingerprint,
+        choices,
+      });
+      setTaskId(job.taskId);
       setAccepted(false);
     } catch (error) {
       setError(errorMessage(error));
@@ -133,33 +117,38 @@ export function VersionChangeDialog({ instanceId }: { instanceId: string }) {
             variant="secondary"
             isDisabled={working}
             onPress={() => {
-              if (contentPlan) {
-                setContentPlan(undefined);
+              if (contentPlan || preview.error) {
+                setResumeId(undefined);
+                setTaskId(undefined);
                 setError('');
               } else if (plan) {
                 setPlan(undefined);
+                setTaskId(undefined);
                 setError('');
               } else a.setOverlay(null);
             }}
           >
-            {plan ? tr('overlays.back') : tr('overlays.cancel')}
+            {plan || contentPlan || preview.error ? tr('overlays.back') : tr('overlays.cancel')}
           </Action>
-          {working && job && (
+          {task?.status === 'running' && (
             <Action
               variant="secondary"
-              onPress={() => void a.command('tasks.cancel', { id: job.taskId })}
+              onPress={() => void a.command('tasks.cancel', { id: task.id })}
             >
               {tr('overlays.cancel')}
             </Action>
           )}
-          {plan && (
+          {(plan || contentPlan) && (
             <Action
               icon="download"
               isPending={working}
               isDisabled={
+                working ||
                 busy ||
                 !instance ||
-                (contentPlan ? Boolean(needsAcceptance && !accepted) : missingChoices)
+                (contentPlan
+                  ? contentPlan.instanceId !== instanceId || Boolean(needsAcceptance && !accepted)
+                  : missingChoices)
               }
               onPress={() => void (contentPlan ? submit() : confirm())}
             >
@@ -173,10 +162,12 @@ export function VersionChangeDialog({ instanceId }: { instanceId: string }) {
         <Notice tone="danger">{tr('game.instanceNotFound')}</Notice>
       ) : (
         <>
-          <div hidden={Boolean(plan) || pending}>
-            <VersionTargetPicker instance={instance} onReview={(target) => void review(target)} />
-          </div>
-          {pending && !plan && <p role="status">{tr('versionChange.checking')}</p>}
+          {(!resumeId || preview.error) && (
+            <div hidden={Boolean(plan || contentPlan) || working}>
+              <VersionTargetPicker instance={instance} onReview={(target) => void review(target)} />
+            </div>
+          )}
+          {working && !plan && !contentPlan && <p role="status">{tr('versionChange.checking')}</p>}
           {contentPlan && (
             <VersionContentConfirmation
               plan={contentPlan}
@@ -202,12 +193,18 @@ export function VersionChangeDialog({ instanceId }: { instanceId: string }) {
           )}
         </>
       )}
-      {task && (
+      {task && !contentPlan && (
         <Notice>
           {task.detail} · {Math.round(task.progress)}%
         </Notice>
       )}
-      {busy && !job && <Notice tone="warning">{tr('game.thisInstanceHasAnActiveTaskWait')}</Notice>}
+      {busy && !task && (
+        <Notice tone="warning">{tr('game.thisInstanceHasAnActiveTaskWait')}</Notice>
+      )}
+      {task && (task.status === 'failed' || task.status === 'cancelled') && (
+        <Notice tone="danger">{task.error || task.detail}</Notice>
+      )}
+      {preview.error && <Notice tone="danger">{preview.error}</Notice>}
       {error && <Notice tone="danger">{error}</Notice>}
     </Dialog>
   );

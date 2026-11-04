@@ -597,6 +597,7 @@ export default {
   'overlays.valueProgress': '{{value1}}进度',
   'overlays.taskLog': '任务日志',
   'overlays.retry': '重试',
+  'overlays.viewPlan': '查看计划',
   'overlays.noTaskLogYet': '暂无任务日志。',
   'overlays.noTasksYet': '这里暂时没有任务',
   'overlays.installAGameOrAddResourcesTo': '安装游戏或添加资源后，进度会显示在这里。',

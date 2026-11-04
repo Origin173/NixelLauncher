@@ -1,12 +1,13 @@
 import { Drawer } from '@heroui/react';
 import { useEffect, useState } from 'react';
-import type { Loader, VersionEntry } from '../../shared/contracts';
+import type { Loader, Task, VersionEntry } from '../../shared/contracts';
 import { label, tr } from '../../shared/i18n';
 import { AccountDialog } from './accounts/AccountDialog';
 import { TaskControls } from './downloads/TaskControls';
 import { Brand, Icon } from './icons';
 import { VersionChangeDialog } from './instances/VersionChangeDialog';
 import { Landscape } from './Landscape';
+import { PackUpgradeDialog } from './modpacks/PackUpgradeDialog';
 import { JavaSettings } from './pages/Settings';
 import { ConfigForm } from './plugins/ConfigForm';
 import { ResourceDialog } from './resources/ResourceDialog';
@@ -44,7 +45,10 @@ function OverlayContent({ overlay: o }: { overlay: Overlay }) {
   const [error, setError] = useState('');
   if (!o) return null;
   if (o.type === 'create') return <CreateDialog />;
-  if (o.type === 'version-change') return <VersionChangeDialog instanceId={o.instanceId} />;
+  if (o.type === 'version-change')
+    return <VersionChangeDialog instanceId={o.instanceId} initialPlanId={o.planId} />;
+  if (o.type === 'pack-upgrade')
+    return <PackUpgradeDialog instanceId={o.instanceId} initialPlanId={o.planId} />;
   if (o.type === 'account')
     return (
       <AccountDialog instanceId={o.instanceId} accountId={o.accountId} joinServer={o.joinServer} />
@@ -1031,17 +1035,17 @@ export function TaskDrawer() {
                       </button>
                       {t.status === 'running' ? (
                         <TaskControls task={t} />
+                      ) : t.status === 'completed' ? (
+                        <TaskPlanAction task={t} />
                       ) : (
-                        (t.status === 'failed' || t.status === 'cancelled') && (
-                          <Action
-                            size="sm"
-                            variant="secondary"
-                            icon="refresh"
-                            onPress={() => a.retryTask(t)}
-                          >
-                            {tr('overlays.retry')}
-                          </Action>
-                        )
+                        <Action
+                          size="sm"
+                          variant="secondary"
+                          icon="refresh"
+                          onPress={() => a.retryTask(t)}
+                        >
+                          {tr('overlays.retry')}
+                        </Action>
                       )}
                     </div>
                     {log === t.id && (
@@ -1073,5 +1077,30 @@ export function TaskDrawer() {
         </Drawer.Dialog>
       </Drawer.Content>
     </Drawer.Backdrop>
+  );
+}
+
+function TaskPlanAction({ task }: { task: Task }) {
+  const a = useApp();
+  const { instanceId, resultId } = task;
+  const type =
+    task.kind === 'pack-prepare'
+      ? 'pack-upgrade'
+      : task.kind === 'version-plan'
+        ? 'version-change'
+        : undefined;
+  if (!type || !instanceId || !resultId || !a.instances.some(({ id }) => id === instanceId))
+    return null;
+  return (
+    <Action
+      size="sm"
+      variant="secondary"
+      onPress={() => {
+        a.setTaskOpen(false);
+        a.setOverlay({ type, instanceId, planId: resultId });
+      }}
+    >
+      {tr('overlays.viewPlan')}
+    </Action>
   );
 }

@@ -30,6 +30,7 @@ export function registerVersionManagement(ctx: Context, backups: BackupRepositor
         tr('versionChange.checking'),
         async (task) => {
           await planVersionContent(host, input, planId, task);
+          return { resultId: planId };
         },
         {
           instanceId: input.id,

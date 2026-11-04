@@ -20,6 +20,8 @@ export interface ModpackUpgradeTarget {
   id: string;
   path?: string;
   versionId?: string;
+  /** Online preparation retries stay bound to the original project and provider. */
+  source?: Pick<PackProvenance, 'source' | 'projectId'>;
 }
 export interface ModpackFileChange {
   path: string;

@@ -46,7 +46,7 @@ export interface TaskManager {
   start(
     name: string,
     detail: string,
-    run: (task: TaskContext) => Promise<void>,
+    run: (task: TaskContext) => Promise<void> | Promise<{ resultId: string }>,
     context?: {
       instanceId?: string;
       resourceId?: string;

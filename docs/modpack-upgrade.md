@@ -23,18 +23,18 @@
 
 文件提交前把实例标为错误并写入备份恢复提示，成功或完整回滚后才恢复状态。因此 Host/系统在文件提交中途退出不会把混合状态标成可启动；重新打开后应先从提示中的备份恢复。无需假定进程退出时能执行清理。若回滚本身失败，错误包含备份 ID。
 
-升级准备和应用都可取消、手动重试；应用重试仍使用原预览 ID、指纹与明确冲突选择。缓存被清理、实例文件改变或原预览不可用时，重新比较，不自动选择另一个版本。
+升级准备和应用都可取消、手动重试。准备重试保留原实例和本地文件路径，或原来源、项目及准确版本。准备完成后可在任务中心选择“查看计划”回到确认界面，包括关闭弹窗、重试成功和重启后缓存仍在的情况。应用重试仍使用原预览 ID、指纹与明确冲突选择。应用成功后清理预览；缓存缺失、实例文件改变或原预览不可用时重新比较。
 
 ## 模块与命令
 
 `plugins/modpacks/` 的 `archive.ts` 解析清单，`materialize.ts` 暂存文件和捕获基线，`diff.ts` 比较并检查路径，`prepare.ts` 保存预览，`apply.ts` 编排备份、游戏安装、文件提交和回滚，`import.ts`/`export.ts` 处理原有导入导出。`commands.ts` 注册升级命令，入口复用实例管理已有的备份仓库。
 
-| 命令                      | 输入                                                   | 返回                 |
-| ------------------------- | ------------------------------------------------------ | -------------------- |
-| `modpacks.versions`       | `{ id }`                                               | `ResourceVersion[]`  |
-| `modpacks.prepareUpgrade` | `{ id, path? , versionId? }`，本地路径与来源版本二选一 | `{ taskId, planId }` |
-| `modpacks.upgradePlan`    | `{ planId }`，准备任务完成后调用                       | `ModpackUpgradePlan` |
-| `modpacks.upgrade`        | `{ id, planId, fingerprint, choices }`                 | `{ taskId }`         |
+| 命令                      | 输入                                                                                 | 返回                 |
+| ------------------------- | ------------------------------------------------------------------------------------ | -------------------- |
+| `modpacks.versions`       | `{ id }`                                                                             | `ResourceVersion[]`  |
+| `modpacks.prepareUpgrade` | `{ id, path?, versionId?, source? }`，本地路径与来源版本二选一，重试可绑定来源及项目 | `{ taskId, planId }` |
+| `modpacks.upgradePlan`    | `{ planId }`，准备任务完成后调用                                                     | `ModpackUpgradePlan` |
+| `modpacks.upgrade`        | `{ id, planId, fingerprint, choices }`                                               | `{ taskId }`         |
 
 `choices` 使用包内相对路径作为键，值为 `keep` 或 `replace`。冲突必须有明确值，普通新增、替换和移除允许改为保留。保存使用共享 `modpack-contracts.ts`，没有新增 Host 业务服务。资源提供者通过可选 `downloadModpack` 返回经来源规则校验的归档；CurseForge 提供者通过 `resolvePackFiles` 返回清单指定文件的公开下载描述，整合包管理不导入来源内部实现。
 
