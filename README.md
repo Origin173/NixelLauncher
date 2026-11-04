@@ -31,7 +31,7 @@ pnpm dev
 | `MODRINTH_TOKEN`      | 可选，公开资源搜索与下载无需填写                                            |
 | `NIXEL_DATA_DIR`      | 可选，独立应用数据目录的绝对路径                                            |
 
-优先级为系统环境变量 > `.env.local` > `.env`。加载器保留 `$` 字符原值；包含 `#` 的值请用引号包裹。开发时读取项目根目录，打包后读取可执行文件同目录。配置在运行时加载，不编译进渲染端；Host 缓存服务凭据后从进程环境移除，Java 安装器与游戏不会继承这三项服务凭据。`.env` 与本地覆盖文件由 Git 忽略，仓库只保留空值模板。
+优先级为系统环境变量 > `.env.local` > `.env`。加载器保留 `$` 字符原值；包含 `#` 的值请用引号包裹。开发时读取项目根目录，打包后读取可执行文件同目录；Windows 便携版与 Linux AppImage 使用原始启动文件所在目录。配置在运行时加载，不编译进渲染端；Host 缓存服务凭据后从进程环境移除，Java 安装器与游戏不会继承这三项服务凭据。`.env` 与本地覆盖文件由 Git 忽略，仓库只保留空值模板。
 
 离线角色、Microsoft 与第三方 Yggdrasil 认证分别由账号插件提供。玩家登录令牌由主进程系统安全存储加密。更换 Microsoft 客户端 ID 后，新登录使用新配置；已有账号刷新仍使用登录时绑定的客户端 ID。
 
@@ -51,14 +51,20 @@ pnpm dev
 
 ## 命令
 
-| 命令             | 用途              |
-| ---------------- | ----------------- |
-| `pnpm dev`       | Electron 开发模式 |
-| `pnpm build`     | 构建到 `out/`     |
-| `pnpm start`     | 预览已有构建      |
-| `pnpm typecheck` | TypeScript 检查   |
-| `pnpm lint`      | Biome 检查        |
-| `pnpm format`    | 格式化代码        |
+| 命令              | 用途                     |
+| ----------------- | ------------------------ |
+| `pnpm dev`        | Electron 开发模式        |
+| `pnpm build`      | 构建到 `out/`            |
+| `pnpm start`      | 预览已有构建             |
+| `pnpm typecheck`  | TypeScript 检查          |
+| `pnpm lint`       | Biome 检查               |
+| `pnpm format`     | 格式化代码               |
+| `pnpm package`    | 生成当前平台解包目录     |
+| `pnpm dist:win`   | Windows 安装程序与便携版 |
+| `pnpm dist:mac`   | macOS DMG 与 ZIP         |
+| `pnpm dist:linux` | Linux AppImage 与 DEB    |
+
+本地打包、配置文件位置与签名说明见 [应用分发](docs/distribution.md)。产物生成到 `release/`，命令默认不发布到远程。
 
 ## 目录
 

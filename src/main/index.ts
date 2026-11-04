@@ -33,7 +33,12 @@ let quitting = false;
 let restoreAfterGame = false;
 const defaultRenderer = join(__dirname, '../renderer/index.html');
 
-loadEnvironment(app.isPackaged ? dirname(app.getPath('exe')) : app.getAppPath());
+const environmentDirectory = app.isPackaged
+  ? (process.platform === 'win32' && process.env.PORTABLE_EXECUTABLE_DIR) ||
+    (process.platform === 'linux' && process.env.APPIMAGE && dirname(process.env.APPIMAGE)) ||
+    dirname(app.getPath('exe'))
+  : app.getAppPath();
+loadEnvironment(environmentDirectory);
 
 if (process.env.NIXEL_DATA_DIR && isAbsolute(process.env.NIXEL_DATA_DIR)) {
   mkdirSync(process.env.NIXEL_DATA_DIR, { recursive: true });
