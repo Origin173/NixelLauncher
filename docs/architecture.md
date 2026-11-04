@@ -68,3 +68,5 @@ Minecraft 安装与启动由 Nixel 游戏提供者实现，版本清单来自 Mo
 两个来源的 `dependencies.ts` 把各自协议映射为内容节点；共享业务模块 `resource-dependencies.ts` 解析版本固定、必需依赖、显式选择的直接可选依赖以及冲突，形成有序下载计划后调用 `resource-files.ts`。提供者各自拥有 API 客户端与协议适配，目录管理插件只通过 `ResourceProvider` 的可选依赖查询及安装接口调用，不访问来源内部模块。界面的可选勾选状态按来源、项目、资源版本与目标实例区分。
 
 `nixel.servers` 拥有实例服务器列表和状态查询。`servers/status.ts` 实现 DNS SRV 与 TCP 状态协议，查询资源绑定插件及界面作用域。快速加入通过既有实例启动命令向 `GameProvider.launch` 传递可选 `GameLaunchOptions`；提供者声明 `server-join` 能力并生成本次启动参数。管理插件不依赖具体游戏启动实现，永久启动配置不因加入服务器改变。
+
+`nixel.diagnostics` 按收集、脱敏、规则分析、归档拆分模块。收集器只读实例内白名单日志与最近失败启动任务，分析器接收脱敏文本并返回带证据的发现；导出通过 Host 任务服务完成。界面位于独立 `diagnostics/DiagnosticPanel.tsx`，契约与隐私边界见 [崩溃诊断](diagnostics.md)。

@@ -1,8 +1,10 @@
 import { accountProfilesEn } from './account-profiles';
 import { backupRetentionEn } from './backup-retention';
+import { diagnosticsEn } from './diagnostics';
 import { serversEn } from './servers';
 
 export default {
+  ...diagnosticsEn,
   ...serversEn,
   ...accountProfilesEn,
   ...backupRetentionEn,

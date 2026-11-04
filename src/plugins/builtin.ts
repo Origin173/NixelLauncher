@@ -11,12 +11,32 @@ import {
 } from './accounts';
 import { contentPlugin } from './content';
 import { curseforgeId, curseforgePlugin } from './curseforge';
+import { diagnosticsPlugin } from './diagnostics';
 import { instancesPlugin } from './instances';
 import { gameId, gamePlugin } from './minecraft';
 import { resourcesId, resourcesPlugin } from './modrinth';
 import { serversPlugin } from './servers';
 
 export const builtinPlugins: BuiltinPlugin[] = [
+  {
+    manifest: withTranslations(
+      {
+        id: 'nixel.diagnostics',
+        name: tr('diagnostics.plugin'),
+        description: tr('diagnostics.description'),
+        version: '0.1.0',
+        apiVersion: 1,
+        category: tr('builtin.core'),
+        dependencies: ['nixel.instances'],
+      },
+      {
+        name: 'diagnostics.plugin',
+        description: 'diagnostics.description',
+        category: 'builtin.core',
+      },
+    ),
+    plugin: diagnosticsPlugin,
+  },
   {
     manifest: withTranslations(
       {

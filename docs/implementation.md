@@ -12,6 +12,8 @@ CurseForge provider 与插件 ID 为 `nixel.resources.curseforge`。资源命令
 
 ## 命令约定
 
+独立业务插件的扩展命令分别见 [实例服务器](servers.md) 与 [崩溃诊断](diagnostics.md)。
+
 `window.nixel.invoke<T>(command, params)` 使用以下命令。返回值为真实数据，长任务返回 `{ taskId: string }` 并通过快照推送进度。
 
 | 命令                               | 参数                                                                    | 返回                                                              |

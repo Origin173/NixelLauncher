@@ -9,10 +9,12 @@ export function recentLaunchLog(id: string) {
 
 export function redactLog(text: string, token?: string) {
   if (token && token.length > 8) text = text.replaceAll(token, '[REDACTED]');
-  return text.replace(
-    /((?:access[_-]?token|refresh[_-]?token|clientToken)["']?\s*(?:[:=]\s*["']?|\s+))[^\s,"'}]+/gi,
-    '$1[REDACTED]',
-  );
+  return text
+    .replace(
+      /((?:access[_-]?token|refresh[_-]?token|clientToken|password|authorization|x-api-key|api[_-]?key|client[_-]?secret|CURSEFORGE_API_KEY|MODRINTH_TOKEN|MICROSOFT_CLIENT_ID)["']?\s*(?:[:=]\s*|\s+))(?:Bearer\s+|Basic\s+)?(?:"[^"\r\n]*"|'[^'\r\n]*'|[^\s,"'}]+)/gi,
+      '$1[REDACTED]',
+    )
+    .replace(/\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+/gi, '$1 [REDACTED]');
 }
 
 export async function createLaunchLog(

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import type { ContentUpdateTarget, Instance, InstanceFile } from '../../../shared/contracts';
 import { i18n, label, tr } from '../../../shared/i18n';
 import { resourceSource } from '../data';
+import { DiagnosticPanel } from '../diagnostics/DiagnosticPanel';
 import { LaunchButton } from '../LaunchButton';
 import { ResourceBrowser } from '../ResourceBrowser';
 import { Servers } from '../servers/Servers';
@@ -869,6 +870,7 @@ export function LogView({ id }: { id: string }) {
   return (
     <div className="stack">
       <InstanceFiles id={id} kind="crash-reports" />
+      <DiagnosticPanel key={id} id={id} />
       <div className="row spread">
         <span className="muted">
           {a.running.includes(id)

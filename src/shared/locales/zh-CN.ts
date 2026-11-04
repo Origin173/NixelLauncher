@@ -1,8 +1,10 @@
 import { accountProfilesZh } from './account-profiles';
 import { backupRetentionZh } from './backup-retention';
+import { diagnosticsZh } from './diagnostics';
 import { serversZh } from './servers';
 
 export default {
+  ...diagnosticsZh,
   ...serversZh,
   ...accountProfilesZh,
   ...backupRetentionZh,
