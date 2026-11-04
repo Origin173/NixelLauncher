@@ -16,6 +16,7 @@ export interface BackupManifest {
 /** Only committed directories are listed; interrupted writes stay in .pending. */
 export class BackupRepository {
   readonly root: string;
+  readonly deleting = new Set<string>();
   constructor(dataRoot: string) {
     this.root = join(dataRoot, 'backups');
   }
@@ -66,10 +67,16 @@ export class BackupRepository {
   }
 
   async remove(id: string) {
-    const directory = this.directory(id);
-    const pending = inside(this.root, `.pending/${id}`);
-    await mkdir(join(this.root, '.pending'), { recursive: true });
-    await rename(directory, pending);
-    await rm(pending, { recursive: true });
+    if (this.deleting.has(id)) throw new Error(tr('backups.deleting'));
+    this.deleting.add(id);
+    try {
+      const directory = this.directory(id);
+      const pending = inside(this.root, `.pending/${id}`);
+      await mkdir(join(this.root, '.pending'), { recursive: true });
+      await rename(directory, pending);
+      await rm(pending, { recursive: true });
+    } finally {
+      this.deleting.delete(id);
+    }
   }
 }

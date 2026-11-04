@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { JavaRuntime } from '../../../shared/contracts';
 import { label, tr } from '../../../shared/i18n';
 import { Landscape } from '../Landscape';
+import { BackupRetention } from '../settings/BackupRetention';
 import { useApp } from '../state';
 import {
   Action,
@@ -56,7 +57,7 @@ const settingGroups = () =>
       id: 'storage',
       name: tr('Settings.storageData'),
       icon: 'folder',
-      keywords: tr('Settings.directoryFilesData'),
+      keywords: tr('backupRetention.keywords'),
     },
     {
       id: 'about',
@@ -236,42 +237,45 @@ export function SettingsPage() {
           </Group>
         )}
         {a.settingsTab === 'storage' && (
-          <Group title={tr('Settings.localDirectories')}>
-            <SettingRow
-              title={tr('Settings.instanceDirectory')}
-              description={
-                s.instanceDirectory || tr('Settings.useTheInstancesFolderInTheApplication')
-              }
-            >
-              <Action
-                size="sm"
-                variant="secondary"
-                icon="folder"
-                onPress={() =>
-                  void window.nixel
-                    .selectPath({
-                      kind: 'directory',
-                      title: tr('Settings.chooseDirectoryForNewInstances'),
-                    })
-                    .then((path) => {
-                      if (path) void a.updateSettings({ instanceDirectory: path });
-                    })
+          <>
+            <Group title={tr('Settings.localDirectories')}>
+              <SettingRow
+                title={tr('Settings.instanceDirectory')}
+                description={
+                  s.instanceDirectory || tr('Settings.useTheInstancesFolderInTheApplication')
                 }
               >
-                {tr('Settings.chooseDirectory')}
-              </Action>
-            </SettingRow>
-            <SettingRow title={tr('Settings.launcherData')} description={a.dataDirectory}>
-              <Action
-                size="sm"
-                variant="secondary"
-                icon="folder"
-                onPress={() => void window.nixel.openPath(a.dataDirectory)}
-              >
-                {tr('Instances.openDirectory')}
-              </Action>
-            </SettingRow>
-          </Group>
+                <Action
+                  size="sm"
+                  variant="secondary"
+                  icon="folder"
+                  onPress={() =>
+                    void window.nixel
+                      .selectPath({
+                        kind: 'directory',
+                        title: tr('Settings.chooseDirectoryForNewInstances'),
+                      })
+                      .then((path) => {
+                        if (path) void a.updateSettings({ instanceDirectory: path });
+                      })
+                  }
+                >
+                  {tr('Settings.chooseDirectory')}
+                </Action>
+              </SettingRow>
+              <SettingRow title={tr('Settings.launcherData')} description={a.dataDirectory}>
+                <Action
+                  size="sm"
+                  variant="secondary"
+                  icon="folder"
+                  onPress={() => void window.nixel.openPath(a.dataDirectory)}
+                >
+                  {tr('Instances.openDirectory')}
+                </Action>
+              </SettingRow>
+            </Group>
+            <BackupRetention />
+          </>
         )}
         {a.settingsTab === 'about' && (
           <>

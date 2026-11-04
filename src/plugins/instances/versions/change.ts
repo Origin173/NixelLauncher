@@ -22,7 +22,13 @@ export async function changeVersion(
     input.acceptRisks !== true
   )
     throw new Error(tr('versionChange.acceptRequired'));
-  const backupId = await createBackup(host, backups, input.id, taskPhase(task, 5, 30));
+  const backupId = await createBackup(
+    host,
+    backups,
+    input.id,
+    taskPhase(task, 5, 30),
+    'version-change',
+  );
   task.log(tr('versionChange.backupSaved', { id: backupId }));
   task.signal.throwIfAborted();
   const current = getInstance(host, input.id);

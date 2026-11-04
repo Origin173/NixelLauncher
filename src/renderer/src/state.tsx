@@ -38,6 +38,7 @@ const defaults: LauncherSettings = {
   memory: 4096,
   javaPath: '',
   autoDownloadJava: true,
+  backupRetentionCount: 0,
   jvmArgs: [],
   gameArgs: [],
   resolution: { width: 1280, height: 720 },

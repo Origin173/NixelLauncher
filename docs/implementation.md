@@ -99,6 +99,8 @@ Microsoft 登录使用 `.env` 的 `MICROSOFT_CLIENT_ID`，CurseForge 使用 `CUR
 
 备份不收集 Host 的账号密钥存储；归档排除实例根目录的 `.nixel`、`launcher_accounts.json`、`launcher_profiles.json`、`launcher_profiles_microsoft_store.json`。支持空目录和文件修改时间，Unix 系统恢复文件权限。符号链接报告错误，不跟随到实例外部。
 
+`settings.backupRetentionCount` 为 0–1000 的整数，默认 0 表示全部保留。新版本变更备份提交后，按实例清理超出数量的旧 `origin: 'version-change'` 备份。`origin: 'manual'` 和未标记来源的历史备份始终保留；正在恢复的备份跳过，删除与跳过结果记录在任务日志中。设置变更本身不立即删除备份。
+
 ## 开发检查
 
 保留独立 `design/` 原型。功能代码位于 `src/`。使用 `pnpm typecheck`、`pnpm lint`、按需要构建与实际运行验证；不添加冒烟或回归测试文件。

@@ -12,7 +12,7 @@ export function Backups({ instance }: { instance?: Instance }) {
   const [refresh, setRefresh] = useState(0);
   const [pending, setPending] = useState(false);
   const taskRevision = a.tasks
-    .filter((task) => task.kind === 'backup')
+    .filter((task) => task.kind === 'backup' || task.kind === 'version-change')
     .map((task) => `${task.id}:${task.status}`)
     .join(',');
   const busy =
@@ -92,6 +92,13 @@ export function Backups({ instance }: { instance?: Instance }) {
                 <div className="flex-1">
                   <strong>{instance ? date : backup.instanceName}</strong>
                   {!instance && <small>{date}</small>}
+                  <small>
+                    {tr(
+                      backup.origin === 'version-change'
+                        ? 'backupRetention.automatic'
+                        : 'backupRetention.manual',
+                    )}
+                  </small>
                   <small>
                     {tr('backups.summary', {
                       version: backup.version,

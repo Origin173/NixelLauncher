@@ -1,4 +1,7 @@
+import { backupRetentionEn } from './backup-retention';
+
 export default {
+  ...backupRetentionEn,
   'versionChange.title': 'Change version',
   'versionChange.disabled': 'Disabled',
   'versionChange.loaderVersion': 'Loader version',

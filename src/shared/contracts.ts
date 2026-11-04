@@ -148,6 +148,8 @@ export interface InstanceFile {
   size?: number;
 }
 export interface InstanceBackup {
+  /** Absent on older backups, which are preserved as manual backups. */
+  origin?: 'manual' | 'version-change';
   id: string;
   instanceId: string;
   instanceName: string;
@@ -232,6 +234,8 @@ export interface LauncherSettings {
   launchAccount: string;
   interfacePlugin: string;
   downloadConcurrency: number;
+  /** Newest automatic backups per instance; 0 keeps all. Manual backups are always kept. */
+  backupRetentionCount: number;
   closeAfterLaunch: boolean;
   setupComplete: boolean;
   providers: { game: string; resources: string; accounts: string };

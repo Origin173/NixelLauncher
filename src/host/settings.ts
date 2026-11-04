@@ -13,6 +13,13 @@ export async function validateSettings(host: NixelService, input: unknown) {
   if (patch.locale && !['system', 'zh-CN', 'en-US'].includes(patch.locale))
     throw new Error(tr('settings.invalidLanguage'));
   validateLaunchOptions(patch);
+  if (
+    patch.backupRetentionCount !== undefined &&
+    (!Number.isInteger(patch.backupRetentionCount) ||
+      patch.backupRetentionCount < 0 ||
+      patch.backupRetentionCount > 1000)
+  )
+    throw new Error(tr('backupRetention.invalidCount'));
   for (const [key, value] of Object.entries(patch)) {
     if (!Object.hasOwn(state.settings, key))
       throw new Error(tr('settings.unknownSettingValue', { value1: key }));

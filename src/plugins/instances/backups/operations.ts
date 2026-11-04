@@ -1,18 +1,21 @@
 import { randomUUID } from 'node:crypto';
 import { rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
+import type { InstanceBackup } from '../../../shared/contracts';
 import type { NixelHost, TaskContext } from '../../../shared/host-api';
 import { tr } from '../../../shared/i18n';
 import { hashFile, inside } from '../../files';
 import { assertInstanceIdle, createInstance, getInstance } from '../../instance-state';
 import { packInstance, unpackInstance } from './archive';
 import type { BackupRepository } from './repository';
+import { pruneBackups } from './retention';
 
 export async function createBackup(
   host: NixelHost,
   repository: BackupRepository,
   id: string,
   task: TaskContext,
+  origin: NonNullable<InstanceBackup['origin']> = 'manual',
 ) {
   assertInstanceIdle(host, id, task.taskId);
   const instance = structuredClone(getInstance(host, id));
@@ -29,6 +32,7 @@ export async function createBackup(
       formatVersion: 1,
       sha256,
       backup: {
+        origin,
         id: pending.id,
         instanceId: id,
         instanceName: instance.name,
@@ -41,6 +45,7 @@ export async function createBackup(
       instance,
       content,
     });
+    if (origin === 'version-change') await pruneBackups(host, repository, id, pending.id, task);
     task.report(100, tr('backups.created'));
     return pending.id;
   } finally {

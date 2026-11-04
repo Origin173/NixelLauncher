@@ -1,4 +1,7 @@
+import { backupRetentionZh } from './backup-retention';
+
 export default {
+  ...backupRetentionZh,
   'versionChange.title': '更换版本',
   'versionChange.disabled': '已停用',
   'versionChange.loaderVersion': '加载器版本',

@@ -27,6 +27,7 @@ export function defaultState(root: string): PersistedState {
       launchAccount: '',
       interfacePlugin: 'nixel.ui.default',
       downloadConcurrency: 8,
+      backupRetentionCount: 0,
       closeAfterLaunch: false,
       setupComplete: false,
       providers: {

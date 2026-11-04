@@ -8,7 +8,6 @@ import type { BackupRepository } from './repository';
 export function registerBackups(ctx: Context, repository: BackupRepository) {
   const host = ctx.nixel;
   const command = commandsFor(ctx);
-  const deleting = new Set<string>();
   command('backups.list', (params?: { instanceId?: string }) =>
     repository.list(params?.instanceId),
   );
@@ -31,7 +30,7 @@ export function registerBackups(ctx: Context, repository: BackupRepository) {
     };
   });
   command('backups.restore', ({ id }: { id: string }) => {
-    if (deleting.has(id)) throw new Error(tr('backups.deleting'));
+    if (repository.deleting.has(id)) throw new Error(tr('backups.deleting'));
     return {
       taskId: host.tasks.start(
         tr('backups.restoreTask'),
@@ -50,12 +49,6 @@ export function registerBackups(ctx: Context, repository: BackupRepository) {
         )
     )
       throw new Error(tr('backups.restoring'));
-    if (deleting.has(id)) throw new Error(tr('backups.deleting'));
-    deleting.add(id);
-    try {
-      await repository.remove(id);
-    } finally {
-      deleting.delete(id);
-    }
+    await repository.remove(id);
   });
 }
