@@ -18,6 +18,8 @@
 
 Linux DEB 的项目主页元数据已配置为 `https://nixel.origin173.top`，仓库元数据为 `https://github.com/Origin173/NixelLauncher.git`。仓库地址按用户确定的后续位置记录，打包不会创建仓库或发布产物。单独生成 AppImage 可在构建后执行 `pnpm exec electron-builder --linux AppImage --publish never`。
 
+Electron 的 Linux 可执行文件直接链接 `libasound.so.2`。DEB 通过 `deb.fpm` 追加 `libasound2t64 | libasound2` 依赖，同时保留 electron-builder 的默认依赖；支持使用新旧 ALSA 包名的发行版。
+
 Windows 文件名分别为 `NixelLauncher-<版本>-windows-x64-setup.exe` 和 `NixelLauncher-<版本>-windows-x64-portable.exe`。安装程序允许选择目录，默认按当前用户安装，不默认创建桌面快捷方式。卸载保留应用数据。便携版免安装，但默认数据目录仍是系统应用数据目录；需要随目录携带数据时，明确设置绝对路径 `NIXEL_DATA_DIR`。
 
 ## 文件与配置
