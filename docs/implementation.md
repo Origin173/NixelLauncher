@@ -54,6 +54,8 @@ CurseForge provider 与插件 ID 为 `nixel.resources.curseforge`。资源命令
 | `accounts.yggdrasil.login`     | `{ server, username, password }`                            | `Account`                                                         |
 | `resources.search`             | `ResourceQuery`                                             | `ResourceSearchResult`（items、total、hasMore、warnings）         |
 | `resources.versions`           | `{ projectId, instanceId?, source? }`                       | `ResourceVersion[]`                                               |
+| `resources.details`            | `{ projectId, source }`                                     | `ResourceDetails \| null`                                         |
+| `resources.versionDetails`     | `{ projectId, versionId, source }`                          | `ResourceVersionDetails \| null`                                  |
 | `resources.install`            | `{ projectId, versionId, instanceId?, source? }`            | `{ taskId }`                                                      |
 | `content.list`                 | `{ instanceId }`                                            | `InstalledContent[]`（同步快照）                                  |
 | `content.setEnabled`           | `{ instanceId, id, enabled }`                               | `void`                                                            |
@@ -78,6 +80,8 @@ Microsoft 登录使用 `.env` 的 `MICROSOFT_CLIENT_ID`，CurseForge 使用 `CUR
 内容更新检查使用 `content-check` 任务，按来源报告进度并支持取消、重试。检查前清理旧更新提示；单个文件或来源失败会保留其他检查结果，在任务中报告失败详情。`InstalledContent.update` 保存 `{ versionId, version }`；旧的纯文本更新标签在载入时清除，重新检查后获得准确 ID。
 
 `ContentUpdateTarget` 为 `{ source, projectId, versionId }`，以来源与项目 ID 标识更新目标。`content.update` 使用 `content-update` 任务串行安装这些明确目标，保留文件启用状态；当前列表的批量操作遵守分类和搜索筛选，同一来源的同一项目只提交一次。任务中断时保留已完成的项目，重试跳过已安装的目标版本。批次结束检查最终版本，依赖安装替换了其他所选版本时报告冲突。列表扫描保留扫描期间写入的新元数据，避免覆盖安装结果。
+
+资源详情命令必须传项目实际的 `source`。`ResourceDetails` 包含 `description: { content, format: 'markdown' | 'html' }`、`gallery: { url, title?, description? }[]` 与项目 `url`；`ResourceVersionDetails` 包含相同格式的 `changelog` 及依赖列表。依赖有 `name`、`type`，以及可选的 `projectId`、`versionId`、`url`；类型为 `required`、`optional`、`incompatible`、`embedded`、`tool`、`include`、`unknown`。未实现对应可选方法的提供者返回 `null`，接口失败正常抛出错误。内置来源校验版本属于请求的项目，详情读取不修改实例或已安装内容。
 
 ## 实例备份
 

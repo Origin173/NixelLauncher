@@ -7,10 +7,9 @@ import { ZipFile } from 'yazl';
 import type { Loader } from '../shared/contracts';
 import type { NixelHost, TaskContext } from '../shared/host-api';
 import { tr } from '../shared/i18n';
-import type { CurseForgePackFile, CurseForgeResourceProvider } from './curseforge';
 import { download, inside } from './files';
 import { assertInstanceIdle, createInstance, getInstance } from './instance-state';
-import type { GameProvider } from './providers';
+import type { CurseForgePackFile, CurseForgeResourceProvider, GameProvider } from './providers';
 import { open, openEntryReadStream, readAllEntries, readEntry } from './zip';
 
 interface MrpackIndex {

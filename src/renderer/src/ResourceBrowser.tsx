@@ -227,7 +227,9 @@ export function ResourceBrowser({
                     size="sm"
                     isDisabled={Boolean(task)}
                     icon={installed ? 'check' : 'plus'}
-                    onPress={open}
+                    onPress={() =>
+                      a.setOverlay({ type: 'resource', resource: r, instanceId, tab: 'versions' })
+                    }
                   >
                     {task
                       ? `${Math.round(task.progress)}%`

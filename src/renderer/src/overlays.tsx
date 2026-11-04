@@ -1,18 +1,11 @@
 import { Drawer } from '@heroui/react';
 import { useEffect, useState } from 'react';
-import type {
-  Account,
-  DeviceLogin,
-  Loader,
-  ResourceVersion,
-  VersionEntry,
-} from '../../shared/contracts';
-import { i18n, label, tr } from '../../shared/i18n';
-import type { Resource } from './data';
-import { resourceSource } from './data';
+import type { Account, DeviceLogin, Loader, VersionEntry } from '../../shared/contracts';
+import { label, tr } from '../../shared/i18n';
 import { Brand, Icon } from './icons';
 import { Landscape } from './Landscape';
 import { JavaSettings } from './pages/Settings';
+import { ResourceDialog } from './resources/ResourceDialog';
 import type { Overlay } from './state';
 import { useApp } from './state';
 import {
@@ -51,7 +44,7 @@ function OverlayContent({ overlay: o }: { overlay: Overlay }) {
   if (o.type === 'launch-account')
     return <LaunchAccountDialog instanceId={o.instanceId} accountId={o.accountId} />;
   if (o.type === 'resource')
-    return <ResourceDialog resource={o.resource} instanceId={o.instanceId} />;
+    return <ResourceDialog resource={o.resource} instanceId={o.instanceId} initialTab={o.tab} />;
   if (o.type === 'plugin') return <PluginDialog id={o.pluginId} />;
   if (o.type === 'background') return <BackgroundDialog />;
   if (o.type === 'local-plugin') return <LocalPluginDialog />;
@@ -567,199 +560,6 @@ function AccountDialog({ instanceId }: { instanceId?: string }) {
               onChange={setPassword}
             />
           </>
-        )}
-        {error && <Notice tone="danger">{error}</Notice>}
-      </div>
-    </Dialog>
-  );
-}
-
-function ResourceDialog({ resource: r, instanceId }: { resource: Resource; instanceId?: string }) {
-  const a = useApp();
-  const isPack = r.category === 'modpacks';
-  const [target, setTarget] = useState(
-    instanceId ?? a.launchInstance?.id ?? a.instances[0]?.id ?? '',
-  );
-  const versionTarget = isPack ? undefined : target;
-  const targetInstance = a.instances.find((instance) => instance.id === versionTarget);
-  const sourceName =
-    a.providers.find((provider) => provider.kind === 'resources' && provider.id === r.source)
-      ?.name ?? r.source;
-  const [versions, setVersions] = useState<ResourceVersion[]>([]);
-  const [version, setVersion] = useState('');
-  const [pending, setPending] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const installTask = a.tasks.find(
-    (task) =>
-      task.resourceId === r.id &&
-      resourceSource(task.resourceSource) === resourceSource(r.source) &&
-      (isPack || task.instanceId === versionTarget) &&
-      task.status === 'running',
-  );
-  const installed = a.content.find(
-    (content) =>
-      content.instance === versionTarget &&
-      (content.projectId ?? content.id) === r.id &&
-      resourceSource(content.source) === resourceSource(r.source),
-  );
-  const selectedVersion = versions.find((item) => item.id === version);
-  const alreadyInstalled =
-    !isPack &&
-    Boolean(
-      installed &&
-        (installed.versionId === version || installed.version === selectedVersion?.version),
-    );
-  useEffect(() => {
-    if (!isPack && !versionTarget) return;
-    let active = true;
-    setLoading(true);
-    setVersion('');
-    setError('');
-    window.nixel
-      .invoke<ResourceVersion[]>('resources.versions', {
-        projectId: r.id,
-        instanceId: versionTarget,
-        source: r.source,
-      })
-      .then((v) => {
-        if (active) {
-          setVersions(v);
-          setVersion(v[0]?.id ?? '');
-        }
-      })
-      .catch((e) => {
-        if (active) setError(message(e));
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [r.id, r.source, versionTarget, isPack]);
-  const install = async () => {
-    setPending(true);
-    setError('');
-    try {
-      await window.nixel.invoke('resources.install', {
-        projectId: r.id,
-        versionId: version,
-        instanceId: versionTarget,
-        source: r.source,
-      });
-      a.setOverlay(null);
-    } catch (e) {
-      setError(message(e));
-    } finally {
-      setPending(false);
-    }
-  };
-  return (
-    <Dialog
-      wide
-      open={a.overlay !== null}
-      onClose={() => a.setOverlay(null)}
-      title={r.name}
-      description={`${r.author} · ${sourceName}`}
-      footer={
-        <>
-          <Action variant="secondary" onPress={() => a.setOverlay(null)}>
-            {tr('overlays.cancel')}
-          </Action>
-          <Action
-            icon="download"
-            isPending={pending}
-            isDisabled={
-              (!isPack && !targetInstance) ||
-              !version ||
-              loading ||
-              Boolean(installTask) ||
-              alreadyInstalled
-            }
-            onPress={() => void install()}
-          >
-            {installTask
-              ? tr('LaunchButton.installingValue', { value1: Math.round(installTask.progress) })
-              : alreadyInstalled
-                ? label('installed')
-                : isPack
-                  ? tr('overlays.createModpackInstance')
-                  : tr('overlays.installToInstance')}
-          </Action>
-        </>
-      }
-    >
-      <div className="stack">
-        <p>{r.desc}</p>
-        <div className="row">
-          <AssetIcon src={r.icon} kind={r.category} />
-          <Tag>{label(r.category)}</Tag>
-          <span className="muted">{tr('catalog.downloadCount', { count: r.downloads })}</span>
-          {r.url && (
-            <Action
-              size="sm"
-              variant="ghost"
-              icon="external"
-              onPress={() => void window.nixel.openExternal(r.url ?? '')}
-            >
-              {tr('overlays.viewProject')}
-            </Action>
-          )}
-        </div>
-        {isPack || a.instances.length ? (
-          <>
-            {!isPack && instanceId && (
-              <div className="install-target-summary">
-                {tr('overlays.installTo')}
-                <strong>{targetInstance?.name ?? tr('overlays.instanceRemoved')}</strong>
-                {targetInstance && (
-                  <span className="muted">
-                    {targetInstance.version} · {targetInstance.loader}
-                  </span>
-                )}
-              </div>
-            )}
-            {!isPack && !instanceId && (
-              <Choice
-                label={tr('overlays.installTarget')}
-                value={target}
-                onChange={setTarget}
-                options={a.instances.map((i) => ({
-                  id: i.id,
-                  name: `${i.name} · ${i.version} · ${i.loader}`,
-                }))}
-              />
-            )}
-            {loading ? (
-              <p className="muted">{tr('overlays.fetchingCompatibleVersions')}</p>
-            ) : versions.length ? (
-              <Choice
-                label={tr('overlays.resourceVersion')}
-                value={version}
-                onChange={setVersion}
-                options={versions.map((v) => ({
-                  id: v.id,
-                  name: `${v.version} · ${new Date(v.publishedAt).toLocaleDateString(i18n.language)}`,
-                }))}
-              />
-            ) : (
-              <Notice tone="warning">
-                {isPack
-                  ? tr('overlays.noInstallableModpackVersionsFound')
-                  : tr('overlays.noResourceVersionsMatchThisInstanceS')}
-              </Notice>
-            )}
-          </>
-        ) : (
-          <Empty
-            title={tr('overlays.createAnInstanceFirst')}
-            detail={tr('overlays.chooseAGameVersionAndLoaderTo')}
-          >
-            <Action onPress={() => a.setOverlay({ type: 'create' })}>
-              {tr('overlays.createInstance')}
-            </Action>
-          </Empty>
         )}
         {error && <Notice tone="danger">{error}</Notice>}
       </div>

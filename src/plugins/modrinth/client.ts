@@ -1,4 +1,4 @@
-import { json } from './files';
+import { json } from '../files';
 
 export interface ProjectVersion {
   id: string;
@@ -8,13 +8,29 @@ export interface ProjectVersion {
   game_versions: string[];
   loaders: string[];
   date_published: string;
+  changelog: string | null;
   files: { primary: boolean; filename: string; url: string; hashes: Record<string, string> }[];
-  dependencies: { dependency_type: string; project_id: string | null; version_id: string | null }[];
+  dependencies: {
+    dependency_type: 'required' | 'optional' | 'incompatible' | 'embedded';
+    project_id: string | null;
+    version_id: string | null;
+    file_name?: string | null;
+  }[];
 }
 interface Project {
+  id: string;
+  slug: string;
   title: string;
   project_type: string;
   icon_url: string | null;
+  body: string;
+  gallery: {
+    url: string;
+    title: string | null;
+    description: string | null;
+    featured: boolean;
+    ordering: number;
+  }[];
 }
 interface VersionFilter {
   gameVersions?: string[];
@@ -55,11 +71,20 @@ export class ModrinthClient {
   getProject(id: string, signal?: AbortSignal) {
     return this.request<Project>(`project/${encodeURIComponent(id)}`, signal);
   }
+  getProjects(ids: string[]) {
+    return this.request<Project[]>(`projects?ids=${encodeURIComponent(JSON.stringify(ids))}`);
+  }
+  getVersions(ids: string[]) {
+    return this.request<ProjectVersion[]>(
+      `versions?ids=${encodeURIComponent(JSON.stringify(ids))}`,
+    );
+  }
   getProjectVersion(id: string, signal?: AbortSignal) {
     return this.request<ProjectVersion>(`version/${encodeURIComponent(id)}`, signal);
   }
   getProjectVersions(id: string, filter: VersionFilter = {}, signal?: AbortSignal) {
     const query = new URLSearchParams();
+    query.set('include_changelog', 'false');
     if (filter.gameVersions) query.set('game_versions', JSON.stringify(filter.gameVersions));
     if (filter.loaders) query.set('loaders', JSON.stringify(filter.loaders));
     return this.request<ProjectVersion[]>(

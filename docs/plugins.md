@@ -64,6 +64,10 @@ ctx.nixel.providers.register(
 
 安装与版本查询继续使用项目实际的 `source`，明确来源优先于实例默认值。已安装资源使用 `source + projectId` 标识，更新按各自来源分发。任务的 `resourceSource` 与 `resourceId` 共同关联进度。内置来源为 `nixel.resources.modrinth` 和 `nixel.resources.curseforge`。整合包安装可以不传目标实例，由资源提供者创建新实例；普通内容安装必须指定目标实例。
 
+资源提供者可实现 `details(projectId): Promise<ResourceDetails>` 和 `versionDetails(projectId, versionId): Promise<ResourceVersionDetails>`。前者返回介绍原文、截图与项目 URL，后者返回版本说明与依赖关系；结构见 [`contracts.ts`](../src/shared/contracts.ts)。版本详情应校验版本属于请求的项目。介绍和版本说明注明 `markdown` 或 `html` 格式，界面负责清理富文本，外链在系统浏览器打开；提供者无需返回界面组件。默认界面将介绍、截图、版本分为三个标签，依赖类型使用稳定标识，名称保留项目原文。
+
+这两个方法为可选能力。未实现时对应命令返回 `null`，默认界面提示该来源未提供详情，已有搜索、版本选择与安装继续工作；网络错误会显示错误与重试入口。查询列表不拉取所有版本的发布说明，选中版本后再单独请求详情。
+
 提供者的 `checkUpdates(instance, task)` 接收任务上下文，将取消信号传入网络与文件读取，并报告 0–100 的检查进度。更新结果写入对应内容的 `update: { versionId, version }`；无更新时清除此字段。内容管理插件负责各来源的错误汇总与任务状态，单个来源失败后继续检查其他来源。批量更新通过各提供者的 `install` 安装明确版本，共用一个实例任务；可在快照的 `content-update` 任务中跟踪整体进度。
 
 插件展示名称、说明与分类可通过 manifest 的 `locales` 字段翻译，见 [翻译约定](localization.md)。

@@ -83,6 +83,26 @@ export interface ResourceVersion {
   loaders: string[];
   publishedAt: string;
 }
+export interface ResourceDocument {
+  content: string;
+  format: 'markdown' | 'html';
+}
+export interface ResourceDetails {
+  description: ResourceDocument;
+  gallery: { url: string; title?: string; description?: string }[];
+  url: string;
+}
+export interface ResourceDependency {
+  projectId?: string;
+  versionId?: string;
+  name: string;
+  type: 'required' | 'optional' | 'incompatible' | 'embedded' | 'tool' | 'include' | 'unknown';
+  url?: string;
+}
+export interface ResourceVersionDetails {
+  changelog: ResourceDocument;
+  dependencies: ResourceDependency[];
+}
 export interface VersionEntry {
   id: string;
   type: string;

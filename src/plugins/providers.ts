@@ -2,8 +2,10 @@ import type {
   Account,
   Instance,
   Resource,
+  ResourceDetails,
   ResourceQuery,
   ResourceVersion,
+  ResourceVersionDetails,
   VersionEntry,
 } from '../shared/contracts';
 import type { TaskContext } from '../shared/host-api';
@@ -23,6 +25,9 @@ export interface AccountProvider {
 export interface ResourceProvider {
   search(query: ResourceQuery, instance?: Instance): Promise<{ items: Resource[]; total: number }>;
   versions(projectId: string, instance?: Instance): Promise<ResourceVersion[]>;
+  /** Optional catalog extensions; existing providers can still search and install. */
+  details?(projectId: string): Promise<ResourceDetails>;
+  versionDetails?(projectId: string, versionId: string): Promise<ResourceVersionDetails>;
   install(
     projectId: string,
     versionId: string,
@@ -30,4 +35,14 @@ export interface ResourceProvider {
     task: TaskContext,
   ): Promise<void>;
   checkUpdates(instance: Instance, task: TaskContext): Promise<void>;
+}
+
+export interface CurseForgePackFile {
+  projectID: number;
+  fileID: number;
+  required?: boolean;
+}
+export interface CurseForgeResourceProvider extends ResourceProvider {
+  prepareFiles(files: CurseForgePackFile[], signal: AbortSignal): Promise<void>;
+  installFiles(files: CurseForgePackFile[], instance: Instance, task: TaskContext): Promise<void>;
 }
