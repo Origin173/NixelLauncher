@@ -6,11 +6,13 @@ import { mirrorsZh } from './mirrors';
 import { modpackUpgradeZh } from './modpack-upgrade';
 import { networkZh } from './network';
 import { pluginDistributionZh } from './plugin-distribution';
+import { proxyAuthZh } from './proxy-auth';
 import { serversZh } from './servers';
 import { skinsZh } from './skins';
 import { versionContentZh } from './version-content';
 
 export default {
+  ...proxyAuthZh,
   ...pluginDistributionZh,
   ...mirrorsZh,
   ...versionContentZh,

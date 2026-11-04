@@ -6,11 +6,13 @@ import { mirrorsEn } from './mirrors';
 import { modpackUpgradeEn } from './modpack-upgrade';
 import { networkEn } from './network';
 import { pluginDistributionEn } from './plugin-distribution';
+import { proxyAuthEn } from './proxy-auth';
 import { serversEn } from './servers';
 import { skinsEn } from './skins';
 import { versionContentEn } from './version-content';
 
 export default {
+  ...proxyAuthEn,
   ...pluginDistributionEn,
   ...mirrorsEn,
   ...versionContentEn,

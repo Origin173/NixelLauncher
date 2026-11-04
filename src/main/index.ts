@@ -21,7 +21,7 @@ import { i18n, setLocale, tr } from '../shared/i18n';
 import type { NetworkConfiguration } from '../shared/network';
 import { loadEnvironment } from './environment';
 import { HostClient } from './host-client';
-import { configureProxy, resolveProxy } from './network';
+import { configureProxy, installProxyAuthentication, resolveProxy } from './network';
 import { SecretStorage } from './secrets';
 
 let window: BrowserWindow | undefined;
@@ -157,7 +157,7 @@ async function platform(operation: PlatformOperation, payload: unknown) {
   const values = payload as Record<string, string>;
   switch (operation) {
     case 'network.configure':
-      return configureProxy(payload as NetworkConfiguration);
+      return configureProxy(payload as NetworkConfiguration, secrets);
     case 'network.resolveProxy':
       return resolveProxy(values.url ?? '');
     case 'secret.get':
@@ -300,6 +300,7 @@ void app.whenReady().then(async () => {
   };
   secrets = new SecretStorage(dataPath);
   await secrets.load();
+  installProxyAuthentication();
   host = new HostClient(
     {
       dataPath,
@@ -333,6 +334,9 @@ void app.whenReady().then(async () => {
     (status, error) => {
       snapshot.host = { ...snapshot.host, status: status === 'crashed' ? 'error' : status, error };
       if (status === 'crashed') {
+        void configureProxy({ mode: 'system', proxyUrl: '' }, secrets).catch(() => {
+          console.warn(tr('proxyAuth.configureFailed'));
+        });
         snapshot.running = [];
         snapshot.tasks = snapshot.tasks.map((task) =>
           task.status === 'running'

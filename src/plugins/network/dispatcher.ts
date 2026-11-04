@@ -1,11 +1,13 @@
 import { Agent, type Dispatcher, ProxyAgent } from 'undici';
 import { tr } from '../../shared/i18n';
 import type { NetworkConfiguration } from '../../shared/network';
+import type { ProxyCredential } from '../../shared/proxy-authentication';
 
 /** Chromium resolves OS/PAC settings; Undici owns Host HTTP connections. */
 export function networkDispatcher(
   config: NetworkConfiguration,
   resolveProxy: (url: string) => Promise<string>,
+  credential?: ProxyCredential,
 ) {
   const direct = new Agent();
   const proxies = new Map<string, ProxyAgent>();
@@ -13,7 +15,14 @@ export function networkDispatcher(
   function proxy(uri: string) {
     let agent = proxies.get(uri);
     if (!agent) {
-      agent = new ProxyAgent(uri);
+      agent = new ProxyAgent({
+        uri,
+        ...(credential && config.mode === 'custom' && uri === config.proxyUrl
+          ? {
+              token: `Basic ${Buffer.from(`${credential.username}:${credential.password}`).toString('base64')}`,
+            }
+          : {}),
+      });
       proxies.set(uri, agent);
     }
     return agent;
@@ -47,7 +56,9 @@ export function networkDispatcher(
     dispatcher,
     async dispose() {
       disposed = true;
+      credential = undefined;
       await Promise.all([direct, ...proxies.values()].map((agent) => agent.destroy()));
+      proxies.clear();
     },
   };
 }

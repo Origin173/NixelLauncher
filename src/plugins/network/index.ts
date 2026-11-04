@@ -1,8 +1,11 @@
 import type { Context } from 'cordis';
 import { getGlobalDispatcher, setGlobalDispatcher } from 'undici';
 import { tr } from '../../shared/i18n';
+import type { NetworkConfigurationInput } from '../../shared/network';
+import { proxyCredentialKey, readProxyCredential } from '../../shared/proxy-authentication';
 import { commandsFor } from '../commands';
 import { networkConfiguration } from './configuration';
+import { configureNetwork } from './configure';
 import { networkDispatcher } from './dispatcher';
 
 export const networkId = 'nixel.network';
@@ -12,9 +15,15 @@ export const networkPlugin = {
   async apply(ctx: Context, value: Record<string, unknown>) {
     const config = networkConfiguration(value);
     const platform = ctx.nixel.platform;
+    const credential = config.credentialId
+      ? readProxyCredential(
+          await platform.secretGet(proxyCredentialKey(config.credentialId)),
+          config,
+        )
+      : undefined;
     await platform.configureProxy(config);
     const previous = getGlobalDispatcher();
-    const network = networkDispatcher(config, (url) => platform.resolveProxy(url));
+    const network = networkDispatcher(config, (url) => platform.resolveProxy(url), credential);
     setGlobalDispatcher(network.dispatcher);
     console.info(`[${networkId}] ${config.mode}`);
     ctx.effect(() => async () => {
@@ -23,13 +32,11 @@ export const networkPlugin = {
       await platform.configureProxy({ mode: 'system', proxyUrl: '' });
     });
     const command = commandsFor(ctx);
-    command('network.configure', (input: Record<string, unknown>) =>
-      ctx.nixel.commands.invoke('plugins.configure', {
-        id: networkId,
-        config: networkConfiguration(input),
-      }),
+    const host = ctx.nixel;
+    command('network.configure', (input: NetworkConfigurationInput) =>
+      configureNetwork(host, config, input),
     );
-    command('network.status', () => ({ ...config }));
+    command('network.status', () => ({ ...config, hasPassword: Boolean(config.credentialId) }));
     command('network.check', () => ({
       taskId: ctx.nixel.tasks.start(
         tr('network.check'),

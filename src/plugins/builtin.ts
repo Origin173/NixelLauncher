@@ -80,6 +80,16 @@ export const builtinPlugins: BuiltinPlugin[] = [
         version: '0.1.0',
         apiVersion: 1,
         category: tr('builtin.core'),
+        configSchema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            mode: { type: 'string', enum: ['system', 'direct', 'custom'] },
+            proxyUrl: { type: 'string' },
+            username: { type: 'string' },
+            credentialId: { type: 'string' },
+          },
+        },
       },
       { name: 'network.name', description: 'network.description', category: 'builtin.core' },
     ),
