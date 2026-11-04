@@ -5,6 +5,7 @@ import { backupRetentionZh } from './backup-retention';
 import { contentUpdatesZh } from './content-updates';
 import { diagnosticsZh } from './diagnostics';
 import { downloadsZh } from './downloads';
+import { javaRecoveryZh } from './java-recovery';
 import { mirrorsZh } from './mirrors';
 import { modpackUpgradeZh } from './modpack-upgrade';
 import { networkZh } from './network';
@@ -15,6 +16,7 @@ import { skinsZh } from './skins';
 import { versionContentZh } from './version-content';
 
 export default {
+  ...javaRecoveryZh,
   ...applicationLogsZh,
   ...contentUpdatesZh,
   ...appUpdatesZh,

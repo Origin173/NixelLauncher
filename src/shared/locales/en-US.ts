@@ -5,6 +5,7 @@ import { backupRetentionEn } from './backup-retention';
 import { contentUpdatesEn } from './content-updates';
 import { diagnosticsEn } from './diagnostics';
 import { downloadsEn } from './downloads';
+import { javaRecoveryEn } from './java-recovery';
 import { mirrorsEn } from './mirrors';
 import { modpackUpgradeEn } from './modpack-upgrade';
 import { networkEn } from './network';
@@ -15,6 +16,7 @@ import { skinsEn } from './skins';
 import { versionContentEn } from './version-content';
 
 export default {
+  ...javaRecoveryEn,
   ...applicationLogsEn,
   ...contentUpdatesEn,
   ...appUpdatesEn,

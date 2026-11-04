@@ -26,7 +26,7 @@ Host 的 `NixelService` 提供持久化状态、命令注册、提供者注册�
 
 Minecraft 安装与启动由 Nixel 游戏提供者实现，版本清单来自 Mojang，Fabric/Quilt 配置来自各自 Meta API，Forge/NeoForge 从官方 Maven 获取安装器并执行其客户端处理器。Modrinth 资源直接请求其[公开 API](https://docs.modrinth.com/api/)，CurseForge 使用带自有 Key 的[官方 REST API](https://docs.curseforge.com/rest-api/)。Microsoft 设备代码登录需要项目自己的公开客户端 ID，按[设备授权流程](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-device-code)获取授权，再通过 Xbox、XSTS 和 Minecraft 服务交换游戏会话。第三方账号直接请求 Yggdrasil 接口。
 
-游戏提供者使用 `minecraft-version.ts` 解析版本继承、平台规则和 Maven 坐标，`minecraft-engine.ts` 编排安装，`forge-installer.ts` 处理加载器安装配置，`minecraft-launch.ts` 构造 JVM/游戏参数并启动进程。`java.ts` 读取官方 Java 清单；`install-files.ts` 负责并发、取消和文件校验。`authentication.ts`、`modrinth/client.ts` 与 `curseforge/client.ts` 为对应提供者的协议模块。ZIP 使用通用包 `yauzl`/`yazl`，这些模块均属于业务插件层。
+游戏提供者使用 `minecraft-version.ts` 解析版本继承、平台规则和 Maven 坐标，`minecraft-engine.ts` 编排安装，`forge-installer.ts` 处理加载器安装配置，`minecraft-launch.ts` 构造 JVM/游戏参数并启动进程。`java/discovery.ts` 探测运行时，`java/install.ts` 编排官方安装与恢复，`java/manifest.ts` 校验清单和暂存文件；`install-files.ts` 负责并发、取消和文件校验。`authentication.ts`、`modrinth/client.ts` 与 `curseforge/client.ts` 为对应提供者的协议模块。ZIP 使用通用包 `yauzl`/`yazl`，这些模块均属于业务插件层。
 
 ## 插件内部模块
 
@@ -42,7 +42,7 @@ Minecraft 安装与启动由 Nixel 游戏提供者实现，版本清单来自 Mo
 | `plugins/instances/backups/archive.ts`                               | ZIP 文件读写、相对路径边界、进度与取消                                                             |
 | `plugins/instances/versions/`                                        | `catalog.ts` 查询版本，`compatibility.ts` 检查内容，`plan.ts` 生成预览，`change.ts` 编排备份与安装 |
 | `plugins/minecraft/index.ts`、`install.ts`、`processes.ts`           | 注册游戏提供者，协调版本安装，拥有游戏进程和停止/释放逻辑                                          |
-| `plugins/java-commands.ts`、`java-selection.ts`、`java.ts`           | Java 命令、版本选择规则、运行时检测与安装                                                          |
+| `plugins/java-commands.ts`、`java-selection.ts`、`java/`             | Java 命令、版本选择规则、运行时探测、清单校验与可恢复安装                                          |
 | `plugins/instance-state.ts`、`task-progress.ts`、`launch-logs.ts`    | 内置模块共用的实例访问与占用规则、进度适配、脱敏日志                                               |
 | `plugins/content/index.ts`、`commands.ts`、`import.ts`、`updates.ts` | 组合内容插件，管理本地文件、启用状态、导入与更新任务                                               |
 | `plugins/catalog/commands.ts`                                        | 资源命令、双来源搜索合并、按明确来源分发详情与安装                                                 |
@@ -76,6 +76,8 @@ Minecraft 安装与启动由 Nixel 游戏提供者实现，版本清单来自 Mo
 `nixel.downloads` 拥有全局队列、传输、续传缓存与限速，按职责拆为五个模块。Host 提供通用任务控制和异步任务作用域，`files.download` 从当前作用域解析下载提供者；暂停保持安装调用栈和实例占用。各协议模块继续提交 URL、目标与哈希，复用网络插件的代理，见 [下载管理](downloads.md)。
 
 下载插件的 `mirrors/` 模块按官方主机、路径和预期哈希映射用户选择的文件镜像，`request.ts` 统一校验每次重定向。源选择在进入传输前完成，续传缓存按实际 URL 区分；认证、API 元数据与其他资源提供者沿用原来源，见 [下载镜像](download-mirrors.md)。
+
+Java 安装使用平台、主版本和官方清单 SHA-1 固定暂存目录，失败后保留完整文件，重试继续通过已有下载提供者处理片段和校验。Java 模块负责文件布局、可执行位与整体运行时提交，下载插件继续负责网络和单文件传输；没有新增 Host 业务服务或第二套下载缓存。`java.ts` 保留原 API 导出，见 [Java 安装恢复](java-runtime-recovery.md)。
 
 `nixel.skins` 负责皮肤文件校验、资料请求生命周期与外观修改任务，通过 `AccountProvider.appearance` 调用账号提供者。Microsoft 模块沿用认证会话实现官方外观协议；渲染端只获得纹理与披风数据，按需加载 `skinview3d`。契约见 [皮肤与披风](skins.md)。
 
