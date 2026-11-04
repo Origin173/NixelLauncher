@@ -1,5 +1,9 @@
 import type { Context } from 'cordis';
-import type { ResourceQuery, ResourceSearchResult } from '../../shared/contracts';
+import type {
+  ResourceInstallOptions,
+  ResourceQuery,
+  ResourceSearchResult,
+} from '../../shared/contracts';
 import type { TaskContext } from '../../shared/host-api';
 import { tr } from '../../shared/i18n';
 import { commandsFor } from '../commands';
@@ -81,7 +85,7 @@ export function registerCatalog(ctx: Context) {
     },
   );
   command(
-    'resources.install',
+    'resources.optionalDependencies',
     ({
       projectId,
       versionId,
@@ -90,11 +94,47 @@ export function registerCatalog(ctx: Context) {
     }: {
       projectId: string;
       versionId: string;
-      instanceId?: string;
-      source?: string;
+      instanceId: string;
+      source: string;
     }) => {
       const selection = selected(instanceId, source);
+      if (!selection.instance) throw new Error(tr('curseforge.chooseATargetInstanceFirst'));
+      return (
+        selection.provider.optionalDependencies?.(projectId, versionId, selection.instance) ?? null
+      );
+    },
+  );
+  command(
+    'resources.install',
+    ({
+      projectId,
+      versionId,
+      instanceId,
+      source,
+      optionalDependencies,
+    }: {
+      projectId: string;
+      versionId: string;
+      instanceId?: string;
+      source?: string;
+    } & ResourceInstallOptions) => {
+      const selection = selected(instanceId, source);
       const instance = selection.instance;
+      if (
+        optionalDependencies !== undefined &&
+        (!Array.isArray(optionalDependencies) ||
+          optionalDependencies.some(
+            (entry) =>
+              !entry ||
+              typeof entry.projectId !== 'string' ||
+              !entry.projectId ||
+              typeof entry.versionId !== 'string' ||
+              !entry.versionId,
+          ))
+      )
+        throw new Error(tr('optionalDependencies.selectionChanged'));
+      if (optionalDependencies?.length && !selection.provider.optionalDependencies)
+        throw new Error(tr('optionalDependencies.unsupported'));
       if (instance) assertInstanceIdle(host, instance.id);
       return {
         taskId: host.tasks.start(
@@ -103,7 +143,9 @@ export function registerCatalog(ctx: Context) {
           async (task: TaskContext) => {
             const current = selected(instanceId, selection.id);
             if (current.instance) assertInstanceIdle(host, current.instance.id, task.taskId);
-            await current.provider.install(projectId, versionId, current.instance, task);
+            await current.provider.install(projectId, versionId, current.instance, task, {
+              optionalDependencies,
+            });
           },
           {
             instanceId: instance?.id,
@@ -112,7 +154,13 @@ export function registerCatalog(ctx: Context) {
             kind: 'resource',
             retry: {
               command: 'resources.install',
-              params: { projectId, versionId, instanceId, source: selection.id },
+              params: {
+                projectId,
+                versionId,
+                instanceId,
+                source: selection.id,
+                optionalDependencies,
+              },
             },
           },
         ),

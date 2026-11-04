@@ -138,6 +138,21 @@ export interface ResourceVersionDetails {
   changelog: ResourceDocument;
   dependencies: ResourceDependency[];
 }
+export interface ResourceDependencySelection {
+  projectId: string;
+  versionId: string;
+}
+export interface ResourceOptionalDependency {
+  projectId?: string;
+  versionId?: string;
+  name: string;
+  version?: string;
+  icon?: string;
+  reason?: string;
+}
+export interface ResourceInstallOptions {
+  optionalDependencies?: ResourceDependencySelection[];
+}
 export interface VersionEntry {
   id: string;
   type: string;

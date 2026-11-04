@@ -1,8 +1,10 @@
 import type { Context } from 'cordis';
 import { serviceEnvironment } from '../../host/service-environment';
 import type { ResourceProvider } from '../providers';
+import { optionalDependencies } from '../resource-dependencies';
 import { listVersions, searchProjects } from './catalog';
 import { ModrinthClient } from './client';
+import { contentResolver } from './dependencies';
 import { projectDetails, versionDetails } from './details';
 import { installProject } from './install';
 import { resourcesId } from './rules';
@@ -25,8 +27,12 @@ export const resourcesPlugin = {
       versions: (id, instance, signal) => listVersions(client, id, instance, signal),
       details: (id) => projectDetails(client, id),
       versionDetails: (id, versionId) => versionDetails(client, id, versionId),
-      install: (id, version, instance, task) =>
-        installProject(host, client, id, version, instance, task),
+      optionalDependencies: async (id, version, instance) => {
+        const load = contentResolver(client, instance);
+        return optionalDependencies(await load(id, version), load);
+      },
+      install: (id, version, instance, task, options) =>
+        installProject(host, client, id, version, instance, task, options),
       checkUpdates: (instance, task) => checkUpdates(host, client, instance, task),
     };
     host.providers.register(

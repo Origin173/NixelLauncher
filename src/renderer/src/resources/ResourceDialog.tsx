@@ -7,6 +7,7 @@ import { resourceSource } from '../data';
 import { useApp } from '../state';
 import { Action, Choice, Dialog, Empty, Notice, Segments, Tag } from '../ui';
 import { AssetIcon } from '../workspace';
+import { OptionalDependencies, useOptionalDependencies } from './OptionalDependencies';
 import { ProjectDetails } from './ProjectDetails';
 import { useCatalogRequest } from './useCatalogRequest';
 import { VersionDetails } from './VersionDetails';
@@ -36,6 +37,7 @@ export function ResourceDialog({
       ?.name ?? r.source;
   const [versions, setVersions] = useState<ResourceVersion[]>([]);
   const [version, setVersion] = useState('');
+  const optional = useOptionalDependencies(r.id, version, r.source, versionTarget);
   const [pending, setPending] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -96,6 +98,7 @@ export function ResourceDialog({
         versionId: version,
         instanceId: versionTarget,
         source: r.source,
+        optionalDependencies: optional.selected,
       });
       a.setOverlay(null);
     } catch (e) {
@@ -128,14 +131,15 @@ export function ResourceDialog({
                 (!isPack && !targetInstance) ||
                 !version ||
                 loading ||
+                optional.loading ||
                 Boolean(installTask) ||
-                alreadyInstalled
+                (alreadyInstalled && !optional.selected.length)
               }
               onPress={() => void install()}
             >
               {installTask
                 ? tr('LaunchButton.installingValue', { value1: Math.round(installTask.progress) })
-                : alreadyInstalled
+                : alreadyInstalled && !optional.selected.length
                   ? label('installed')
                   : isPack
                     ? tr('overlays.createModpackInstance')
@@ -249,11 +253,20 @@ export function ResourceDialog({
               </Empty>
             )}
             {error && <Notice tone="danger">{error}</Notice>}
+            {version && !loading && versionTarget && (
+              <OptionalDependencies
+                request={optional}
+                instanceId={versionTarget}
+                source={r.source}
+                busy={pending || Boolean(installTask)}
+              />
+            )}
             {version && !loading && !error && (
               <VersionDetails
                 resource={r}
                 versionId={version}
                 baseUrl={details.data?.url || r.url}
+                hideOptional={Boolean(optional.data?.length)}
               />
             )}
           </>

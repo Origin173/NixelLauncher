@@ -3,6 +3,8 @@ import type {
   Instance,
   Resource,
   ResourceDetails,
+  ResourceInstallOptions,
+  ResourceOptionalDependency,
   ResourceQuery,
   ResourceVersion,
   ResourceVersionDetails,
@@ -36,11 +38,17 @@ export interface ResourceProvider {
   /** Optional catalog extensions; existing providers can still search and install. */
   details?(projectId: string): Promise<ResourceDetails>;
   versionDetails?(projectId: string, versionId: string): Promise<ResourceVersionDetails>;
+  optionalDependencies?(
+    projectId: string,
+    versionId: string,
+    instance: Instance,
+  ): Promise<ResourceOptionalDependency[]>;
   install(
     projectId: string,
     versionId: string,
     instance: Instance | undefined,
     task: TaskContext,
+    options?: ResourceInstallOptions,
   ): Promise<void>;
   checkUpdates(instance: Instance, task: TaskContext): Promise<void>;
 }

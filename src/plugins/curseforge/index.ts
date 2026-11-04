@@ -1,7 +1,9 @@
 import type { Context } from 'cordis';
 import type { CurseForgeResourceProvider } from '../providers';
+import { optionalDependencies } from '../resource-dependencies';
 import { listVersions, searchProjects } from './catalog';
 import { CurseForgeClient } from './client';
+import { contentResolver } from './dependencies';
 import { projectDetails, versionDetails } from './details';
 import { installFiles } from './install';
 import { curseforgeId, id } from './rules';
@@ -19,7 +21,11 @@ export const curseforgePlugin = {
       versions: (projectId, instance, signal) => listVersions(client, projectId, instance, signal),
       details: (id) => projectDetails(client, id),
       versionDetails: (id, versionId) => versionDetails(client, id, versionId),
-      install: (projectId, versionId, instance, task) =>
+      optionalDependencies: async (id, version, instance) => {
+        const load = contentResolver(client, instance);
+        return optionalDependencies(await load(id, version), load);
+      },
+      install: (projectId, versionId, instance, task, options) =>
         installFiles(
           host,
           client,
@@ -27,6 +33,7 @@ export const curseforgePlugin = {
           instance,
           task,
           true,
+          options,
         ),
       prepareFiles: (files, signal) => client.prepareFiles(files, signal),
       installFiles: (files, instance, task) => installFiles(host, client, files, instance, task),

@@ -1,14 +1,16 @@
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
-import type { Instance } from '../../shared/contracts';
+import type { Instance, ResourceInstallOptions } from '../../shared/contracts';
 import type { NixelHost, TaskContext } from '../../shared/host-api';
 import { tr } from '../../shared/i18n';
 import { download } from '../files';
 import { importModpack } from '../modpacks';
 import type { CurseForgePackFile } from '../providers';
-import { assertRequiredContentEnabled, installContentFile } from '../resource-files';
+import { installContentPlan } from '../resource-dependencies';
 import type { CurseForgeClient } from './client';
-import { assertDownload, curseforgeId, fileHashes, isCompatible } from './rules';
+import { contentResolver } from './dependencies';
+import { assertDownload, fileHashes } from './rules';
+
 export async function installFiles(
   host: NixelHost,
   client: CurseForgeClient,
@@ -16,26 +18,17 @@ export async function installFiles(
   instance: Instance | undefined,
   task: TaskContext,
   allowPack = false,
+  options?: ResourceInstallOptions,
 ) {
-  const pinned = new Map(entries.map((entry) => [entry.projectID, entry.fileID]));
-  const visited = new Set<number>();
-  async function installVersion(projectId: number, fileId: number, root = false) {
-    task.signal.throwIfAborted();
-    if (!root && instance)
-      assertRequiredContentEnabled(host, instance, curseforgeId, String(projectId));
-    if (visited.has(fileId)) return;
-    visited.add(fileId);
-    const [project, file, classes] = await Promise.all([
-      client.project(projectId, task.signal),
-      client.file(projectId, fileId, task.signal),
-      client.categoryIds(task.signal),
-    ]);
-    assertDownload(project, file);
-    const category = classes.get(project.classId);
-    if (!category) throw new Error(tr('curseforge.unsupportedCurseforgeResourceType'));
-    if (category === 'modpacks') {
-      if (!allowPack || !root)
-        throw new Error(tr('curseforge.aCurseforgeModpackManifestOrDependencyCannot'));
+  const root = entries[0];
+  if (allowPack && entries.length === 1 && root) {
+    const project = await client.project(root.projectID, task.signal);
+    const classes = await client.categoryIds(task.signal);
+    if (classes.get(project.classId) === 'modpacks') {
+      if (options?.optionalDependencies?.length)
+        throw new Error(tr('optionalDependencies.packUnsupported'));
+      const file = await client.file(root.projectID, root.fileID, task.signal);
+      assertDownload(project, file);
       const path = join(host.store.cacheRoot, `${randomUUID()}.zip`);
       await download(
         file.downloadUrl as string,
@@ -51,38 +44,17 @@ export async function installFiles(
       await importModpack(host, path, task, project.name);
       return;
     }
-    if (!instance) throw new Error(tr('curseforge.chooseATargetInstanceFirst'));
-    const target = instance;
-    if (!isCompatible(file, target, category))
-      throw new Error(
-        tr('curseforge.curseforgeFileValueIsIncompatibleWithThis', {
-          value1: file.displayName,
-        }),
-      );
-    for (const dependency of file.dependencies.filter((item) => item.relationType === 3)) {
-      const selected =
-        pinned.get(dependency.modId) ||
-        (await client.versions(dependency.modId, target, task.signal))[0]?.id;
-      if (!selected)
-        throw new Error(
-          tr('curseforge.noCompatibleRequiredCurseforgeDependencyFoundValue', {
-            value1: dependency.modId,
-          }),
-        );
-      await installVersion(dependency.modId, selected);
-    }
-    await installContentFile(host, target, task, {
-      source: curseforgeId,
-      projectId: String(projectId),
-      versionId: String(fileId),
-      name: project.name,
-      icon: project.logo?.thumbnailUrl,
-      version: file.displayName,
-      category,
-      fileName: file.fileName,
-      url: file.downloadUrl as string,
-      hashes: fileHashes(file),
-    });
   }
-  for (const entry of entries) await installVersion(entry.projectID, entry.fileID, true);
+  if (!instance) throw new Error(tr('curseforge.chooseATargetInstanceFirst'));
+  await installContentPlan(
+    host,
+    instance,
+    task,
+    entries.map((entry) => ({
+      projectId: String(entry.projectID),
+      versionId: String(entry.fileID),
+    })),
+    contentResolver(client, instance, task.signal),
+    options?.optionalDependencies,
+  );
 }

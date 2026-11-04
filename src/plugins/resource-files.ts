@@ -78,7 +78,7 @@ export function assertRequiredContentEnabled(
     );
 }
 
-interface ContentDownload {
+export interface ContentDownload {
   icon?: string;
   source: string;
   projectId: string;

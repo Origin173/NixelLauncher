@@ -283,13 +283,15 @@ export function Check({
   label,
   value,
   onChange,
+  isDisabled,
 }: {
   label: string;
   value: boolean;
   onChange: (v: boolean) => void;
+  isDisabled?: boolean;
 }) {
   return (
-    <Checkbox isSelected={value} onChange={onChange}>
+    <Checkbox isSelected={value} onChange={onChange} isDisabled={isDisabled}>
       <Checkbox.Content>
         <Checkbox.Control>
           <Checkbox.Indicator />

@@ -64,3 +64,5 @@ Minecraft 安装与启动由 Nixel 游戏提供者实现，版本清单来自 Mo
 账号目录 `plugins/accounts/` 分别组织管理命令、离线、Microsoft、Yggdrasil 提供者及 Yggdrasil 协议客户端；稳定插件 ID 与 `AccountProvider` 契约保留。`shared.ts` 只复用账号持久化与提供者注册。多角色待选会话、过期计时器由 Yggdrasil 插件作用域拥有；界面在独立 `accounts/AccountDialog.tsx` 中协调登录、角色选择与返回启动确认。
 
 默认界面的资源详情位于 `renderer/src/resources/`：对话框协调目标与版本选择，项目介绍/截图、版本说明/依赖、富文本渲染分别由独立组件负责。详情读取按来源、项目和版本区分，过期响应不覆盖当前选择；介绍或版本说明请求失败可以独立重试，安装仍使用兼容版本列表。Markdown 由 `marked` 解析，HTML 统一通过 `DOMPurify` 白名单清理；只保留网页链接与 HTTPS 图片，链接交给系统浏览器。
+
+两个来源的 `dependencies.ts` 把各自协议映射为内容节点；共享业务模块 `resource-dependencies.ts` 解析版本固定、必需依赖、显式选择的直接可选依赖以及冲突，形成有序下载计划后调用 `resource-files.ts`。提供者各自拥有 API 客户端与协议适配，目录管理插件只通过 `ResourceProvider` 的可选依赖查询及安装接口调用，不访问来源内部模块。界面的可选勾选状态按来源、项目、资源版本与目标实例区分。

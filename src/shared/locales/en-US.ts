@@ -4,6 +4,22 @@ import { backupRetentionEn } from './backup-retention';
 export default {
   ...accountProfilesEn,
   ...backupRetentionEn,
+  'optionalDependencies.title': 'Optional dependencies',
+  'optionalDependencies.hint':
+    'Choose extras to install with this version. Their required dependencies are included.',
+  'optionalDependencies.loading': 'Finding compatible optional dependencies…',
+  'optionalDependencies.noCompatibleVersion':
+    'No compatible version is available for this instance.',
+  'optionalDependencies.selectionChanged':
+    'The selection no longer matches this version’s optional dependencies. Choose again.',
+  'optionalDependencies.conflict':
+    'Conflicting dependency selections for {{project}}. No files have been changed.',
+  'optionalDependencies.unsupported':
+    'This source does not support optional dependency installation.',
+  'optionalDependencies.packUnsupported': 'Choose modpack content after creating its instance.',
+  'optionalDependencies.enableFirst':
+    'Enable this installed dependency in the instance before selecting it.',
+  'optionalDependencies.update': 'Update',
   'versionChange.title': 'Change version',
   'versionChange.disabled': 'Disabled',
   'versionChange.loaderVersion': 'Loader version',
@@ -58,8 +74,7 @@ export default {
   'resourceDetails.noScreenshots': 'No screenshots provided',
   'resourceDetails.screenshot': 'Project screenshot {{number}}',
   'resourceDetails.dependencies': 'Dependencies and compatibility',
-  'resourceDetails.dependenciesHint':
-    'Required dependencies are installed automatically. Visit optional dependencies’ project pages for details.',
+  'resourceDetails.dependenciesHint': 'Required dependencies are installed automatically.',
   'resourceDetails.noDependencies': 'This version declares no dependencies.',
   'resourceDetails.changelog': 'Release notes',
   'resourceDetails.noChangelog': 'No release notes provided.',

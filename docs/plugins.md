@@ -74,6 +74,10 @@ ctx.nixel.providers.register(
 
 这两个方法为可选能力。未实现时对应命令返回 `null`，默认界面提示该来源未提供详情，已有搜索、版本选择与安装继续工作；网络错误会显示错误与重试入口。查询列表不拉取所有版本的发布说明，选中版本后再单独请求详情。
 
+可选依赖安装扩展使用 `optionalDependencies(projectId, versionId, instance)` 返回兼容候选，`install` 的第五个参数接收 `ResourceInstallOptions`。实现查询的提供者应支持 `options.optionalDependencies` 中的精确项目/版本选择，并在写入前验证它们是主版本的直接可选依赖；主项目与所选项的必需依赖仍自动解析。未实现该查询的提供者保持原安装方式，管理插件拒绝向其提交非空的可选依赖选择。整合包本身按清单创建实例，清单内内容随后在实例中管理。
+
+来源关系映射依据 [Modrinth 版本接口](https://docs.modrinth.com/api/operations/getversion/) 与 [CurseForge 文件关系接口](https://docs.curseforge.com/rest-api/)；来源协议保留在对应提供者中，共享安装计划仅消费统一的内容节点。
+
 提供者的 `checkUpdates(instance, task)` 接收任务上下文，将取消信号传入网络与文件读取，并报告 0–100 的检查进度。更新结果写入对应内容的 `update: { versionId, version }`；无更新时清除此字段。内容管理插件负责各来源的错误汇总与任务状态，单个来源失败后继续检查其他来源。批量更新通过各提供者的 `install` 安装明确版本，共用一个实例任务；可在快照的 `content-update` 任务中跟踪整体进度。
 
 插件展示名称、说明与分类可通过 manifest 的 `locales` 字段翻译，见 [翻译约定](localization.md)。
