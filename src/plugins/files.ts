@@ -85,8 +85,8 @@ export async function download(
   }
 }
 
-export async function hashFile(path: string, algorithm = 'sha512') {
+export async function hashFile(path: string, algorithm = 'sha512', signal?: AbortSignal) {
   const hash = createHash(algorithm);
-  for await (const chunk of createReadStream(path)) hash.update(chunk);
+  for await (const chunk of createReadStream(path, { signal })) hash.update(chunk);
   return hash.digest('hex');
 }

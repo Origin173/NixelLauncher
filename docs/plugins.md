@@ -64,6 +64,8 @@ ctx.nixel.providers.register(
 
 安装与版本查询继续使用项目实际的 `source`，明确来源优先于实例默认值。已安装资源使用 `source + projectId` 标识，更新按各自来源分发。任务的 `resourceSource` 与 `resourceId` 共同关联进度。内置来源为 `nixel.resources.modrinth` 和 `nixel.resources.curseforge`。整合包安装可以不传目标实例，由资源提供者创建新实例；普通内容安装必须指定目标实例。
 
+提供者的 `checkUpdates(instance, task)` 接收任务上下文，将取消信号传入网络与文件读取，并报告 0–100 的检查进度。更新结果写入对应内容的 `update: { versionId, version }`；无更新时清除此字段。内容管理插件负责各来源的错误汇总与任务状态，单个来源失败后继续检查其他来源。批量更新通过各提供者的 `install` 安装明确版本，共用一个实例任务；可在快照的 `content-update` 任务中跟踪整体进度。
+
 插件展示名称、说明与分类可通过 manifest 的 `locales` 字段翻译，见 [翻译约定](localization.md)。
 
 长操作通过 `ctx.nixel.tasks.start` 执行。任务体获得 `signal`、`report` 和 `log`，应将 `signal` 传入下载与子进程流程。`report` 接受 0–100 的实际进度。账号凭据通过 `platform.secretGet/secretSet/secretDelete` 交给主进程系统加密存储。

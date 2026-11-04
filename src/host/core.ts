@@ -46,6 +46,8 @@ class HostStore implements StateStore {
     for (const item of this.state.content) {
       item.category = migrateIdentifier(item.category) as typeof item.category;
       if (!item.source && !item.projectId) item.version = migrateLocalVersion(item.version);
+      // Legacy update labels do not identify an installable file; check again for its exact ID.
+      if (typeof item.update === 'string') delete item.update;
     }
     for (const account of this.state.accounts)
       account.type = migrateIdentifier(account.type) as typeof account.type;

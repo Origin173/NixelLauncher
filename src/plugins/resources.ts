@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { link, lstat, mkdir, readdir, rename, rm, stat } from 'node:fs/promises';
+import { link, lstat, mkdir, rename, rm, stat } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { ModrinthV2Client, type ProjectVersion } from '@xmcl/modrinth';
@@ -8,14 +8,14 @@ import type { Context } from 'cordis';
 import { serviceEnvironment } from '../host/service-environment';
 import type {
   ContentCategory,
-  InstalledContent,
   Instance,
   ResourceQuery,
   ResourceSearchResult,
 } from '../shared/contracts';
-import type { NixelHost, TaskContext } from '../shared/host-api';
+import type { TaskContext } from '../shared/host-api';
 import { tr } from '../shared/i18n';
 import { commandsFor } from './commands';
+import { registerContentUpdates } from './content-updates';
 import { download, hashFile, inside } from './files';
 import { assertInstanceIdle, getInstance } from './game';
 import { importModpack } from './modpacks';
@@ -25,6 +25,7 @@ import {
   contentDirectories,
   installContentFile,
   normalizeResourceSource,
+  scanContent,
 } from './resource-files';
 
 export const resourcesId = 'nixel.resources.modrinth';
@@ -54,37 +55,6 @@ const versionOptions = (instance?: Instance) =>
             : [instance.loader.toLowerCase(), 'minecraft', 'iris', 'optifine'],
       }
     : {};
-
-export async function scanContent(host: NixelHost, instance: Instance) {
-  const known = host.store.read().content.filter((entry) => entry.instance === instance.id);
-  const found: InstalledContent[] = [];
-  for (const [category, directory] of Object.entries(contentDirectories)) {
-    const root = join(instance.directory, directory);
-    const entries = await readdir(root, { withFileTypes: true }).catch(() => []);
-    for (const entry of entries)
-      if (entry.isFile() && /\.(jar|zip)(\.disabled)?$/i.test(entry.name)) {
-        const previous = known.find(
-          (item) => item.category === category && item.fileName === entry.name,
-        );
-        found.push(
-          previous || {
-            id: randomUUID(),
-            instance: instance.id,
-            name: entry.name.replace(/\.(jar|zip)(\.disabled)?$/i, ''),
-            version: '',
-            category: category as ContentCategory,
-            fileName: entry.name,
-            enabled: !entry.name.endsWith('.disabled'),
-            color: 'green',
-          },
-        );
-      }
-  }
-  await host.store.update((draft) => {
-    draft.content = [...draft.content.filter((entry) => entry.instance !== instance.id), ...found];
-  });
-  return found;
-}
 
 export const resourcesPlugin = {
   name: resourcesId,
@@ -231,34 +201,80 @@ export const resourcesPlugin = {
         }
         await installVersion(projectId, versionId);
       },
-      async checkUpdates(instance) {
-        const entries = (await scanContent(host, instance)).filter(
-          (entry) => !entry.source || normalizeResourceSource(entry.source) === resourcesId,
-        );
-        for (const entry of entries) {
-          const path = inside(
-            join(instance.directory, contentDirectories[entry.category]),
-            entry.fileName,
+      async checkUpdates(instance, task) {
+        const entries = host.store
+          .read()
+          .content.filter(
+            (entry) =>
+              entry.instance === instance.id &&
+              (!entry.source || normalizeResourceSource(entry.source) === resourcesId),
           );
-          const hash = await hashFile(path);
-          const versions = await client.getLatestVersionsFromHashes([hash], {
-            algorithm: 'sha512',
-            ...versionOptions(instance),
-          });
-          const latest = versions[hash];
-          if (!latest) continue;
-          const current = await client.getProjectVersionByHash(hash, { algorithm: 'sha512' });
-          await host.store.update((draft) => {
-            const item = draft.content.find((content) => content.id === entry.id);
-            if (item) {
-              item.projectId = current.project_id;
-              item.versionId = current.id;
-              item.version = current.version_number;
-              item.source = resourcesId;
-              item.update = current.id !== latest.id ? latest.version_number : undefined;
-            }
-          });
+        const errors: Error[] = [];
+        for (const [index, entry] of entries.entries()) {
+          task.signal.throwIfAborted();
+          task.report(
+            (index / entries.length) * 100,
+            tr('content.checkingFile', { name: entry.name }),
+          );
+          try {
+            const path = inside(
+              join(instance.directory, contentDirectories[entry.category]),
+              entry.fileName,
+            );
+            const hash = await hashFile(path, 'sha512', task.signal);
+            const versions = await client.getLatestVersionsFromHashes(
+              [hash],
+              {
+                algorithm: 'sha512',
+                ...versionOptions(instance),
+              },
+              task.signal,
+            );
+            const latest = versions[hash];
+            if (!latest) continue;
+            const current = await client.getProjectVersionByHash(
+              hash,
+              { algorithm: 'sha512' },
+              task.signal,
+            );
+            if (entry.projectId && entry.projectId !== current.project_id)
+              throw new Error(tr('content.fileIdentityChanged', { name: entry.name }));
+            const project =
+              !entry.projectId || !entry.icon
+                ? await client.getProject(current.project_id, task.signal)
+                : undefined;
+            await host.store.update((draft) => {
+              const item = draft.content.find((content) => content.id === entry.id);
+              if (item) {
+                item.projectId = current.project_id;
+                item.versionId = current.id;
+                item.version = current.version_number;
+                item.source = resourcesId;
+                if (project) {
+                  item.name = project.title;
+                  item.icon = project.icon_url ?? undefined;
+                }
+                item.update =
+                  current.id !== latest.id &&
+                  Date.parse(latest.date_published) > Date.parse(current.date_published)
+                    ? { versionId: latest.id, version: latest.version_number }
+                    : undefined;
+              }
+            });
+          } catch (error) {
+            task.signal.throwIfAborted();
+            const failure = new Error(
+              tr('content.fileCheckFailed', {
+                name: entry.name,
+                message: error instanceof Error ? error.message : String(error),
+              }),
+            );
+            errors.push(failure);
+            task.log(failure.message);
+          }
         }
+        task.report(100);
+        if (errors.length) throw new AggregateError(errors, tr('content.checkIncomplete'));
       },
     };
     host.providers.register(
@@ -281,6 +297,7 @@ export const contentPlugin = {
   apply(ctx: Context) {
     const host = ctx.nixel;
     const command = commandsFor(ctx);
+    registerContentUpdates(ctx);
     const selected = (instanceId?: string, source?: string) => {
       const instance = instanceId ? getInstance(host, instanceId) : undefined;
       const id =
@@ -382,9 +399,14 @@ export const contentPlugin = {
         };
       },
     );
-    command('content.list', ({ instanceId }: { instanceId: string }) =>
-      scanContent(host, getInstance(host, instanceId)),
-    );
+    command('content.list', ({ instanceId }: { instanceId: string }) => {
+      const instance = getInstance(host, instanceId);
+      return host.tasks
+        .list()
+        .some((task) => task.instanceId === instanceId && task.status === 'running')
+        ? host.store.read().content.filter((entry) => entry.instance === instanceId)
+        : scanContent(host, instance);
+    });
     command(
       'content.import',
       ({
@@ -514,22 +536,6 @@ export const contentPlugin = {
       await host.store.update((draft) => {
         draft.content = draft.content.filter((entry) => entry.id !== id);
       });
-    });
-    command('content.checkUpdates', async ({ instanceId }: { instanceId: string }) => {
-      const instance = getInstance(host, instanceId);
-      assertInstanceIdle(host, instanceId);
-      const entries = await scanContent(host, instance);
-      const sources = new Set(
-        entries.map(
-          (entry) =>
-            normalizeResourceSource(entry.source) ||
-            instance.providers.resources ||
-            host.store.read().settings.providers.resources,
-        ),
-      );
-      for (const source of sources)
-        await host.providers.get<ResourceProvider>('resources', source).checkUpdates(instance);
-      return host.store.read().content.filter((entry) => entry.instance === instanceId);
     });
   },
 };

@@ -52,7 +52,8 @@ CurseForge provider 与插件 ID 为 `nixel.resources.curseforge`。资源命令
 | `content.list`                 | `{ instanceId }`                                            | `InstalledContent[]`（同步快照）                                  |
 | `content.setEnabled`           | `{ instanceId, id, enabled }`                               | `void`                                                            |
 | `content.remove`               | `{ instanceId, id }`                                        | `void`                                                            |
-| `content.checkUpdates`         | `{ instanceId }`                                            | `InstalledContent[]`                                              |
+| `content.checkUpdates`         | `{ instanceId }`                                            | `{ taskId }`                                                      |
+| `content.update`               | `{ instanceId, updates: ContentUpdateTarget[] }`            | `{ taskId }`                                                      |
 
 Microsoft 登录使用 `.env` 的 `MICROSOFT_CLIENT_ID`，CurseForge 使用 `CURSEFORGE_API_KEY`，Modrinth 可选 `MODRINTH_TOKEN`。服务配置不进入界面设置或快照；Host 缓存后从环境移除服务凭据。玩家 Token 由主进程 safeStorage 加密保存，只在 Host 与系统桥接内传递。离线角色使用标准 OfflinePlayer UUID。
 
@@ -67,6 +68,10 @@ Microsoft 登录使用 `.env` 的 `MICROSOFT_CLIENT_ID`，CurseForge 使用 `CUR
 `instances.install` 同时用于已安装实例的文件修复，通过安装清单验证校验值。目录导入会复制来源目录，排除已知启动器账号文件；实例复制保留已安装内容元数据与启动设置。两者及整合包导入通过 `pendingOperation` 标记尚未完成的新实例，实例插件启动时清理遗留目录和记录。
 
 内置长任务在 `Task.retry` 中保存 `{ command, params }`，参数不含账号凭据。`tasks.retry` 通过当前命令注册表执行，重新校验实例占用和插件状态；历史任务保持不变，返回新任务 ID。取消或进程中断不会自动重试。插件自定义任务未提供描述符时，仅当前 Host 生命周期内可使用原执行函数重试。
+
+内容更新检查使用 `content-check` 任务，按来源报告进度并支持取消、重试。检查前清理旧更新提示；单个文件或来源失败会保留其他检查结果，在任务中报告失败详情。`InstalledContent.update` 保存 `{ versionId, version }`；旧的纯文本更新标签在载入时清除，重新检查后获得准确 ID。
+
+`ContentUpdateTarget` 为 `{ source, projectId, versionId }`，以来源与项目 ID 标识更新目标。`content.update` 使用 `content-update` 任务串行安装这些明确目标，保留文件启用状态；当前列表的批量操作遵守分类和搜索筛选，同一来源的同一项目只提交一次。任务中断时保留已完成的项目，重试跳过已安装的目标版本。批次结束检查最终版本，依赖安装替换了其他所选版本时报告冲突。列表扫描保留扫描期间写入的新元数据，避免覆盖安装结果。
 
 ## 开发检查
 

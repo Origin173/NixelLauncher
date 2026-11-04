@@ -1,4 +1,30 @@
 export default {
+  'content.noProviders': 'Enable a resource provider before checking for updates.',
+  'content.preparingCheck': 'Reading installed content',
+  'content.checkingFile': 'Checking {{name}}',
+  'content.checkingSource': 'Checking {{name}} resources',
+  'content.fileIdentityChanged':
+    'The file for {{name}} does not match its recorded project. Import it again.',
+  'content.fileCheckFailed': '{{name}}: {{message}}',
+  'content.sourceCheckFailed': '{{name}}: {{message}}',
+  'content.checkIncomplete':
+    'Some content could not be checked. Available updates are still listed.',
+  'content.updatesFound': 'Updates found: {{count}}',
+  'content.updateTargetChanged':
+    'Selected content was removed or its source changed. Check for updates again.',
+  'content.chooseUpdates': 'Choose content to update.',
+  'content.updateTask': 'Update content ({{count}})',
+  'content.updatingFile': 'Updating {{name}} ({{current}}/{{total}})',
+  'content.alreadyUpdated': '{{name}} already has the selected version. Skipping download.',
+  'content.updatedFile': 'Updated {{name}}',
+  'content.updateVersionConflict':
+    'A dependency replaced the selected version of {{name}}. Review version compatibility.',
+  'content.updatedCount': 'Updates completed: {{count}}',
+  'content.taskFailed': 'Operation incomplete. Open task details; completed items are kept.',
+  'content.taskDetails': 'Task details',
+  'content.updateVisible': 'Update this list ({{count}})',
+  'content.confirmUpdates':
+    'Update from each original source: {{names}}. Completed items are kept if interrupted. Retry skips target versions already installed.',
   'launch.noCompatibleAccount':
     'No enabled account matches this instance. Add an account or adjust its account service.',
   'launch.configureServices': 'Instance settings',

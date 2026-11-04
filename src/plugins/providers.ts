@@ -32,5 +32,5 @@ export interface ResourceProvider {
     instance: Instance | undefined,
     task: TaskContext,
   ): Promise<void>;
-  checkUpdates(instance: Instance): Promise<void>;
+  checkUpdates(instance: Instance, task: TaskContext): Promise<void>;
 }

@@ -747,6 +747,19 @@ strong {
 .content-table {
   padding: 0 16px;
 }
+.content-update-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+  font-size: 12px;
+}
+.content-update-status > span {
+  flex: 1;
+  min-width: 160px;
+}
 .table-header {
   display: flex;
   justify-content: space-between;

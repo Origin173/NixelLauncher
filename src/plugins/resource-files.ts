@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { rm, stat } from 'node:fs/promises';
+import { readdir, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { ContentCategory, Instance } from '../shared/contracts';
+import type { ContentCategory, InstalledContent, Instance } from '../shared/contracts';
 import type { NixelHost, TaskContext } from '../shared/host-api';
 import { tr } from '../shared/i18n';
 import { download, inside } from './files';
@@ -11,6 +11,45 @@ export const contentDirectories: Record<ContentCategory, string> = {
   resourcepacks: 'resourcepacks',
   shaders: 'shaderpacks',
 };
+
+export async function scanContent(host: NixelHost, instance: Instance) {
+  const known = host.store.read().content.filter((entry) => entry.instance === instance.id);
+  const found: InstalledContent[] = [];
+  for (const [category, directory] of Object.entries(contentDirectories)) {
+    const root = join(instance.directory, directory);
+    const entries = await readdir(root, { withFileTypes: true }).catch(
+      (error: NodeJS.ErrnoException) => {
+        if (error.code === 'ENOENT') return [];
+        throw error;
+      },
+    );
+    for (const entry of entries)
+      if (entry.isFile() && /\.(jar|zip)(\.disabled)?$/i.test(entry.name)) {
+        const previous = known.find(
+          (item) => item.category === category && item.fileName === entry.name,
+        );
+        found.push(
+          previous || {
+            id: randomUUID(),
+            instance: instance.id,
+            name: entry.name.replace(/\.(jar|zip)(\.disabled)?$/i, ''),
+            version: '',
+            category: category as ContentCategory,
+            fileName: entry.name,
+            enabled: !entry.name.endsWith('.disabled'),
+            color: 'green',
+          },
+        );
+      }
+  }
+  await host.store.update((draft) => {
+    // Keep metadata written by an install or toggle while this directory scan was in flight.
+    const current = draft.content.filter((entry) => entry.instance === instance.id);
+    if (JSON.stringify(current) !== JSON.stringify(known)) return;
+    draft.content = [...draft.content.filter((entry) => entry.instance !== instance.id), ...found];
+  });
+  return host.store.read().content.filter((entry) => entry.instance === instance.id);
+}
 
 export function normalizeResourceSource(source?: string) {
   if (source === 'Modrinth') return 'nixel.resources.modrinth';

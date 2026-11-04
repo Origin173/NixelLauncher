@@ -55,7 +55,12 @@ export interface InstalledContent {
   projectId?: string;
   versionId?: string;
   source?: string;
-  update?: string;
+  update?: { versionId: string; version: string };
+}
+export interface ContentUpdateTarget {
+  source: string;
+  projectId: string;
+  versionId: string;
 }
 export interface Resource {
   id: string;

@@ -6,14 +6,14 @@
 
 NixelLauncher 使用 Electron、React、HeroUI v3 和 Cordis，面向 Windows、macOS、Linux 的 Minecraft Java 版玩家。当前已实现独立 Cordis Plugin Host、业务插件与默认界面。采用独立实例、本地优先的设计；插件全局安装启用，实例分别保存服务提供者和配置。
 
-| 目录 | 职责 |
-| --- | --- |
-| `src/main` | 窗口、系统对话框、安全凭据存储、IPC 来源校验与 Host 连接 |
-| `src/preload` | 通过 `NixelBridge` 暴露明确的系统接口与业务命令调用 |
-| `src/host` | 独立 Utility Process 中的 Cordis 容器、插件生命周期、状态、命令、提供者与任务服务 |
-| `src/plugins` | 实例、账号、内容等业务管理插件，以及游戏、资源、认证等提供者 |
-| `src/shared` | 跨进程契约、稳定标识、共享纯逻辑与翻译目录 |
-| `src/renderer` | React + HeroUI 默认界面插件、交互和展示状态 |
+| 目录           | 职责                                                                              |
+| -------------- | --------------------------------------------------------------------------------- |
+| `src/main`     | 窗口、系统对话框、安全凭据存储、IPC 来源校验与 Host 连接                          |
+| `src/preload`  | 通过 `NixelBridge` 暴露明确的系统接口与业务命令调用                               |
+| `src/host`     | 独立 Utility Process 中的 Cordis 容器、插件生命周期、状态、命令、提供者与任务服务 |
+| `src/plugins`  | 实例、账号、内容等业务管理插件，以及游戏、资源、认证等提供者                      |
+| `src/shared`   | 跨进程契约、稳定标识、共享纯逻辑与翻译目录                                        |
+| `src/renderer` | React + HeroUI 默认界面插件、交互和展示状态                                       |
 
 调用路径为 **界面 → preload → 主进程 → Cordis Host → 业务插件 → 提供者**。默认界面可由可信界面插件替换。后端插件运行在可信 Host 中；渲染端保持 context isolation、sandbox，关闭 Node integration。
 

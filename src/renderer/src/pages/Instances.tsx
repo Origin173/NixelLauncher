@@ -1,6 +1,6 @@
 import { Card } from '@heroui/react';
 import { useEffect, useState } from 'react';
-import type { Instance, InstanceFile, ResourceVersion } from '../../../shared/contracts';
+import type { ContentUpdateTarget, Instance, InstanceFile } from '../../../shared/contracts';
 import { i18n, label, tr } from '../../../shared/i18n';
 import { resourceSource } from '../data';
 import { LaunchButton } from '../LaunchButton';
@@ -251,6 +251,37 @@ function InstalledList({ instance, category }: { instance: Instance; category: s
       c.category === category &&
       c.name.toLowerCase().includes(query.toLowerCase()),
   );
+  const availableUpdates = list.flatMap((entry) =>
+    entry.update && entry.projectId && entry.source
+      ? [
+          {
+            contentId: entry.id,
+            name: entry.name,
+            version: entry.update.version,
+            target: {
+              source: resourceSource(entry.source),
+              projectId: entry.projectId,
+              versionId: entry.update.versionId,
+            },
+          },
+        ]
+      : [],
+  );
+  const updates = [
+    ...new Map(
+      availableUpdates.map((entry) => [`${entry.target.source}:${entry.target.projectId}`, entry]),
+    ).values(),
+  ];
+  const updateTask = a.tasks.find(
+    (task) =>
+      task.instanceId === instance.id &&
+      (task.kind === 'content-check' || task.kind === 'content-update'),
+  );
+  const startUpdates = async (targets: ContentUpdateTarget[]) => {
+    setPending(true);
+    await a.command('content.update', { instanceId: instance.id, updates: targets });
+    setPending(false);
+  };
   useEffect(() => {
     if (!visible) return;
     void a.command('content.list', { instanceId: instance.id });
@@ -294,7 +325,11 @@ function InstalledList({ instance, category }: { instance: Instance; category: s
           variant="ghost"
           icon="refresh"
           isDisabled={busy}
-          onPress={() => void a.command('content.checkUpdates', { instanceId: instance.id })}
+          onPress={async () => {
+            setPending(true);
+            await a.command('content.checkUpdates', { instanceId: instance.id });
+            setPending(false);
+          }}
         >
           {tr('Instances.checkForUpdates')}
         </Action>
@@ -311,10 +346,63 @@ function InstalledList({ instance, category }: { instance: Instance; category: s
           {tr('Instances.directory')}
         </Action>
       </div>
+      {(updateTask || updates.length > 1) && (
+        <div className="content-update-status">
+          <span role="status" className={updateTask?.status === 'failed' ? 'text-danger' : 'muted'}>
+            {updateTask &&
+              (updateTask.status === 'failed'
+                ? tr('content.taskFailed')
+                : updateTask.status === 'cancelled'
+                  ? tr('overlays.cancelled')
+                  : updateTask.detail)}
+            {updateTask?.status === 'running' && ` · ${Math.round(updateTask.progress)}%`}
+          </span>
+          <div className="row">
+            {updateTask?.status === 'running' && (
+              <Action size="sm" variant="ghost" onPress={() => a.cancelTask(updateTask.id)}>
+                {tr('overlays.cancel')}
+              </Action>
+            )}
+            {updateTask && (
+              <Action size="sm" variant="ghost" onPress={() => a.setTaskOpen(true)}>
+                {tr('content.taskDetails')}
+              </Action>
+            )}
+            {updates.length > 1 && (
+              <Action
+                size="sm"
+                variant="secondary"
+                icon="refresh"
+                isDisabled={busy}
+                onPress={() =>
+                  a.setOverlay({
+                    type: 'confirm',
+                    title: tr('content.updateVisible', { count: updates.length }),
+                    detail: tr('content.confirmUpdates', {
+                      names: new Intl.ListFormat(i18n.language).format(
+                        updates.map((entry) => `${entry.name} → ${entry.version}`),
+                      ),
+                    }),
+                    action: async () => {
+                      await window.nixel.invoke('content.update', {
+                        instanceId: instance.id,
+                        updates: updates.map((entry) => entry.target),
+                      });
+                    },
+                  })
+                }
+              >
+                {tr('content.updateVisible', { count: updates.length })}
+              </Action>
+            )}
+          </div>
+        </div>
+      )}
       <div className="workspace-scroll">
         {list.length ? (
           <Card className="content-table">
             {list.map((c) => {
+              const update = availableUpdates.find((entry) => entry.contentId === c.id);
               const task = a.tasks.find(
                 (entry) =>
                   entry.instanceId === instance.id &&
@@ -333,31 +421,18 @@ function InstalledList({ instance, category }: { instance: Instance; category: s
                     {c.update && (
                       <Tag color="accent">
                         {tr('Instances.updateAvailable')}
-                        {c.update}
+                        {c.update.version}
                       </Tag>
                     )}
                   </div>
-                  {(c.update || task) && c.projectId && (
+                  {(update || task) && c.projectId && (
                     <Action
                       size="sm"
                       variant="secondary"
                       icon="refresh"
                       isDisabled={busy || Boolean(task)}
-                      onPress={async () => {
-                        const versions = await a.command<ResourceVersion[]>('resources.versions', {
-                          projectId: c.projectId,
-                          instanceId: instance.id,
-                          source: c.source,
-                        });
-                        const next = versions?.find((v) => v.version === c.update) ?? versions?.[0];
-                        if (next) {
-                          await a.command('resources.install', {
-                            projectId: c.projectId,
-                            versionId: next.id,
-                            instanceId: instance.id,
-                            source: c.source,
-                          });
-                        }
+                      onPress={() => {
+                        if (update) void startUpdates([update.target]);
                       }}
                     >
                       {task
