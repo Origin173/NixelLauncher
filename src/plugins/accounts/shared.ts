@@ -5,8 +5,9 @@ import type { AccountProvider } from '../providers';
 export const offlineId = 'nixel.accounts.offline';
 export const microsoftId = 'nixel.accounts.microsoft';
 export const yggdrasilId = 'nixel.accounts.yggdrasil';
-export async function save(host: NixelHost, account: Account) {
+export async function save(host: NixelHost, account: Account, signal?: AbortSignal) {
   await host.store.update((draft) => {
+    signal?.throwIfAborted();
     const index = draft.accounts.findIndex((entry) => entry.id === account.id);
     if (index < 0) draft.accounts.push(account);
     else draft.accounts[index] = account;

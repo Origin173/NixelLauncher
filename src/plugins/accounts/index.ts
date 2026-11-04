@@ -2,6 +2,7 @@ import type { Context } from 'cordis';
 import { tr } from '../../shared/i18n';
 import { commandsFor } from '../commands';
 import type { AccountProvider } from '../providers';
+import { accountOperation } from './operations';
 
 export { microsoftPlugin } from './microsoft';
 export { offlinePlugin } from './offline';
@@ -13,18 +14,26 @@ export const accountsPlugin = {
   apply(ctx: Context) {
     const host = ctx.nixel;
     const command = commandsFor(ctx);
-    command('accounts.remove', async ({ id }: { id: string }) => {
-      await host.platform.secretDelete(`account:${id}`);
-      await host.store.update((draft) => {
-        draft.accounts = draft.accounts.filter((entry) => entry.id !== id);
-        if (draft.settings.defaultAccount === id)
-          draft.settings.defaultAccount = draft.accounts[0]?.id || '';
-        if (draft.settings.launchAccount === id) draft.settings.launchAccount = '';
-        for (const instance of draft.instances) {
-          if (instance.account === id) instance.account = '';
+    command('accounts.remove', ({ id }: { id: string }) =>
+      accountOperation(host, id, async () => {
+        const previous = await host.platform.secretGet(`account:${id}`);
+        await host.platform.secretDelete(`account:${id}`);
+        try {
+          await host.store.update((draft) => {
+            draft.accounts = draft.accounts.filter((entry) => entry.id !== id);
+            if (draft.settings.defaultAccount === id)
+              draft.settings.defaultAccount = draft.accounts[0]?.id || '';
+            if (draft.settings.launchAccount === id) draft.settings.launchAccount = '';
+            for (const instance of draft.instances) {
+              if (instance.account === id) instance.account = '';
+            }
+          });
+        } catch (error) {
+          if (previous != null) await host.platform.secretSet(`account:${id}`, previous);
+          throw error;
         }
-      });
-    });
+      }),
+    );
     command('accounts.refresh', async ({ id }: { id: string }) => {
       const account = host.store.read().accounts.find((entry) => entry.id === id);
       if (!account) throw new Error(tr('accounts.accountNotFound'));

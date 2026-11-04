@@ -29,13 +29,19 @@ export function AccountDialog({
     { status: 'select-profile' }
   > | null>(null);
   const [profileId, setProfileId] = useState('');
+  const visible = a.overlay?.type === 'account';
   useEffect(() => {
-    if (!selection) return;
+    if (!selection || !visible || type !== 'yggdrasil') return;
     return () => {
       void a.command('accounts.yggdrasil.cancel', { id: selection.id });
     };
-  }, [selection, a.command]);
-  const visible = a.overlay?.type === 'account';
+  }, [selection, visible, type, a.command]);
+  useEffect(() => {
+    if (!device || !visible || type !== 'microsoft') return;
+    return () => {
+      void a.command('accounts.microsoft.cancel', { id: device.id });
+    };
+  }, [device, visible, type, a.command]);
   useEffect(() => {
     if (!device || !visible || type !== 'microsoft') return;
     let active = true;
@@ -168,7 +174,10 @@ export function AccountDialog({
             value={type}
             options={['microsoft', 'offline', 'yggdrasil']}
             onChange={(value) => {
-              if (!pending) setType(value);
+              if (!pending) {
+                setDevice(null);
+                setType(value);
+              }
             }}
             label={tr('overlays.accountType')}
           />

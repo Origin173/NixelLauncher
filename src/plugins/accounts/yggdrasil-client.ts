@@ -55,12 +55,16 @@ export class YggdrasilClient {
       availableProfiles: data.availableProfiles?.map(({ id, name }) => ({ id, name })),
     };
   }
-  login(input: { username: string; password: string; clientToken: string }) {
-    return this.tokens('authenticate', {
-      ...input,
-      agent: { name: 'Minecraft', version: 1 },
-      requestUser: true,
-    });
+  login(input: { username: string; password: string; clientToken: string }, signal?: AbortSignal) {
+    return this.tokens(
+      'authenticate',
+      {
+        ...input,
+        agent: { name: 'Minecraft', version: 1 },
+        requestUser: true,
+      },
+      signal,
+    );
   }
   refresh(input: YggdrasilTokens, signal?: AbortSignal, selectedProfile?: AccountProfile) {
     return this.tokens('refresh', { ...input, selectedProfile, requestUser: true }, signal);
