@@ -4,8 +4,10 @@ import { diagnosticsEn } from './diagnostics';
 import { modpackUpgradeEn } from './modpack-upgrade';
 import { networkEn } from './network';
 import { serversEn } from './servers';
+import { skinsEn } from './skins';
 
 export default {
+  ...skinsEn,
   ...modpackUpgradeEn,
   ...networkEn,
   ...diagnosticsEn,

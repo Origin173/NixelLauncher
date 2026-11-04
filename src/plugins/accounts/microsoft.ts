@@ -6,6 +6,7 @@ import { tr } from '../../shared/i18n';
 import { minecraftSession } from '../authentication';
 import { commandsFor } from '../commands';
 import { json } from '../files';
+import { microsoftAppearance } from './microsoft-appearance';
 import { microsoftId, register, save } from './shared';
 
 interface OAuthTokens {
@@ -87,28 +88,26 @@ export const microsoftPlugin = {
         signal,
       );
     }
+    async function session(account: Account, signal: AbortSignal) {
+      if (!account.expiresAt || account.expiresAt < Date.now() + 60000)
+        account = await refresh(account, signal);
+      signal.throwIfAborted();
+      const text = await host.platform.secretGet(`account:${account.id}`);
+      if (!text) throw new Error(tr('accounts.microsoftCredentialsNotFound'));
+      const secret = JSON.parse(text) as MicrosoftSecret;
+      return {
+        accessToken: secret.accessToken,
+        clientId: secret.clientId,
+        xuid: secret.xuid,
+        gameProfile: { id: account.uuid, name: account.name },
+        userType: 'msa' as const,
+      };
+    }
     register(
       ctx,
       microsoftId,
       { name: 'Microsoft' },
-      {
-        refresh,
-        async session(account, signal) {
-          if (!account.expiresAt || account.expiresAt < Date.now() + 60000)
-            account = await refresh(account, signal);
-          signal.throwIfAborted();
-          const text = await host.platform.secretGet(`account:${account.id}`);
-          if (!text) throw new Error(tr('accounts.microsoftCredentialsNotFound'));
-          const secret = JSON.parse(text) as MicrosoftSecret;
-          return {
-            accessToken: secret.accessToken,
-            clientId: secret.clientId,
-            xuid: secret.xuid,
-            gameProfile: { id: account.uuid, name: account.name },
-            userType: 'msa',
-          };
-        },
-      },
+      { refresh, session, appearance: microsoftAppearance(session) },
     );
     const command = commandsFor(ctx);
     command('accounts.microsoft.start', async (): Promise<DeviceLogin> => {

@@ -22,7 +22,13 @@ export function register(
 ) {
   ctx.nixel.providers.register(
     ctx,
-    { id, pluginId: id, kind: 'accounts', ...display },
+    {
+      id,
+      pluginId: id,
+      kind: 'accounts',
+      ...display,
+      capabilities: implementation.appearance ? ['appearance'] : [],
+    },
     implementation,
   );
 }

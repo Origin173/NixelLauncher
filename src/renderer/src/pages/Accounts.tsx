@@ -1,6 +1,7 @@
 import { Card } from '@heroui/react';
 import { useState } from 'react';
 import { label, tr } from '../../../shared/i18n';
+import { SkinDialog } from '../skins/SkinDialog';
 import { useApp } from '../state';
 import { Action, Choice, Empty, Heading, IconButton, Search, Tag } from '../ui';
 import { AssetIcon, Workspace } from '../workspace';
@@ -9,6 +10,8 @@ export function AccountsPage() {
   const a = useApp();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all-accounts');
+  const [appearanceAccount, setAppearanceAccount] = useState('');
+  const selectedAppearance = a.accounts.find((entry) => entry.id === appearanceAccount);
   const shown = a.accounts.filter(
     (p) =>
       (filter === 'all-accounts' || p.type === filter) &&
@@ -52,6 +55,24 @@ export function AccountsPage() {
                   </p>
                 </div>
                 <div className="account-actions">
+                  {a.plugins.some(
+                    (plugin) => plugin.id === 'nixel.skins' && plugin.status === 'active',
+                  ) &&
+                    a.providers.some(
+                      (provider) =>
+                        provider.kind === 'accounts' &&
+                        provider.id === p.provider &&
+                        provider.capabilities?.includes('appearance'),
+                    ) && (
+                      <Action
+                        size="sm"
+                        variant="ghost"
+                        icon="palette"
+                        onPress={() => setAppearanceAccount(p.id)}
+                      >
+                        {tr('skins.title')}
+                      </Action>
+                    )}
                   {p.type === 'yggdrasil' && (
                     <Action
                       size="sm"
@@ -105,6 +126,13 @@ export function AccountsPage() {
           </Empty>
         )}
       </div>
+      {selectedAppearance && (
+        <SkinDialog
+          key={selectedAppearance.id}
+          account={selectedAppearance}
+          onClose={() => setAppearanceAccount('')}
+        />
+      )}
     </Workspace>
   );
 }

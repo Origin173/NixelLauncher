@@ -74,6 +74,8 @@ CurseForge provider 与插件 ID 为 `nixel.resources.curseforge`。资源命令
 
 Microsoft 登录使用 `.env` 的 `MICROSOFT_CLIENT_ID`，CurseForge 使用 `CURSEFORGE_API_KEY`，Modrinth 可选 `MODRINTH_TOKEN`。服务配置不进入界面设置或快照；Host 缓存后从环境移除服务凭据。玩家 Token 由主进程 safeStorage 加密保存，只在 Host 与系统桥接内传递。离线角色使用标准 OfflinePlayer UUID。
 
+`skins.profile`、`skins.cancel`、`skins.file` 和 `skins.change` 由独立外观插件注册。账号提供者通过可选 `appearance` 能力支持资料、上传、默认恢复与披风选择。`skin-update` 任务按账号串行，上传重试校验文件 SHA-256；命令参数及协议见 [皮肤与披风](skins.md)。
+
 内存字段统一存储 MiB，默认 `4096`；界面以 GB 展示时换算。实例 `memory: null` 继承全局值。账号鉴权按账号记录的 `provider` 解析；实例账号 provider 为空时继承所选账号。
 
 启动账号由共享 `launchAccountId` 解析：显式 `accountId` > 当前主页实例的 `launchAccount` > 实例默认账号 > 全局默认账号。主页选择不会泄漏到其他实例；切换实例会清空临时账号选择。启动任务绑定提交时的账号，重试也使用该账号；删除账号会清理全局、主页与实例引用。默认界面在账号不可用时显示选择弹窗，添加账号后回到启动确认。

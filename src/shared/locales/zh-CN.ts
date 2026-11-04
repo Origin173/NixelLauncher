@@ -4,8 +4,10 @@ import { diagnosticsZh } from './diagnostics';
 import { modpackUpgradeZh } from './modpack-upgrade';
 import { networkZh } from './network';
 import { serversZh } from './servers';
+import { skinsZh } from './skins';
 
 export default {
+  ...skinsZh,
   ...modpackUpgradeZh,
   ...networkZh,
   ...diagnosticsZh,

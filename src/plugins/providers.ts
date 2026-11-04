@@ -12,6 +12,7 @@ import type {
 } from '../shared/contracts';
 import type { TaskContext } from '../shared/host-api';
 import type { GameLaunchOptions } from '../shared/servers';
+import type { AccountAppearance, SkinModel } from '../shared/skins';
 import type { GameSession } from './authentication';
 import type { ContentDownload } from './resource-files';
 
@@ -32,6 +33,12 @@ export interface GameProvider {
   stop(id: string): void;
 }
 export interface AccountProvider {
+  appearance?: {
+    profile(account: Account, signal: AbortSignal): Promise<AccountAppearance>;
+    upload(account: Account, png: Uint8Array, model: SkinModel, signal: AbortSignal): Promise<void>;
+    reset(account: Account, signal: AbortSignal): Promise<void>;
+    cape(account: Account, id: string | null, signal: AbortSignal): Promise<void>;
+  };
   refresh(account: Account): Promise<Account>;
   session(account: Account, signal: AbortSignal): Promise<GameSession>;
 }

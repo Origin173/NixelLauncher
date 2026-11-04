@@ -17,8 +17,23 @@ import { gameId, gamePlugin } from './minecraft';
 import { resourcesId, resourcesPlugin } from './modrinth';
 import { networkId, networkPlugin } from './network';
 import { serversPlugin } from './servers';
+import { skinsPlugin } from './skins';
 
 export const builtinPlugins: BuiltinPlugin[] = [
+  {
+    manifest: withTranslations(
+      {
+        id: 'nixel.skins',
+        name: tr('skins.plugin'),
+        description: tr('skins.description'),
+        version: '0.1.0',
+        apiVersion: 1,
+        category: tr('builtin.core'),
+      },
+      { name: 'skins.plugin', description: 'skins.description', category: 'builtin.core' },
+    ),
+    plugin: skinsPlugin,
+  },
   {
     manifest: withTranslations(
       {
