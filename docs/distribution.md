@@ -39,6 +39,8 @@ Windows 文件名分别为 `NixelLauncher-<版本>-windows-x64-setup.exe` 和 `N
 
 `pnpm-workspace.yaml` 把 electron-builder 的 `@electron/get` 固定到 3.1.0：26.18.0 使用该版本新增的下载缓存枚举，3.0.0 会在构建前报错。未使用 Squirrel.Windows，因而不执行其传递依赖 `electron-winstaller` 的安装脚本；NSIS、便携版不受影响。
 
+2026-11-04 的隔离验收实际执行了 Windows NSIS 当前用户安装与卸载，确认安装目录、卸载注册项和快捷方式清理，独立数据文件保留且哈希不变。普通卸载会保留 updater 的安装器缓存。安装包尚未签名，已安装应用的更新模式识别与真实更新安装仍待验收；具体范围见 [功能状态](feature-status.md)。
+
 ## 设计参考
 
 参考了 [HeliosLauncher 的分平台打包结构](https://github.com/dscalzi/HeliosLauncher/blob/master/electron-builder.yml)：应用归档、安装器目标和各平台配置集中维护。本项目独立编写配置，沿用现有 Cordis Host 和业务插件，没有引入该启动器或 XMCL 的代码包。具体选项依据 [electron-builder v26 配置](https://www.electron.build/v26/docs/configuration/) 和 [NSIS 文档](https://www.electron.build/v26/docs/nsis/)。

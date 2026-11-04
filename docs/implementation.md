@@ -16,6 +16,8 @@ CurseForge provider 与插件 ID 为 `nixel.resources.curseforge`。资源命令
 
 启动器自身更新由 `nixel.app-updates` 注册 `appUpdates.status/check/download/install/configure`。系统操作复用 `HostPlatform` 桥接，安装交接通过 `TaskManager.whileIdle` 持有任务生命周期锁，具体状态与接口见 [启动器更新](application-updates.md)。
 
+`content.update` 对全部准确目标统一解析后再写入；重试也检查已完成根的依赖，`ResourceProvider.planInstall` 的保留版本策略见 [内容更新](content-updates.md)。账号取消与凭据提交边界见 [账号生命周期](account-operation-lifecycle.md)。
+
 整合包升级命令、文件冲突规则及 `ResourceProvider.downloadModpack` / `CurseForgeResourceProvider.resolvePackFiles` 扩展见 [整合包升级](modpack-upgrade.md)。
 
 `window.nixel.invoke<T>(command, params)` 使用以下命令。返回值为真实数据，长任务返回 `{ taskId: string }` 并通过快照推送进度。
