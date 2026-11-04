@@ -47,6 +47,7 @@ async function handle(message: MainToHost) {
       });
       await service.initialize();
       const plugins = new HostPlugins(root, service, (path) => platform('ui.load', { path }));
+      service.plugins = plugins;
       await plugins.initialize(builtinPlugins);
       service.ready = true;
       send({ type: 'snapshot', snapshot: service.snapshot() });

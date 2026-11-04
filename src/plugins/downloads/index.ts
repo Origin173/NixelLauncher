@@ -46,7 +46,8 @@ export const downloadsPlugin = {
     command('downloads.configure', (input: Record<string, unknown>) =>
       host.commands.invoke('plugins.configure', {
         id: downloadsId,
-        config: configuration({ ...config, ...input }, config.concurrency),
+        config: input,
+        merge: true,
       }),
     );
   },

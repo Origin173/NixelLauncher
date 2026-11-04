@@ -118,6 +118,12 @@ Yggdrasil 登录返回 `{ status: 'complete', account }` 或 `{ status: 'select-
 
 `settings.backupRetentionCount` 为 0–1000 的整数，默认 0 表示全部保留。新自动备份提交后，按实例清理超出数量的旧 `origin: 'version-change' | 'modpack-upgrade'` 备份。`origin: 'manual'` 和未标记来源的历史备份始终保留；正在恢复的备份跳过，删除与跳过结果记录在任务日志中。设置变更本身不立即删除备份。
 
+## 插件目录与配置
+
+插件目录命令 `pluginCatalog.configure/list/preview/install/rollback` 由 `nixel.plugin-distribution` 提供。`NixelPluginManifest.dependencies` 支持 ID 数组或 semver 范围映射，`configSchema` 在 Host 校验；托管记录 `PluginItem.managed` 保存当前包和上一代配置。Host 的窄 `PluginManager` 接口要求真实插件上下文与任务身份，调用方不能通过 IPC 指定豁免任务。命令参数、安装和回滚规则见 [插件分发](plugin-distribution.md)。
+
+`plugins.configure` 默认替换完整配置；传入 `merge: true` 时，在串行生命周期内将顶层字段合并到最新配置，再校验与应用。下载调度和镜像表单共用这一方式，避免并发保存覆盖彼此字段。
+
 ## 开发检查
 
 保留独立 `design/` 原型。功能代码位于 `src/`。使用 `pnpm typecheck`、`pnpm lint`、按需要构建与实际运行验证；不添加冒烟或回归测试文件。

@@ -141,6 +141,7 @@ class HostProviders implements ProviderRegistry {
 }
 
 export class NixelService extends Service implements NixelHost {
+  plugins!: import('../shared/plugin-distribution').PluginManager;
   readonly store: HostStore;
   readonly commands: HostCommands;
   readonly providers: HostProviders;

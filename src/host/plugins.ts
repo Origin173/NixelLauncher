@@ -1,28 +1,46 @@
-import { access, readFile, realpath } from 'node:fs/promises';
-import { isAbsolute, join, relative, resolve } from 'node:path';
+import { realpath } from 'node:fs/promises';
+import { isAbsolute } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import type { Context, Fiber, Plugin } from 'cordis';
+import type { Context, Plugin } from 'cordis';
 import type { NixelPluginManifest, PluginItem } from '../shared/contracts';
 import type { BuiltinPlugin } from '../shared/host-api';
 import { tr, translatedName, withTranslations } from '../shared/i18n';
+import type { PluginInstallPreview, PluginRollbackTarget } from '../shared/plugin-distribution';
 import type { NixelService } from './core';
+import { dependencyProblems } from './plugin-management/dependencies';
+import {
+  dependencies,
+  entryPath,
+  readManifest,
+  validateConfig,
+  validateManifest,
+} from './plugin-management/manifest';
+import { PluginTransactions } from './plugin-management/transactions';
+import type { InstalledPlugin } from './plugin-management/types';
 import { validateSettings } from './settings';
-
-interface InstalledPlugin {
-  item: PluginItem;
-  plugin?: Plugin;
-  fiber?: Fiber;
-}
 
 export class HostPlugins {
   private entries = new Map<string, InstalledPlugin>();
   private revision = 0;
+  private pending: Promise<unknown> = Promise.resolve();
+  private transactions: PluginTransactions;
 
   constructor(
     private ctx: Context,
     private host: NixelService,
     private loadInterface: (path: string) => Promise<void>,
-  ) {}
+  ) {
+    this.transactions = new PluginTransactions(
+      host,
+      this.entries,
+      (action) => this.serial(action),
+      (manifest, builtin, directory) => this.item(manifest, builtin, directory),
+      (manifest) => this.inspect(manifest),
+      (id, ancestors) => this.enable(id, ancestors),
+      () => this.save(),
+      () => this.changed(),
+    );
+  }
 
   private item(manifest: NixelPluginManifest, builtin: boolean, directory?: string): PluginItem {
     const persisted = this.host.store.read().plugins[manifest.id];
@@ -41,12 +59,38 @@ export class HostPlugins {
       color: builtin ? '#7f8f62' : '#b28b70',
       config: persisted?.config ?? {},
       manifest,
+      managed: persisted?.managed,
     };
   }
 
   private changed() {
     this.host.pluginSnapshot = [...this.entries.values()].map(({ item }) => item);
     this.host.changed();
+  }
+
+  private serial<T>(action: () => T | Promise<T>): Promise<T> {
+    const result = this.pending.then(action);
+    this.pending = result.catch(() => {});
+    return result;
+  }
+
+  inspect(input: NixelPluginManifest) {
+    const manifest = validateManifest(input);
+    const current = this.entries.get(manifest.id)?.item;
+    const problems = dependencyProblems(
+      manifest,
+      [...this.entries.values()].map((entry) => entry.item),
+    );
+    if (current && (current.builtin || !current.managed))
+      problems.unshift(tr('pluginDist.immutable'));
+    return problems;
+  }
+
+  installManaged(ctx: Context, directory: string, preview: PluginInstallPreview) {
+    return this.transactions.installManaged(ctx, directory, preview);
+  }
+  rollback(ctx: Context, target: PluginRollbackTarget) {
+    return this.transactions.rollback(ctx, target);
   }
 
   async initialize(builtins: BuiltinPlugin[]) {
@@ -88,7 +132,7 @@ export class HostPlugins {
     for (const [id, persisted] of Object.entries(this.host.store.read().plugins)) {
       if (!persisted.directory || this.entries.has(id)) continue;
       try {
-        const manifest = await this.readManifest(persisted.directory);
+        const manifest = await readManifest(persisted.directory);
         if (manifest.id !== id) throw new Error(tr('plugins.thePluginIdDoesNotMatchIts'));
         this.entries.set(id, { item: this.item(manifest, false, persisted.directory) });
       } catch (error) {
@@ -124,52 +168,20 @@ export class HostPlugins {
     this.changed();
   }
 
-  private async readManifest(directory: string): Promise<NixelPluginManifest> {
-    const manifest = JSON.parse(
-      await readFile(join(directory, 'nixel-plugin.json'), 'utf8'),
-    ) as NixelPluginManifest;
-    if (
-      manifest.apiVersion !== 1 ||
-      !/^[a-z0-9][a-z0-9._-]+$/i.test(manifest.id) ||
-      typeof manifest.name !== 'string' ||
-      typeof manifest.version !== 'string' ||
-      typeof manifest.description !== 'string' ||
-      typeof manifest.category !== 'string' ||
-      (!manifest.main && !manifest.renderer)
-    )
-      throw new Error(tr('plugins.invalidNixelPluginJsonOrUnsupportedPlugin'));
-    if (
-      manifest.dependencies &&
-      (!Array.isArray(manifest.dependencies) ||
-        manifest.dependencies.some((id) => typeof id !== 'string'))
-    ) {
-      throw new Error(tr('plugins.invalidPluginDependencies'));
-    }
-    if (manifest.main) await this.entryPath(directory, manifest.main);
-    if (manifest.renderer) await this.entryPath(directory, manifest.renderer);
-    return manifest;
-  }
-
-  private async entryPath(directory: string, entry: string) {
-    if (typeof entry !== 'string' || isAbsolute(entry))
-      throw new Error(tr('plugins.thePluginEntryMustBeARelative'));
-    const root = await realpath(directory);
-    const path = await realpath(resolve(root, entry));
-    const relation = relative(root, path);
-    if (relation.startsWith('..') || isAbsolute(relation))
-      throw new Error(tr('plugins.thePluginEntryIsOutsideItsInstallation'));
-    await access(path);
-    return path;
-  }
-
   private async enable(id: string, ancestors: Set<string>) {
     const entry = this.require(id);
     if (entry.fiber || entry.item.status === 'active') return;
     if (ancestors.has(id))
       throw new Error(tr('plugins.circularPluginDependencyValue', { value1: id }));
     try {
+      validateConfig(entry.item.manifest, entry.item.config);
+      const problems = dependencyProblems(
+        entry.item.manifest,
+        [...this.entries.values()].map((value) => value.item),
+      );
+      if (problems.length) throw new Error(problems.join('\n'));
       const next = new Set(ancestors).add(id);
-      for (const dependency of entry.item.manifest.dependencies ?? []) {
+      for (const dependency of Object.keys(dependencies(entry.item.manifest))) {
         if (!this.require(dependency).item.enabled)
           throw new Error(tr('plugins.enableThisDependencyFirstValue', { value1: dependency }));
         await this.enable(dependency, next);
@@ -178,7 +190,7 @@ export class HostPlugins {
       }
       let plugin = entry.plugin;
       if (!entry.item.builtin && entry.item.manifest.main && entry.item.directory) {
-        const path = await this.entryPath(entry.item.directory, entry.item.manifest.main);
+        const path = await entryPath(entry.item.directory, entry.item.manifest.main);
         const module = await import(
           /* @vite-ignore */ `${pathToFileURL(path).href}?nixel=${++this.revision}`
         );
@@ -231,8 +243,7 @@ export class HostPlugins {
     if (this.host.store.read().settings.interfacePlugin === id)
       throw new Error(tr('plugins.switchToAnotherInterfaceFirst'));
     const dependents = [...this.entries.values()].filter(
-      (plugin) =>
-        plugin.item.status === 'active' && plugin.item.manifest.dependencies?.includes(id),
+      (plugin) => plugin.item.status === 'active' && id in dependencies(plugin.item.manifest),
     );
     if (dependents.length)
       throw new Error(
@@ -263,7 +274,12 @@ export class HostPlugins {
       state.plugins = Object.fromEntries(
         [...this.entries].map(([id, { item }]) => [
           id,
-          { enabled: item.enabled, directory: item.directory, config: item.config },
+          {
+            enabled: item.enabled,
+            directory: item.directory,
+            config: item.config,
+            managed: item.managed,
+          },
         ]),
       );
     });
@@ -277,11 +293,22 @@ export class HostPlugins {
     const { renderer } = entry.item.manifest;
     if (!renderer || !entry.item.directory)
       throw new Error(tr('plugins.thisPluginDoesNotProvideAnInterface'));
-    await this.loadInterface(await this.entryPath(entry.item.directory, renderer));
+    await this.loadInterface(await entryPath(entry.item.directory, renderer));
   }
 
   private registerCommands() {
-    const commands = this.host.commands;
+    const commands = {
+      register: <P, R>(ctx: Context, name: string, handler: (input: P) => R | Promise<R>) =>
+        this.host.commands.register(ctx, name, (input: P) =>
+          name.startsWith('plugins.') || name === 'settings.update'
+            ? this.serial(() =>
+                name.startsWith('plugins.')
+                  ? this.host.tasks.lifecycle(undefined, async () => handler(input))
+                  : handler(input),
+              )
+            : handler(input),
+        ),
+    };
     commands.register(this.ctx, 'settings.update', async (input: unknown) => {
       const patch = await validateSettings(this.host, input);
       if (patch.interfacePlugin !== undefined) await this.selectInterface(patch.interfacePlugin);
@@ -311,7 +338,9 @@ export class HostPlugins {
       async ({ id, enabled }: { id: string; enabled: boolean }) => {
         if (typeof enabled !== 'boolean') throw new Error(tr('plugins.invalidEnabledState'));
         if (enabled) {
-          this.require(id).item.enabled = true;
+          const entry = this.require(id);
+          this.assertIdle(entry);
+          entry.item.enabled = true;
           await this.enable(id, new Set());
         } else await this.disable(id);
         await this.save();
@@ -320,37 +349,64 @@ export class HostPlugins {
     commands.register(
       this.ctx,
       'plugins.configure',
-      async ({ id, config }: { id: string; config: Record<string, unknown> }) => {
+      async ({
+        id,
+        config,
+        merge,
+      }: {
+        id: string;
+        config: Record<string, unknown>;
+        merge?: boolean;
+      }) => {
         if (!config || typeof config !== 'object' || Array.isArray(config))
+          throw new Error(tr('plugins.pluginConfigurationMustBeAnObject'));
+        if (merge !== undefined && typeof merge !== 'boolean')
           throw new Error(tr('plugins.pluginConfigurationMustBeAnObject'));
         const entry = this.require(id);
         this.assertIdle(entry);
+        if (merge) config = { ...entry.item.config, ...config };
+        validateConfig(entry.item.manifest, config);
+        const previous = entry.item.config;
+        const wasRunning = Boolean(entry.fiber);
         entry.item.config = config;
-        if (entry.fiber) {
-          try {
+        try {
+          if (entry.fiber) {
             await entry.fiber.update(config);
             await entry.fiber.await();
             entry.item.status = 'active';
             delete entry.item.error;
-          } catch (error) {
-            entry.item.status = 'error';
-            entry.item.error = error instanceof Error ? error.message : String(error);
-            await this.save();
-            this.changed();
-            throw error;
           }
+          await this.save();
+        } catch (error) {
+          entry.item.config = previous;
+          if (wasRunning) {
+            await entry.fiber?.dispose();
+            entry.fiber = undefined;
+            entry.item.status = 'disabled';
+            await this.enable(id, new Set());
+          }
+          this.changed();
+          if (wasRunning && this.require(id).item.status === 'error')
+            throw new Error(
+              tr('pluginDist.rollbackFailed', {
+                error: String(error),
+                rollback: entry.item.error ?? '',
+              }),
+            );
+          throw error;
         }
-        await this.save();
         this.changed();
       },
     );
     commands.register(this.ctx, 'plugins.install', async ({ directory }: { directory: string }) => {
       if (!isAbsolute(directory)) throw new Error(tr('plugins.thePluginDirectoryMustBeAnAbsolute'));
       const root = await realpath(directory);
-      const manifest = await this.readManifest(root);
+      const manifest = await readManifest(root);
       if (this.entries.has(manifest.id))
         throw new Error(tr('plugins.thisPluginIsAlreadyInstalled'));
-      this.entries.set(manifest.id, { item: this.item(manifest, false, root) });
+      const item = this.item(manifest, false, root);
+      this.assertIdle({ item });
+      this.entries.set(manifest.id, { item });
       await this.enable(manifest.id, new Set());
       await this.save();
     });
@@ -361,6 +417,11 @@ export class HostPlugins {
       this.entries.delete(id);
       await this.save();
       this.changed();
+      if (entry.item.managed) {
+        await this.transactions.managed.remove(entry.item.managed.current.directory);
+        if (entry.item.managed.previous)
+          await this.transactions.managed.remove(entry.item.managed.previous.directory);
+      }
     });
   }
 }

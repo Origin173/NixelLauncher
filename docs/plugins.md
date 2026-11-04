@@ -39,6 +39,8 @@ export default {
 
 命令注册、提供者注册通过 `ctx.effect` 随插件停用自动移除。插件自己创建的监听器、计时器、进程和文件句柄也应由 `ctx.effect` 返回的清理函数释放。使用当前 Host 传入的 Context，复用 `ctx.nixel`；类型定义见 [`host-api.ts`](../src/shared/host-api.ts)。
 
+版本使用 semver。`dependencies` 可保留 ID 数组，或写为 `{ "nixel.downloads": "^0.1.0" }`，启用及更新时校验依赖和已启用消费者的版本要求。可选 `configSchema` 使用 JSON Schema draft-07，根类型为 `object`；简单字段生成 HeroUI 表单，复杂结构使用 JSON 编辑，保存由 Host 校验。凭据通过系统安全存储接口管理。远程目录、ZIP 包格式和托管更新见 [插件分发](plugin-distribution.md)。
+
 ## 服务提供者
 
 提供者声明 `id`、所属 `pluginId`、`kind` 和名称。业务管理插件按实例配置解析提供者，具体实现可替换。

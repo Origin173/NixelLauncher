@@ -8,6 +8,7 @@ import type {
   Task,
 } from './contracts';
 import type { NetworkConfiguration } from './network';
+import type { PluginManager } from './plugin-distribution';
 
 export interface StateStore {
   root: string;
@@ -68,6 +69,7 @@ export interface HostPlatform {
   openExternal(url: string): Promise<void>;
 }
 export interface NixelHost {
+  plugins: PluginManager;
   store: StateStore;
   commands: CommandRegistry;
   providers: ProviderRegistry;

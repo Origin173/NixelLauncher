@@ -235,7 +235,8 @@ export interface NixelPluginManifest {
   renderer?: string;
   category: string;
   author?: string;
-  dependencies?: string[];
+  dependencies?: string[] | Record<string, string>;
+  configSchema?: import('./plugin-distribution').PluginConfigSchema;
 }
 export interface PluginItem {
   id: string;
@@ -253,6 +254,7 @@ export interface PluginItem {
   color: string;
   config: Record<string, unknown>;
   manifest: NixelPluginManifest;
+  managed?: import('./plugin-distribution').ManagedPlugin;
 }
 export interface LauncherSettings {
   locale: 'system' | 'zh-CN' | 'en-US';
@@ -288,7 +290,12 @@ export interface PersistedState {
   settings: LauncherSettings;
   plugins: Record<
     string,
-    { enabled: boolean; directory?: string; config: Record<string, unknown> }
+    {
+      enabled: boolean;
+      directory?: string;
+      config: Record<string, unknown>;
+      managed?: import('./plugin-distribution').ManagedPlugin;
+    }
   >;
 }
 export interface LauncherSnapshot {

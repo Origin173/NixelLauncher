@@ -5,11 +5,13 @@ import { downloadsZh } from './downloads';
 import { mirrorsZh } from './mirrors';
 import { modpackUpgradeZh } from './modpack-upgrade';
 import { networkZh } from './network';
+import { pluginDistributionZh } from './plugin-distribution';
 import { serversZh } from './servers';
 import { skinsZh } from './skins';
 import { versionContentZh } from './version-content';
 
 export default {
+  ...pluginDistributionZh,
   ...mirrorsZh,
   ...versionContentZh,
   ...downloadsZh,

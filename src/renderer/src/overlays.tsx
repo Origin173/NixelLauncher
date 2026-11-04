@@ -8,6 +8,7 @@ import { Brand, Icon } from './icons';
 import { VersionChangeDialog } from './instances/VersionChangeDialog';
 import { Landscape } from './Landscape';
 import { JavaSettings } from './pages/Settings';
+import { ConfigForm } from './plugins/ConfigForm';
 import { ResourceDialog } from './resources/ResourceDialog';
 import type { Overlay } from './state';
 import { useApp } from './state';
@@ -470,13 +471,27 @@ function PluginDialog({ id }: { id: string }) {
           />
         </div>
         {p.error && <Notice tone="danger">{p.error}</Notice>}
-        <label htmlFor="plugin-config">{tr('overlays.pluginConfigurationJson')}</label>
-        <textarea
-          id="plugin-config"
-          className="json-editor"
-          value={config}
-          onChange={(e) => setConfig(e.target.value)}
-        />
+        <ConfigForm schema={p.manifest.configSchema} value={config} onChange={setConfig} />
+        {p.managed?.previous && (
+          <Action
+            variant="secondary"
+            isDisabled={pending}
+            onPress={() => {
+              setPending(true);
+              setError('');
+              void window.nixel
+                .invoke('pluginCatalog.rollback', { id })
+                .then(() => {
+                  a.setOverlay(null);
+                  a.setTaskOpen(true);
+                })
+                .catch((error) => setError(message(error)))
+                .finally(() => setPending(false));
+            }}
+          >
+            {tr('pluginDist.rollback')} · {p.managed.previous.version}
+          </Action>
+        )}
         {error && <Notice tone="danger">{error}</Notice>}
         {p.directory && (
           <Action

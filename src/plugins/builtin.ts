@@ -17,10 +17,31 @@ import { instancesPlugin } from './instances';
 import { gameId, gamePlugin } from './minecraft';
 import { resourcesId, resourcesPlugin } from './modrinth';
 import { networkId, networkPlugin } from './network';
+import { pluginDistributionId, pluginDistributionPlugin } from './plugin-distribution';
 import { serversPlugin } from './servers';
 import { skinsPlugin } from './skins';
 
 export const builtinPlugins: BuiltinPlugin[] = [
+  {
+    manifest: withTranslations(
+      {
+        id: pluginDistributionId,
+        name: tr('pluginDist.title'),
+        description: tr('pluginDist.empty'),
+        version: '0.1.0',
+        apiVersion: 1,
+        category: tr('builtin.core'),
+        dependencies: ['nixel.downloads'],
+        configSchema: {
+          type: 'object',
+          properties: { catalogUrl: { type: 'string' } },
+          additionalProperties: false,
+        },
+      },
+      { name: 'pluginDist.title', description: 'pluginDist.empty', category: 'builtin.core' },
+    ),
+    plugin: pluginDistributionPlugin,
+  },
   {
     manifest: withTranslations(
       {

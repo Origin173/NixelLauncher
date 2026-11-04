@@ -1,6 +1,7 @@
 import { Card } from '@heroui/react';
 import { useState } from 'react';
 import { tr } from '../../../shared/i18n';
+import { CatalogDialog } from '../plugins/CatalogDialog';
 import { useApp } from '../state';
 import { Action, Empty, Heading, Notice, Search, Tag, Toggle } from '../ui';
 import { AssetIcon, Workspace } from '../workspace';
@@ -8,6 +9,7 @@ import { AssetIcon, Workspace } from '../workspace';
 export function PluginsPage() {
   const a = useApp();
   const [query, setQuery] = useState('');
+  const [catalogOpen, setCatalogOpen] = useState(false);
   const list = a.plugins.filter((p) =>
     `${p.name} ${p.desc}`.toLowerCase().includes(query.toLowerCase()),
   );
@@ -17,6 +19,13 @@ export function PluginsPage() {
         title={tr('App.plugins')}
         sub={tr('Plugins.servicesAreEnabledGloballySwitchToAnother')}
       >
+        {a.plugins.some(
+          (item) => item.id === 'nixel.plugin-distribution' && item.status === 'active',
+        ) && (
+          <Action variant="secondary" size="sm" onPress={() => setCatalogOpen(true)}>
+            {tr('pluginDist.title')}
+          </Action>
+        )}
         <Action
           variant="secondary"
           icon="folder"
@@ -75,6 +84,7 @@ export function PluginsPage() {
           <Notice>{tr('Plugins.localPluginsExecuteCodeInTheHost')}</Notice>
         </div>
       </div>
+      {catalogOpen && <CatalogDialog onClose={() => setCatalogOpen(false)} />}
     </Workspace>
   );
 }

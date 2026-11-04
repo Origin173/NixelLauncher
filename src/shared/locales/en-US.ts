@@ -5,11 +5,13 @@ import { downloadsEn } from './downloads';
 import { mirrorsEn } from './mirrors';
 import { modpackUpgradeEn } from './modpack-upgrade';
 import { networkEn } from './network';
+import { pluginDistributionEn } from './plugin-distribution';
 import { serversEn } from './servers';
 import { skinsEn } from './skins';
 import { versionContentEn } from './version-content';
 
 export default {
+  ...pluginDistributionEn,
   ...mirrorsEn,
   ...versionContentEn,
   ...downloadsEn,

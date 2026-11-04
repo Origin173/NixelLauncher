@@ -15,6 +15,7 @@ interface TaskRun {
   promise: Promise<void>;
   run: Runner;
   owner?: Context;
+  execution?: TaskContext;
   controls?: { pause(): void; resume(): void };
 }
 
@@ -24,6 +25,21 @@ export class HostTasks implements TaskManager {
   private tasks: Task[] = [];
   private runs = new Map<string, TaskRun>();
   private writeTimer: ReturnType<typeof setTimeout> | undefined;
+  private lifecycleBusy = false;
+
+  async lifecycle<T>(taskId: string | undefined, action: () => Promise<T>) {
+    if (
+      this.lifecycleBusy ||
+      this.tasks.some((task) => task.status === 'running' && task.id !== taskId)
+    )
+      throw new Error(tr('plugins.stopGamesAndCancelActiveTasksBefore'));
+    this.lifecycleBusy = true;
+    try {
+      return await action();
+    } finally {
+      this.lifecycleBusy = false;
+    }
+  }
 
   constructor(
     private readonly storage: JsonStorage,
@@ -79,6 +95,7 @@ export class HostTasks implements TaskManager {
       retry?: Task['retry'];
     } = {},
   ) {
+    if (this.lifecycleBusy) throw new Error(tr('plugins.stopGamesAndCancelActiveTasksBefore'));
     const task: Task = {
       id: randomUUID(),
       name,
@@ -130,6 +147,8 @@ export class HostTasks implements TaskManager {
             this.touch();
           },
         };
+        const running = this.runs.get(task.id);
+        if (running) running.execution = execution;
         await taskScope.run({ task: execution, providers: this.providers() }, () => run(execution));
         abort.signal.throwIfAborted();
         task.status = 'completed';
@@ -165,6 +184,18 @@ export class HostTasks implements TaskManager {
     const task = this.tasks.find((item) => item.id === id);
     if (!task) throw new Error(tr('tasks.taskNotFound'));
     if (task.status === 'running') this.runs.get(id)?.abort.abort();
+  }
+
+  assertOwner(ctx: Context, execution: TaskContext) {
+    const run = this.runs.get(execution.taskId);
+    if (
+      !run ||
+      run.execution !== execution ||
+      run.owner?.fiber !== ctx.fiber ||
+      this.tasks.find((task) => task.id === execution.taskId)?.status !== 'running'
+    )
+      throw new Error(tr('pluginDist.owner'));
+    execution.signal.throwIfAborted();
   }
 
   pause(id: string) {
