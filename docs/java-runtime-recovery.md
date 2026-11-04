@@ -16,7 +16,7 @@ Java 探测与运行时安装分别位于 `src/plugins/java/discovery.ts`、`ins
 
 通过的场景：网络断流后保留完成文件并从 `bytes=16384-` 继续；同清单目标稳定；篡改一个完成文件后仅重下该项；取消后保留完整文件并清理片段；全新 Node 进程继续相同暂存目录并复用完整文件及片段；清单变化隔离；可执行探测失败后重试；成功后暂存目录已重命名；暂存父目录 junction 被拒绝且外部标记未改变；绝对、越界、未知目标链接、父路径冲突与 Windows 大小写别名被拒绝。
 
-合法文件符号链接的实际重试尚未验证：Windows 创建符号链接返回 `EPERM`，WSL 启动返回 `HCS/ERROR_NO_SYSTEM_RESOURCES`，没有改变系统配置。相对链接清单校验已验证；Linux 真实运行时安装与合法链接重试仍需后续实际操作。
+Linux 合法文件符号链接恢复已在 Ubuntu 24.04 / WSLg 通过：在同一清单的稳定暂存目录预先保留官方 `legal/java.compiler/LICENSE → ../java.base/LICENSE` 及已校验目标文件，再通过真实 Host 执行安装。完成后链接和目标 inode 均保留，暂存目录已重命名。正式运行时的 136 个文件逐项通过 SHA-1/大小校验，205 个相对链接与清单一致，31 个可执行文件权限为 `0755`；实际探测为 Microsoft Java 21.0.7。证据在 `output/linux-release/wsl-recovery-java-verified.json`。
 
 真实官方清单检查覆盖 Windows、Linux、macOS 的 Java 21.0.7：从 Mojang 下载清单并核对 SHA-1/大小后，新解析器全部接受，Linux/macOS 清单各包含 205 个链接。此检查只验证元数据，不执行对应平台的 Java。
 

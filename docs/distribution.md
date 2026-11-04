@@ -55,9 +55,11 @@ AppImage 同目录的 `.env.local` 仅设置独立 `NIXEL_DATA_DIR`；未通过�
 
 该会话未配置可用的系统密钥库，Electron 返回 `available=false` / `basic_text`，现有凭据存储会拒绝保存。在线账号令牌持久化需要可用的桌面 Secret Service/keyring 会话，尚未在此环境验证。当前证据覆盖 WSLg 客户端启动；原生 Linux 与 DEB 安装仍待验收。
 
-随后通过真实 Host 在独立目录完成 Vanilla 1.21.1 安装，8 个 Linux LWJGL 原生库全部匹配 Mojang SHA-1。启动所需的官方 Java 21.0.7 下载在约 98.48% 时出现 `fetch failed`，一次手动重试在运行时清单请求阶段再次失败，随即停止。Java 安装和游戏启动尚未完成，因此没有计入 Linux 图形、声音或纹理初始化通过；任务与文件校验保存在同一验收目录。现有记录没有底层网络错误码，无法据此判断具体网络原因。
+第一次游戏验收完成 Vanilla 1.21.1 文件安装，8 个 Linux LWJGL 原生库全部匹配 Mojang SHA-1；Java 下载在约 98.48% 时网络失败。由此发现的重复下载问题已通过 [Java 安装恢复](java-runtime-recovery.md) 修复。后续网络和 WSL 恢复可用后，在新的独立目录继续验收。
 
-后续只读网络复查中，这两个官方地址都返回 HTTP 200，TLS 校验通过，未更改网络设置。继续验证时 WSL 启动返回 `HCS/ERROR_NO_SYSTEM_RESOURCES`，因此 Linux 真实 Java 安装与游戏启动仍待可用环境。由这次失败发现的重复下载问题已通过 [Java 安装恢复](java-runtime-recovery.md) 修复，并在 Windows 官方运行时完成恢复验收。
+后续运行使用 `ee30eb4` 的构建文件（`0293a8d` 仅修改文档），从原 AppImage 复用 Linux Electron 45.2.1 和未变更的生产依赖，未重新打包 AppImage。真实 Cordis Host 完成官方 Java 21.0.7 安装、已有合法相对链接复用及正式目录发现；逐项核对 136 个文件哈希/大小、205 个链接和 31 个可执行权限。Minecraft 1.21.1 Vanilla 完成 LWJGL、图形与纹理初始化，实际呈现首次启动画面。
+
+音频首次因缺少桌面运行库初始化失败。按 Ubuntu APT 元数据校验并解包 `libpulse0` 及其依赖到独立目录，仅向本次进程设置 `LD_LIBRARY_PATH` 后，游戏使用 WSLg 既有 PulseAudio 服务，日志确认 `OpenAL initialized on device RDP Sink` 和 `Sound engine started`。没有安装系统包或更改网络、ALSA 与 WSLg 配置。游戏、Host、启动器均通过窗口关闭正常退出，退出码 0，实例仍为就绪状态。实际可听性和旁白未验证，当前环境缺少 `libflite`。证据索引为 `output/linux-release/WSL-JAVA-RECOVERY-ACCEPTANCE.txt`。
 
 ## 设计参考
 

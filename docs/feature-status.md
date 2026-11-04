@@ -7,7 +7,7 @@
 | 项目                  | 当前状态                                                             | 待完成内容                                                            |
 | --------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | Windows 发行          | 解包/便携版已运行，NSIS 隔离安装、卸载与数据保留通过                 | 已安装应用更新模式识别、签名及发布                                    |
-| Linux 与其他平台      | Linux x64 AppImage 已打包并在 Ubuntu 24.04 / WSLg 运行               | DEB 缺项目主页；Linux 密钥库/游戏、原生桌面、macOS/arm64 与公证实测   |
+| Linux 与其他平台      | AppImage 已运行，WSLg Java 安装、游戏图形/声音引擎初始化与退出通过 | DEB 缺项目主页；Linux 密钥库、原生桌面、macOS/arm64 与公证实测        |
 | 启动器更新            | 检查、下载、取消、安装确认与失败恢复已实现                           | 真实发布源、签名安装、UtilityProcess 安装交接及认证代理更新全流程实测 |
 | 在线账号与 CurseForge | Microsoft/Yggdrasil 登录、外观管理及 CurseForge 下载已有实现         | 对应真实账号和 API Key 实测                                           |
 | 组合场景              | 真实 Modrinth 包升级、跨 Minecraft 版本联动、游戏启动及公网 SRV 通过 | 远程插件目录界面与多人加入实测                                        |
@@ -20,7 +20,7 @@
 
 Linux Java 下载失败暴露的错误信息缺口已修复：任务错误现在附加底层 `cause` 和聚合错误中的技术错误码，去重并限制遍历范围，保留原错误正文。实际 Node 请求失败显示 `fetch failed (ENOTFOUND)`，验证未新增敏感 cause 消息输出。此前 Linux 下载记录没有底层码，仍不推断其具体原因。
 
-Java 安装恢复已补齐：探测、清单边界和安装编排拆分为独立模块，按官方清单哈希使用稳定暂存目录。受控下载链验证了断流续传、新进程恢复、完成文件复用、损坏项重下、取消和清单隔离；完整验证后才提交运行时。三平台官方 Java 21.0.7 清单检查通过；Windows 实际恢复 402 个官方文件时复用 401 个，仅重新下载损坏项的 2,732 字节，真实 JVM 探测与正式目录发现通过。Linux 合法文件链接重试受当前 WSL 启动资源错误限制，见 [Java 安装恢复](java-runtime-recovery.md)。
+Java 安装恢复已补齐：探测、清单边界和安装编排拆分为独立模块，按官方清单哈希使用稳定暂存目录。受控下载链验证了断流续传、新进程恢复、完成文件复用、损坏项重下、取消和清单隔离；完整验证后才提交运行时。三平台官方 Java 21.0.7 清单检查通过；Windows 实际恢复 402 个官方文件时复用 401 个，仅重新下载损坏项的 2,732 字节。Linux 真实 Host 安装与探测通过，已有合法相对链接和目标文件被复用；136 个文件、205 个链接和可执行权限逐项核对，见 [Java 安装恢复](java-runtime-recovery.md)。
 
 备份保留策略已完成：按实例保留最近 N 份版本变更备份，默认 0 全部保留；手动和旧版备份不自动删除，恢复中的备份跳过，清理写入任务日志。后端隔离实操验证了清理数量、恢复占用与文件恢复，默认界面中英文设置已核对并保存。
 
@@ -62,7 +62,7 @@ Java 安装恢复已补齐：探测、清单边界和安装编排拆分为独立
 
 Windows 解包版和单文件便携版在独立数据目录实际启动，主进程、preload、Cordis Host 与默认界面正常；核对打包归档无 `.env`、设计原型或玩家数据，便携版读取同目录 `.env.local` 优先于 `.env`。NSIS 在无既有 Nixel 安装的环境实际静默安装到独立目录，再由生成的卸载器卸载；安装目录、卸载注册项和快捷方式移除，独立数据文件校验值保持一致。
 
-Linux 在 Ubuntu 24.04 / WSLg 独立安装依赖、typecheck、lint、build 和 AppImage 打包通过；解包版和 AppImage 均实际启动，Host 就绪、17 个插件 active、渲染 sandbox 保持开启。AppImage 邻接 `.env.local` 的独立数据目录生效，正常退出。Vanilla 1.21.1 游戏文件与 8 个 Linux 原生库安装校验通过；官方 Java 下载及一次重试因网络请求失败而停止，游戏尚未启动。后续官方地址已恢复 HTTP 200，但 WSL 启动返回系统资源不足，尚未重验游戏。WSL 缺少 FUSE 2 时使用官方 extract-and-run；当前会话无安全 keyring，已有实现拒绝 `basic_text` 凭据存储。DEB 因缺项目 `homepage` 停止打包，等待确定的官网或仓库地址。Linux 游戏/原生桌面、macOS/arm64、签名与公证仍待实测，见 [应用分发](distribution.md)。
+Linux 在 Ubuntu 24.04 / WSLg 独立安装依赖、typecheck、lint、build 和 AppImage 打包通过；解包版和 AppImage 均实际启动，Host 就绪、17 个插件 active、渲染 sandbox 保持开启。AppImage 邻接 `.env.local` 的独立数据目录生效，正常退出。Java 恢复修改后，以独立解包运行目录完成官方 Java 21.0.7 安装与 Vanilla 1.21.1 游戏启动；图形、纹理和声音引擎初始化，游戏、Host 与启动器退出码均为 0。音频依赖经 Ubuntu 元数据校验后解包到隔离目录，没有安装系统包；实际可听性与旁白未验证。WSL 缺少 FUSE 2 时使用官方 extract-and-run；当前会话无安全 keyring，已有实现拒绝 `basic_text` 凭据存储。DEB 因缺项目 `homepage` 停止打包，等待确定的官网或仓库地址。原生 Linux 桌面、macOS/arm64、签名与公证仍待实测，见 [应用分发](distribution.md)。
 
 带更新配置的已安装应用启动被自动审批拒绝，理由仅返回 `blocked by policy`，因此安装模式识别仍未实测。卸载保留了本次安装器缓存 `%LOCALAPPDATA%/nixellauncher-updater/installer.exe`；限定路径及哈希的缓存清理也被拒绝，文件保持原样。未通过改写命令重试这些动作。
 
@@ -74,4 +74,4 @@ Linux 在 Ubuntu 24.04 / WSLg 独立安装依赖、typecheck、lint、build 和 
 
 实例版本管理在独立目录完成 Minecraft 1.21.1 Vanilla → Fabric 0.16.14 的真实界面操作与安装，备份清单保留原 Vanilla 启动信息，归档 SHA-256 与清单一致。Modrinth 内容和本地内容分别显示兼容/未确认；检查后更改文件启用状态会拒绝过期预览。备份中取消保留原选择并清理暂存归档；使用本地验证提供者触发安装失败，确认备份保留且版本选择未提交。中英文选择与确认页、返回后保留目标版本，以及跨 Minecraft 版本预览中的“需要更新”提示已核对。
 
-Microsoft、Yggdrasil 与 CurseForge 已有实现；真实账号登录、令牌刷新及 CurseForge 下载仍需对应账号或 API Key 实测。Linux WSLg 客户端已运行，平台密钥库、游戏启动和 macOS 仍待对应环境。历史 Minecraft/加载器版本需要按具体版本验证兼容性。
+Microsoft、Yggdrasil 与 CurseForge 已有实现；真实账号登录、令牌刷新及 CurseForge 下载仍需对应账号或 API Key 实测。Linux WSLg 客户端与游戏已运行，平台密钥库、原生 Linux 桌面和 macOS 仍待对应环境。历史 Minecraft/加载器版本需要按具体版本验证兼容性。
