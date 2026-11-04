@@ -5,6 +5,7 @@ import { ApplicationUpdates } from '../app-updates/ApplicationUpdates';
 import { DownloadSettings } from '../downloads/DownloadSettings';
 import { MirrorSettings } from '../downloads/MirrorSettings';
 import { Landscape } from '../Landscape';
+import { ApplicationLogsAction } from '../settings/ApplicationLogsAction';
 import { BackupRetention } from '../settings/BackupRetention';
 import { NetworkSettings } from '../settings/NetworkSettings';
 import { useApp } from '../state';
@@ -77,6 +78,7 @@ const settingGroups = () =>
         tr('Settings.versionPlatformHostServices'),
         tr('appUpdates.title'),
         tr('appUpdates.check'),
+        tr('applicationLogs.title'),
       ].join(' '),
     },
   ] as const;
@@ -310,6 +312,12 @@ export function SettingsPage() {
               </SettingRow>
             </Group>
             <ApplicationUpdates />
+            <SettingRow
+              title={tr('applicationLogs.title')}
+              description={tr('applicationLogs.hint')}
+            >
+              <ApplicationLogsAction />
+            </SettingRow>
             <p className="muted">{tr('Settings.aMinecraftJavaLauncherBuiltWithElectron')}</p>
           </>
         )}

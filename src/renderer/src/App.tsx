@@ -12,6 +12,7 @@ import { InstancesPage } from './pages/Instances';
 import { PluginsPage } from './pages/Plugins';
 import { ResourcesPage } from './pages/Resources';
 import { SettingsPage } from './pages/Settings';
+import { ApplicationLogsAction } from './settings/ApplicationLogsAction';
 import { AppProvider, useApp } from './state';
 import { Action, IconButton, Tag, Tile } from './ui';
 
@@ -148,6 +149,7 @@ function Shell() {
               <Action icon="refresh" onPress={() => void a.restartHost()}>
                 {tr('App.restartServices')}
               </Action>
+              <ApplicationLogsAction />
             </div>
           </div>
         )}

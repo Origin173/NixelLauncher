@@ -358,4 +358,5 @@ export interface NixelBridge {
   readImage(path: string): Promise<string>;
   windowControl(action: 'minimize' | 'maximize' | 'close'): Promise<void>;
   restartHost(): Promise<void>;
+  openApplicationLogs(): Promise<void>;
 }

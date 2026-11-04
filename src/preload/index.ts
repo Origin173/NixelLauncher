@@ -32,6 +32,7 @@ const bridge: NixelBridge = {
   readImage: (path) => ipcRenderer.invoke('nixel:read-image', path),
   windowControl: (action) => ipcRenderer.invoke('nixel:window', action),
   restartHost: () => ipcRenderer.invoke('nixel:restart-host'),
+  openApplicationLogs: () => ipcRenderer.invoke('nixel:open-application-logs'),
 };
 
 contextBridge.exposeInMainWorld('nixel', bridge);

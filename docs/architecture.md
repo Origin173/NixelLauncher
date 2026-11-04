@@ -86,3 +86,5 @@ Minecraft 安装与启动由 Nixel 游戏提供者实现，版本清单来自 Mo
 `nixel.plugin-distribution` 负责用户目录协议、预览和下载任务。Host 的 `plugin-management/` 分离清单/配置校验、依赖规则、受管目录与替换事务；本地和远程安装共用生命周期。更新使用不可变目录与持久化指针，短生命周期锁阻止并发启动任务，管理任务仅能排除真实所属任务，见 [插件分发](plugin-distribution.md)。
 
 `nixel.app-updates` 负责启动器更新命令、自动检查偏好与任务。主进程的 `app-updates/` 按配置、平台适配、状态控制与停机交接分层，通过 `HostPlatform.appUpdates` 调用通用 `electron-updater`；远程 Session 复用网络插件配置。安装前使用 `TaskManager.whileIdle` 阻止新任务，主进程冻结业务请求、确认后停止 Host，再交给平台安装器，见 [启动器更新](application-updates.md)。
+
+`main/application-log.ts` 负责有限大小的本地事件日志与快照状态比较。Host、插件和任务的状态记录保持在主进程，故障恢复页无需业务 Host 即可打开日志目录；事件字段不包含业务参数与凭据，见 [启动器运行日志](application-logs.md)。

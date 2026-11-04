@@ -24,6 +24,7 @@ import { readUpdateEnvironment } from './app-updates/configuration';
 import type { ApplicationUpdater } from './app-updates/controller';
 import { UpdateInstallation } from './app-updates/handoff';
 import { createApplicationUpdater } from './app-updates/platform';
+import { ApplicationLog, errorCode, observeRuntime } from './application-log';
 import { loadEnvironment } from './environment';
 import { HostClient } from './host-client';
 import { configureProxy, installProxyAuthentication, resolveProxy } from './network';
@@ -56,7 +57,13 @@ if (process.env.NIXEL_DATA_DIR && isAbsolute(process.env.NIXEL_DATA_DIR)) {
 }
 
 const ownsDataDirectory = app.requestSingleInstanceLock();
+const applicationLog = new ApplicationLog(app.getPath('userData'));
+const observe = observeRuntime(applicationLog);
 if (!ownsDataDirectory) app.quit();
+if (ownsDataDirectory)
+  process.on('uncaughtExceptionMonitor', (error) => {
+    applicationLog.record('main.uncaught', { code: errorCode(error) });
+  });
 app.on('second-instance', () => {
   if (app.isReady() && snapshot) showWindow();
 });
@@ -206,6 +213,7 @@ async function platform(operation: PlatformOperation, payload: unknown) {
 }
 
 function registerIpc() {
+  handle('nixel:open-application-logs', () => openPath(applicationLog.openDirectory()));
   handle('nixel:snapshot', () => snapshot);
   handle('nixel:invoke', (command: string, params?: unknown) => {
     if (updateInstallation.frozen) throw new Error(tr('appUpdates.installing'));
@@ -286,6 +294,15 @@ function createWindow() {
     },
   });
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  window.webContents.on('render-process-gone', (_event, details) => {
+    applicationLog.record('renderer.exited', {
+      reason: details.reason,
+      exitCode: details.exitCode,
+    });
+  });
+  window.webContents.on('did-fail-load', (_event, code, _description, _url, isMainFrame) => {
+    if (isMainFrame) applicationLog.record('renderer.load.failed', { code });
+  });
   window.webContents.on('will-navigate', (event) => event.preventDefault());
   window.webContents.on('will-attach-webview', (event) => event.preventDefault());
   window.webContents.on('before-input-event', (_event, input) => {
@@ -310,98 +327,112 @@ function createWindow() {
   void loadInterface(customInterface).catch(console.error);
 }
 
-void app.whenReady().then(async () => {
-  if (!ownsDataDirectory) return;
-  const dataPath = app.getPath('userData');
-  const state = defaultState(dataPath);
-  snapshot = {
-    ...state,
-    plugins: [],
-    providers: [],
-    tasks: [],
-    running: [],
-    host: { status: 'starting' },
-    appVersion: app.getVersion(),
-    dataDirectory: dataPath,
-  };
-  secrets = new SecretStorage(dataPath);
-  await secrets.load();
-  installProxyAuthentication();
-  updates = await createApplicationUpdater(
-    updateEnvironment,
-    (error) => void updateInstallation.failed(error),
-  );
-  host = new HostClient(
-    {
-      dataPath,
+void app
+  .whenReady()
+  .then(async () => {
+    if (!ownsDataDirectory) return;
+    applicationLog.record('app.started', { version: app.getVersion(), platform: process.platform });
+    const dataPath = app.getPath('userData');
+    const state = defaultState(dataPath);
+    snapshot = {
+      ...state,
+      plugins: [],
+      providers: [],
+      tasks: [],
+      running: [],
+      host: { status: 'starting' },
       appVersion: app.getVersion(),
-      rendererPath: defaultRenderer,
-      systemLocale: app.getLocale(),
-    },
-    (value) => {
-      const previousRunning = new Set(snapshot.running);
-      snapshot = value as LauncherSnapshot;
-      const previousLanguage = i18n.language;
-      setLocale(snapshot.settings.locale, app.getLocale());
-      if (previousLanguage !== i18n.language) updateTrayMenu();
-      if (
-        snapshot.settings.closeAfterLaunch &&
-        snapshot.running.some((id) => !previousRunning.has(id))
-      ) {
-        restoreAfterGame = true;
-        hideToTray();
-      } else if (
-        restoreAfterGame &&
-        previousRunning.size > 0 &&
-        snapshot.running.length === 0 &&
-        window &&
-        !window.isVisible() &&
-        !quitting
-      )
-        showWindow();
-      pushSnapshot();
-    },
-    (status, error) => {
-      snapshot.host = { ...snapshot.host, status: status === 'crashed' ? 'error' : status, error };
-      if (status === 'crashed') {
-        updates.cancel();
-        void configureProxy({ mode: 'system', proxyUrl: '' }, secrets).catch(() => {
-          console.warn(tr('proxyAuth.configureFailed'));
-        });
-        snapshot.running = [];
-        snapshot.tasks = snapshot.tasks.map((task) =>
-          task.status === 'running'
-            ? {
-                ...task,
-                status: 'failed',
-                error: tr('index.theHostExitedStartTheOperationAgain'),
-                finishedAt: new Date().toISOString(),
-              }
-            : task,
-        );
-        if (!quitting && window && !window.isVisible()) showWindow();
-      }
-      pushSnapshot();
-    },
-    platform,
-  );
-  updateInstallation = new UpdateInstallation(
-    updates,
-    host,
-    () => snapshot,
-    () => {
-      snapshot.host.error = tr('appUpdates.recoveryFailed');
-      pushSnapshot();
-    },
-  );
-  registerIpc();
-  nativeAutoUpdater.on('before-quit-for-update', () => updateInstallation.beforeQuitForUpdate());
-  createWindow();
-  host.start();
-  app.on('activate', () => {
-    showWindow();
+      dataDirectory: dataPath,
+    };
+    secrets = new SecretStorage(dataPath);
+    await secrets.load();
+    installProxyAuthentication();
+    updates = await createApplicationUpdater(
+      updateEnvironment,
+      (error) => void updateInstallation.failed(error),
+    );
+    host = new HostClient(
+      {
+        dataPath,
+        appVersion: app.getVersion(),
+        rendererPath: defaultRenderer,
+        systemLocale: app.getLocale(),
+      },
+      (value) => {
+        const previousRunning = new Set(snapshot.running);
+        snapshot = value as LauncherSnapshot;
+        observe(snapshot);
+        const previousLanguage = i18n.language;
+        setLocale(snapshot.settings.locale, app.getLocale());
+        if (previousLanguage !== i18n.language) updateTrayMenu();
+        if (
+          snapshot.settings.closeAfterLaunch &&
+          snapshot.running.some((id) => !previousRunning.has(id))
+        ) {
+          restoreAfterGame = true;
+          hideToTray();
+        } else if (
+          restoreAfterGame &&
+          previousRunning.size > 0 &&
+          snapshot.running.length === 0 &&
+          window &&
+          !window.isVisible() &&
+          !quitting
+        )
+          showWindow();
+        pushSnapshot();
+      },
+      (status, error) => {
+        applicationLog.record('host.state', { state: status });
+        snapshot.host = {
+          ...snapshot.host,
+          status: status === 'crashed' ? 'error' : status,
+          error,
+        };
+        if (status === 'crashed') {
+          updates.cancel();
+          void configureProxy({ mode: 'system', proxyUrl: '' }, secrets).catch(() => {
+            console.warn(tr('proxyAuth.configureFailed'));
+          });
+          snapshot.running = [];
+          snapshot.tasks = snapshot.tasks.map((task) =>
+            task.status === 'running'
+              ? {
+                  ...task,
+                  status: 'failed',
+                  error: tr('index.theHostExitedStartTheOperationAgain'),
+                  finishedAt: new Date().toISOString(),
+                }
+              : task,
+          );
+          if (!quitting && window && !window.isVisible()) showWindow();
+        }
+        pushSnapshot();
+      },
+      platform,
+      applicationLog,
+    );
+    updateInstallation = new UpdateInstallation(
+      updates,
+      host,
+      () => snapshot,
+      () => {
+        snapshot.host.error = tr('appUpdates.recoveryFailed');
+        pushSnapshot();
+      },
+    );
+    registerIpc();
+    nativeAutoUpdater.on('before-quit-for-update', () => updateInstallation.beforeQuitForUpdate());
+    createWindow();
+    host.start();
+    app.on('activate', () => {
+      showWindow();
+    });
+  })
+  .catch((error: unknown) => {
+    applicationLog.record('app.start.failed', { code: errorCode(error) });
+    throw error;
   });
-});
 
 let shutdownComplete = false;
 app.on('before-quit', (event) => {
@@ -409,6 +440,7 @@ app.on('before-quit', (event) => {
     event.preventDefault();
     return;
   }
+  if (ownsDataDirectory && !quitting) applicationLog.record('app.quitting');
   updates?.cancel();
   quitting = true;
   if (!host || shutdownComplete) return;

@@ -8,8 +8,10 @@ import type {
   PlatformOperation,
 } from '../host/protocol';
 import { tr } from '../shared/i18n';
+import { type ApplicationLog, errorCode } from './application-log';
 
 interface PendingCommand {
+  command: string;
   resolve(value: unknown): void;
   reject(reason: Error): void;
 }
@@ -26,6 +28,7 @@ export class HostClient {
     private readonly onSnapshot: (snapshot: unknown) => void,
     private readonly onStatus: (state: 'starting' | 'ready' | 'crashed', error?: string) => void,
     private readonly platform: (operation: PlatformOperation, payload: unknown) => Promise<unknown>,
+    private readonly log: ApplicationLog,
   ) {}
 
   start() {
@@ -38,6 +41,7 @@ export class HostClient {
       stdio: 'inherit',
     });
     this.child = child;
+    child.once('spawn', () => this.log.record('host.process.started', { pid: child.pid }));
     let resolveReady: () => void;
     let rejectReady: (error: Error) => void;
     const ready = new Promise<void>((resolve, reject) => {
@@ -65,8 +69,10 @@ export class HostClient {
           const pending = this.pending.get(message.id);
           if (!pending) break;
           this.pending.delete(message.id);
-          if (message.error) pending.reject(new Error(message.error));
-          else pending.resolve(message.value);
+          if (message.error) {
+            this.log.record('command.failed', { command: pending.command });
+            pending.reject(new Error(message.error));
+          } else pending.resolve(message.value);
           break;
         }
         case 'platform':
@@ -76,6 +82,10 @@ export class HostClient {
                 child.postMessage({ type: 'platform-result', id: message.id, value });
             },
             (error: unknown) => {
+              this.log.record('platform.failed', {
+                operation: message.operation,
+                code: errorCode(error),
+              });
               if (this.child === child)
                 child.postMessage({
                   type: 'platform-result',
@@ -87,6 +97,7 @@ export class HostClient {
       }
     });
     child.on('exit', (code) => {
+      this.log.record('host.process.exited', { exitCode: code, expected: this.stopping });
       if (this.child !== child) return;
       this.child = undefined;
       const error = new Error(
@@ -112,7 +123,7 @@ export class HostClient {
     if (!this.child) return Promise.reject(new Error(tr('host-client.thePluginHostIsNotRunning')));
     const id = randomUUID();
     return new Promise((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
+      this.pending.set(id, { command, resolve, reject });
       this.send({ type: 'command', id, command, payload });
     });
   }

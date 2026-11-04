@@ -1,5 +1,6 @@
 import { accountProfilesEn } from './account-profiles';
 import { appUpdatesEn } from './app-updates';
+import { applicationLogsEn } from './application-logs';
 import { backupRetentionEn } from './backup-retention';
 import { contentUpdatesEn } from './content-updates';
 import { diagnosticsEn } from './diagnostics';
@@ -14,6 +15,7 @@ import { skinsEn } from './skins';
 import { versionContentEn } from './version-content';
 
 export default {
+  ...applicationLogsEn,
   ...contentUpdatesEn,
   ...appUpdatesEn,
   ...proxyAuthEn,
