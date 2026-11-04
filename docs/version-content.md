@@ -23,4 +23,4 @@
 
 同日进一步完成跨 Minecraft 版本迁移：1.20.1 / Fabric 0.20.1 / Sodium 0.5.13（`OihdIimA`）→ 1.21.1 / Fabric 0.20.1 / Sodium 0.8.13（`SMxNOGZ6`）。源版本通过正式安装，客户端 SHA-1 匹配 Mojang；未启动源游戏。预览明确标记 Minecraft 版本变化，确认风险后使用固定内容计划与自动备份完成迁移。新模组匹配官方 SHA-512、旧文件移除、启用状态与配置和存档标记保留；备份清单及 ZIP 保留原 Minecraft 版本、模组来源和旧文件哈希。目标游戏使用 Java 21 实际完成模组、音频与纹理初始化，正常退出码 0。
 
-这次跨版本操作新增文件 90,912,937 字节，元数据另计；证据保存在 `output/cross-version-online-review/`。未进入世界，存档标记保留不代表验证了实际世界格式转换；线上 CurseForge 组合仍需对应 API Key。
+这次跨版本操作新增文件 90,912,937 字节，元数据另计；证据保存在 `output/cross-version-online-review/`。未进入世界，存档标记保留不代表验证了实际世界格式转换。CurseForge 的独立模组更新和整合包升级已通过 [线上验收](curseforge-online.md)，与跨 Minecraft 版本变更的组合尚未实测。
