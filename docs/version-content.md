@@ -19,4 +19,8 @@
 
 2026-11-04 的在线组合使用正式 Minecraft 与 Modrinth 提供者：Minecraft 保持 1.21.1，Fabric 0.19.5 → 0.20.1，同时明确选择将 Sodium 0.8.12（`KIRFiWG4`）更新为 0.8.13（`SMxNOGZ6`）。最终文件计划固定准确来源和版本；应用后新文件 SHA-512 与官方清单一致，旧文件移除，原禁用状态与自定义配置保留。`version-change` 备份归档内的旧禁用文件匹配原版官方哈希，并保留原配置。
 
-随后显式启用新 Sodium，用离线角色启动更新后的实例，确认 Fabric、模组、音频与纹理初始化，游戏正常退出码 0。Electron 和 Host 也正常退出。操作复用复制到独立目录的官方游戏/Java 缓存，新增模组与加载器文件下载共 6,688,262 字节，元数据另计；证据在本地忽略目录 `output/version-online-review/`。该组合保持 Minecraft 版本，跨 Minecraft 版本与线上 CurseForge 组合仍需按目标版本验证。
+随后显式启用新 Sodium，用离线角色启动更新后的实例，确认 Fabric、模组、音频与纹理初始化，游戏正常退出码 0。Electron 和 Host 也正常退出。操作复用复制到独立目录的官方游戏/Java 缓存，新增模组与加载器文件下载共 6,688,262 字节，元数据另计；证据在本地忽略目录 `output/version-online-review/`。
+
+同日进一步完成跨 Minecraft 版本迁移：1.20.1 / Fabric 0.20.1 / Sodium 0.5.13（`OihdIimA`）→ 1.21.1 / Fabric 0.20.1 / Sodium 0.8.13（`SMxNOGZ6`）。源版本通过正式安装，客户端 SHA-1 匹配 Mojang；未启动源游戏。预览明确标记 Minecraft 版本变化，确认风险后使用固定内容计划与自动备份完成迁移。新模组匹配官方 SHA-512、旧文件移除、启用状态与配置和存档标记保留；备份清单及 ZIP 保留原 Minecraft 版本、模组来源和旧文件哈希。目标游戏使用 Java 21 实际完成模组、音频与纹理初始化，正常退出码 0。
+
+这次跨版本操作新增文件 90,912,937 字节，元数据另计；证据保存在 `output/cross-version-online-review/`。未进入世界，存档标记保留不代表验证了实际世界格式转换；线上 CurseForge 组合仍需对应 API Key。

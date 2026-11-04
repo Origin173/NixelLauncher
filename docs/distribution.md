@@ -55,6 +55,8 @@ AppImage 同目录的 `.env.local` 仅设置独立 `NIXEL_DATA_DIR`；未通过�
 
 随后通过真实 Host 在独立目录完成 Vanilla 1.21.1 安装，8 个 Linux LWJGL 原生库全部匹配 Mojang SHA-1。启动所需的官方 Java 21.0.7 下载在约 98.48% 时出现 `fetch failed`，一次手动重试在运行时清单请求阶段再次失败，随即停止。Java 安装和游戏启动尚未完成，因此没有计入 Linux 图形、声音或纹理初始化通过；任务与文件校验保存在同一验收目录。现有记录没有底层网络错误码，无法据此判断具体网络原因。
 
+后续只读网络复查中，这两个官方地址都返回 HTTP 200，TLS 校验通过，未更改网络设置。继续验证时 WSL 启动返回 `HCS/ERROR_NO_SYSTEM_RESOURCES`，因此 Linux 真实 Java 安装与游戏启动仍待可用环境。由这次失败发现的重复下载问题已通过 [Java 安装恢复](java-runtime-recovery.md) 修复，并在 Windows 官方运行时完成恢复验收。
+
 ## 设计参考
 
 参考了 [HeliosLauncher 的分平台打包结构](https://github.com/dscalzi/HeliosLauncher/blob/master/electron-builder.yml)：应用归档、安装器目标和各平台配置集中维护。本项目独立编写配置，沿用现有 Cordis Host 和业务插件，没有引入该启动器或 XMCL 的代码包。具体选项依据 [electron-builder v26 配置](https://www.electron.build/v26/docs/configuration/) 和 [NSIS 文档](https://www.electron.build/v26/docs/nsis/)。
