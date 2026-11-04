@@ -63,6 +63,14 @@ AppImage 同目录的 `.env.local` 仅设置独立 `NIXEL_DATA_DIR`；未通过�
 
 音频首次因缺少桌面运行库初始化失败。按 Ubuntu APT 元数据校验并解包 `libpulse0` 及其依赖到独立目录，仅向本次进程设置 `LD_LIBRARY_PATH` 后，游戏使用 WSLg 既有 PulseAudio 服务，日志确认 `OpenAL initialized on device RDP Sink` 和 `Sound engine started`。没有安装系统包或更改网络、ALSA 与 WSLg 配置。游戏、Host、启动器均通过窗口关闭正常退出，退出码 0，实例仍为就绪状态。实际可听性和旁白未验证，当前环境缺少 `libflite`。证据索引为 `output/linux-release/WSL-JAVA-RECOVERY-ACCEPTANCE.txt`。
 
+## DEB 构建与解包验收
+
+项目地址确定后，从提交 `537587e` 的干净 Git 归档重新构建并生成 Linux amd64 DEB，包含 ALSA 依赖修复及 Microsoft 配置错误提示。包元数据的版本、架构、主页和仓库正确；APT 模拟安装选择了 `libasound2t64`，其余默认依赖保留。13 个构建文件与包内逐字节一致，18,377 个 ASAR 条目和 93 个外层条目未包含本地配置或玩家数据。
+
+这份 DEB 解包后使用独立 `NIXEL_DATA_DIR` 与进程级运行库启动，Host 就绪且 17 个插件启用。渲染隔离、Node 接口关闭和 sandbox 生效；窗口正常关闭后启动器与 Host 均退出码 0。没有执行系统包安装或桌面集成，APT 依赖模拟与解包运行分别记录。
+
+产物为 `output/linux-release/deb-537587e/NixelLauncher-0.1.0-linux-amd64.deb`，109,402,576 字节，SHA-256 为 `cd2e67e44a8a36d9c455c0d81ac9faaf532cef01b82ceef099e05747385d2f86`。同目录 `ACCEPTANCE.txt`、`archive-evidence.json`、`apt-simulation.txt` 与 `runtime-evidence.json` 保存构建、归档和实际运行证据。
+
 ## 设计参考
 
 参考了 [HeliosLauncher 的分平台打包结构](https://github.com/dscalzi/HeliosLauncher/blob/master/electron-builder.yml)：应用归档、安装器目标和各平台配置集中维护。本项目独立编写配置，沿用现有 Cordis Host 和业务插件，没有引入该启动器或 XMCL 的代码包。具体选项依据 [electron-builder v26 配置](https://www.electron.build/v26/docs/configuration/) 和 [NSIS 文档](https://www.electron.build/v26/docs/nsis/)。

@@ -7,7 +7,7 @@
 | 项目                  | 当前状态                                                             | 待完成内容                                                            |
 | --------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | Windows 发行          | 解包/便携版已运行，NSIS 隔离安装、卸载与数据保留通过                 | 已安装应用更新模式识别、签名及发布                                    |
-| Linux 与其他平台      | WSLg 客户端、Java/游戏与 GNOME Keyring 凭据存取通过                  | DEB 缺项目主页；原生桌面、macOS/arm64 与公证实测                      |
+| Linux 与其他平台      | AppImage/DEB 解包运行、WSLg Java/游戏和 GNOME Keyring 已通过         | DEB 系统安装/桌面集成、原生桌面、macOS/arm64 与公证实测               |
 | 启动器更新            | 检查、下载、取消、安装确认与失败恢复已实现                           | 真实发布源、签名安装、UtilityProcess 安装交接及认证代理更新全流程实测 |
 | 在线账号与 CurseForge | CurseForge 真实搜索、模组安装/更新、整合包导入/升级已通过            | Microsoft 公共客户端配置与账号授权、Yggdrasil 真实账号实测            |
 | 组合场景              | 真实 Modrinth 包升级、跨 Minecraft 版本联动、游戏启动及公网 SRV 通过 | 远程插件目录界面与多人加入实测                                        |
@@ -62,7 +62,7 @@ Java 安装恢复已补齐：探测、清单边界和安装编排拆分为独立
 
 Windows 解包版和单文件便携版在独立数据目录实际启动，主进程、preload、Cordis Host 与默认界面正常；核对打包归档无 `.env`、设计原型或玩家数据，便携版读取同目录 `.env.local` 优先于 `.env`。NSIS 在无既有 Nixel 安装的环境实际静默安装到独立目录，再由生成的卸载器卸载；安装目录、卸载注册项和快捷方式移除，独立数据文件校验值保持一致。
 
-Linux 在 Ubuntu 24.04 / WSLg 独立安装依赖、typecheck、lint、build 和 AppImage 打包通过；解包版和 AppImage 均实际启动，Host 就绪、17 个插件 active、渲染 sandbox 保持开启。AppImage 邻接 `.env.local` 的独立数据目录生效，正常退出。Java 恢复修改后，以独立解包运行目录完成官方 Java 21.0.7 安装与 Vanilla 1.21.1 游戏启动；图形、纹理和声音引擎初始化，游戏、Host 与启动器退出码均为 0。音频依赖经 Ubuntu 元数据校验后解包到隔离目录，没有安装系统包；实际可听性与旁白未验证。WSL 缺少 FUSE 2 时使用官方 extract-and-run；独立 GNOME Keyring 会话的真实加密与重启读取通过，无密钥库时仍拒绝 `basic_text`。DEB 因缺项目 `homepage` 停止打包，等待确定的官网或仓库地址。原生 Linux 桌面、macOS/arm64、签名与公证仍待实测，见 [应用分发](distribution.md)。
+Linux 在 Ubuntu 24.04 / WSLg 独立安装依赖、typecheck、lint、build 和 AppImage 打包通过；解包版和 AppImage 均实际启动，Host 就绪、17 个插件 active、渲染 sandbox 保持开启。AppImage 邻接 `.env.local` 的独立数据目录生效，正常退出。Java 恢复修改后，以独立解包运行目录完成官方 Java 21.0.7 安装与 Vanilla 1.21.1 游戏启动；图形、纹理和声音引擎初始化，游戏、Host 与启动器退出码均为 0。音频依赖经 Ubuntu 元数据校验后解包到隔离目录，没有安装系统包；实际可听性与旁白未验证。WSL 缺少 FUSE 2 时使用官方 extract-and-run；独立 GNOME Keyring 会话的真实加密与重启读取通过，无密钥库时仍拒绝 `basic_text`。DEB 已按确定的主页和仓库构建，补齐 ALSA 依赖，APT 模拟及实际解包运行通过；系统安装和桌面集成仍待验收。原生 Linux 桌面、macOS/arm64、签名与公证仍待实测，见 [应用分发](distribution.md)。
 
 带更新配置的已安装应用启动被自动审批拒绝，理由仅返回 `blocked by policy`，因此安装模式识别仍未实测。卸载保留了本次安装器缓存 `%LOCALAPPDATA%/nixellauncher-updater/installer.exe`；限定路径及哈希的缓存清理也被拒绝，文件保持原样。未通过改写命令重试这些动作。
 
