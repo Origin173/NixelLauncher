@@ -7,7 +7,7 @@
 | 项目                  | 当前状态                                                             | 待完成内容                                                            |
 | --------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | Windows 发行          | 解包/便携版已运行，NSIS 隔离安装、卸载与数据保留通过                 | 已安装应用更新模式识别、签名及发布                                    |
-| Linux 与其他平台      | AppImage 已运行，WSLg Java 安装、游戏图形/声音引擎初始化与退出通过 | DEB 缺项目主页；Linux 密钥库、原生桌面、macOS/arm64 与公证实测        |
+| Linux 与其他平台      | WSLg 客户端、Java/游戏与 GNOME Keyring 凭据存取通过              | DEB 缺项目主页；原生桌面、macOS/arm64 与公证实测                      |
 | 启动器更新            | 检查、下载、取消、安装确认与失败恢复已实现                           | 真实发布源、签名安装、UtilityProcess 安装交接及认证代理更新全流程实测 |
 | 在线账号与 CurseForge | Microsoft/Yggdrasil 登录、外观管理及 CurseForge 下载已有实现         | 对应真实账号和 API Key 实测                                           |
 | 组合场景              | 真实 Modrinth 包升级、跨 Minecraft 版本联动、游戏启动及公网 SRV 通过 | 远程插件目录界面与多人加入实测                                        |
@@ -44,7 +44,7 @@ Java 安装恢复已补齐：探测、清单边界和安装编排拆分为独立
 
 网络代理已完成：独立 `nixel.network` 插件、系统/PAC 路由、HTTP/HTTPS/SOCKS5、自定义配置和连接检查。真实 Electron 中英文设置及本地代理转发实际 Minecraft/Modrinth API、CDN 图片通过；独立协议操作验证 SOCKS5、路由错误和取消。具体范围见 [网络连接](network.md)。
 
-代理认证已完成：自定义 HTTP/HTTPS Basic、系统加密存储、地址与用户名绑定、跨 Session 配置及缓存清理。真实中英文界面保存、无密码快照、留空保留与切换直连清理通过；本地认证代理成功转发真实 Minecraft/Modrinth 连接检查，见 [代理身份验证](proxy-authentication.md)。其他平台安全存储与商业代理尚待实测。
+代理认证已完成：自定义 HTTP/HTTPS Basic、系统加密存储、地址与用户名绑定、跨 Session 配置及缓存清理。真实中英文界面保存、无密码快照、留空保留与切换直连清理通过；本地认证代理成功转发真实 Minecraft/Modrinth 连接检查。Linux GNOME Keyring 独立会话中，真实应用的加密保存、跨进程重启读取、留空保留与直连删除通过，见 [代理身份验证](proxy-authentication.md)。macOS 安全存储与商业代理尚待实测。
 
 启动器更新已完成：独立 Cordis 插件、公开 HTTPS 配置、检查/下载任务、纯文本说明、取消、安装确认与停机交接。普通应用和 Windows 解包产物的未配置状态、中英文界面、偏好保存与搜索入口通过；真实 Cordis 任务锁和作用域释放、控制器交接顺序与失败恢复已在隔离操作中核对。真实系统安装和更新网络全链路尚待发行环境验证，见 [启动器更新](application-updates.md)。
 
@@ -62,7 +62,7 @@ Java 安装恢复已补齐：探测、清单边界和安装编排拆分为独立
 
 Windows 解包版和单文件便携版在独立数据目录实际启动，主进程、preload、Cordis Host 与默认界面正常；核对打包归档无 `.env`、设计原型或玩家数据，便携版读取同目录 `.env.local` 优先于 `.env`。NSIS 在无既有 Nixel 安装的环境实际静默安装到独立目录，再由生成的卸载器卸载；安装目录、卸载注册项和快捷方式移除，独立数据文件校验值保持一致。
 
-Linux 在 Ubuntu 24.04 / WSLg 独立安装依赖、typecheck、lint、build 和 AppImage 打包通过；解包版和 AppImage 均实际启动，Host 就绪、17 个插件 active、渲染 sandbox 保持开启。AppImage 邻接 `.env.local` 的独立数据目录生效，正常退出。Java 恢复修改后，以独立解包运行目录完成官方 Java 21.0.7 安装与 Vanilla 1.21.1 游戏启动；图形、纹理和声音引擎初始化，游戏、Host 与启动器退出码均为 0。音频依赖经 Ubuntu 元数据校验后解包到隔离目录，没有安装系统包；实际可听性与旁白未验证。WSL 缺少 FUSE 2 时使用官方 extract-and-run；当前会话无安全 keyring，已有实现拒绝 `basic_text` 凭据存储。DEB 因缺项目 `homepage` 停止打包，等待确定的官网或仓库地址。原生 Linux 桌面、macOS/arm64、签名与公证仍待实测，见 [应用分发](distribution.md)。
+Linux 在 Ubuntu 24.04 / WSLg 独立安装依赖、typecheck、lint、build 和 AppImage 打包通过；解包版和 AppImage 均实际启动，Host 就绪、17 个插件 active、渲染 sandbox 保持开启。AppImage 邻接 `.env.local` 的独立数据目录生效，正常退出。Java 恢复修改后，以独立解包运行目录完成官方 Java 21.0.7 安装与 Vanilla 1.21.1 游戏启动；图形、纹理和声音引擎初始化，游戏、Host 与启动器退出码均为 0。音频依赖经 Ubuntu 元数据校验后解包到隔离目录，没有安装系统包；实际可听性与旁白未验证。WSL 缺少 FUSE 2 时使用官方 extract-and-run；独立 GNOME Keyring 会话的真实加密与重启读取通过，无密钥库时仍拒绝 `basic_text`。DEB 因缺项目 `homepage` 停止打包，等待确定的官网或仓库地址。原生 Linux 桌面、macOS/arm64、签名与公证仍待实测，见 [应用分发](distribution.md)。
 
 带更新配置的已安装应用启动被自动审批拒绝，理由仅返回 `blocked by policy`，因此安装模式识别仍未实测。卸载保留了本次安装器缓存 `%LOCALAPPDATA%/nixellauncher-updater/installer.exe`；限定路径及哈希的缓存清理也被拒绝，文件保持原样。未通过改写命令重试这些动作。
 
@@ -74,4 +74,4 @@ Linux 在 Ubuntu 24.04 / WSLg 独立安装依赖、typecheck、lint、build 和 
 
 实例版本管理在独立目录完成 Minecraft 1.21.1 Vanilla → Fabric 0.16.14 的真实界面操作与安装，备份清单保留原 Vanilla 启动信息，归档 SHA-256 与清单一致。Modrinth 内容和本地内容分别显示兼容/未确认；检查后更改文件启用状态会拒绝过期预览。备份中取消保留原选择并清理暂存归档；使用本地验证提供者触发安装失败，确认备份保留且版本选择未提交。中英文选择与确认页、返回后保留目标版本，以及跨 Minecraft 版本预览中的“需要更新”提示已核对。
 
-Microsoft、Yggdrasil 与 CurseForge 已有实现；真实账号登录、令牌刷新及 CurseForge 下载仍需对应账号或 API Key 实测。Linux WSLg 客户端与游戏已运行，平台密钥库、原生 Linux 桌面和 macOS 仍待对应环境。历史 Minecraft/加载器版本需要按具体版本验证兼容性。
+Microsoft、Yggdrasil 与 CurseForge 已有实现；真实账号登录、令牌刷新及 CurseForge 下载仍需对应账号或 API Key 实测。Linux WSLg 客户端、游戏与 GNOME Keyring 凭据存储已运行，原生 Linux 桌面和 macOS 仍待对应环境。历史 Minecraft/加载器版本需要按具体版本验证兼容性。

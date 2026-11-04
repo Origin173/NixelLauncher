@@ -53,7 +53,7 @@ AppImage 同目录的 `.env.local` 仅设置独立 `NIXEL_DATA_DIR`；未通过�
 
 该 WSL 环境需要补充 `libnspr4`、`libnss3`、`libasound2t64`。验收只把经 Ubuntu 包元数据 SHA-256 核对的依赖解包到独立目录，通过进程级 `LD_LIBRARY_PATH` 使用；其他桌面运行库来自现有系统。因为缺少 FUSE 2 运行库，AppImage 使用官方 [extract-and-run](https://docs.appimage.org/user-guide/troubleshooting/fuse.html#extract-and-run-type-2-appimages) 方式启动；FUSE 挂载和桌面集成尚未验证。
 
-该会话未配置可用的系统密钥库，Electron 返回 `available=false` / `basic_text`，现有凭据存储会拒绝保存。在线账号令牌持久化需要可用的桌面 Secret Service/keyring 会话，尚未在此环境验证。当前证据覆盖 WSLg 客户端启动；原生 Linux 与 DEB 安装仍待验收。
+初始 WSLg 会话未配置可用的系统密钥库，Electron 返回 `available=false` / `basic_text`，凭据存储会拒绝保存。后续使用独立 HOME/XDG、D-Bus 与 GNOME Keyring 会话完成真实加密验收：两次启动均选择 `gnome_libsecret`，加密保存、应用重启读取和删除通过，默认用户密钥库保持不变。所需 GNOME Keyring/libsecret 包经 Ubuntu 元数据校验后只解包到隔离目录。使用在线账号仍需运行环境提供可用的 Secret Service/keyring 会话；实现与证据见 [安全凭据存储](secret-storage-consistency.md)。原生 Linux 与 DEB 安装仍待验收。
 
 第一次游戏验收完成 Vanilla 1.21.1 文件安装，8 个 Linux LWJGL 原生库全部匹配 Mojang SHA-1；Java 下载在约 98.48% 时网络失败。由此发现的重复下载问题已通过 [Java 安装恢复](java-runtime-recovery.md) 修复。后续网络和 WSL 恢复可用后，在新的独立目录继续验收。
 
