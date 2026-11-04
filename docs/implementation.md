@@ -92,6 +92,8 @@ Yggdrasil 登录返回 `{ status: 'complete', account }` 或 `{ status: 'select-
 
 `instances.install` 同时用于已安装实例的文件修复，通过安装清单验证校验值。目录导入会复制来源目录，排除已知启动器账号文件；实例复制保留已安装内容元数据、启动设置、服务器列表与整合包来源及文件基线。副本使用新的实例 ID、目录与内容记录 ID，服务器列表和整合包状态独立复制，后续编辑与升级作用于副本。两者及整合包导入通过 `pendingOperation` 标记尚未完成的新实例，实例插件启动时清理遗留目录和记录。
 
+`settings.instanceDirectory` 只决定新实例的位置。`instances.delete` 按实例已保存的绝对目录校验：末级目录须与实例 UUID 一致，不能是文件系统根或经符号链接、目录联接重定向的路径，不能包含其他已登记实例的目录。已不存在的实例目录只清理记录；`deleteFiles: false` 保留文件。运行中或有活动任务的实例继续拒绝删除。
+
 内置长任务在 `Task.retry` 中保存 `{ command, params }`，参数不含账号凭据。`tasks.retry` 通过当前命令注册表执行，重新校验实例占用和插件状态；历史任务保持不变，返回新任务 ID。取消或进程中断不会自动重试。插件自定义任务未提供描述符时，仅当前 Host 生命周期内可使用原执行函数重试。
 
 `tasks.pause` 与 `tasks.resume` 调用当前下载阶段注册的 `TaskContext.setControls`。暂停或排队使用 `Task.activity` 表示，`Task.status` 仍为 `running`，保持实例和插件占用；阶段结束释放控制，重启清除运行时标记。`downloads.configure` 保存插件的并发与限速，`downloads.status` 读取配置，公开下载提供者见 [下载管理](downloads.md)。

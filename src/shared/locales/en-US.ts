@@ -385,7 +385,9 @@ export default {
   'game.invalidInstanceProvider': 'Invalid instance provider',
   'game.stopThisInstanceSGameAndTasks': "Stop this instance's game and tasks first",
   'game.theInstanceDirectoryIsOutsideTheManaged':
-    'The instance directory is outside the managed directory. Delete its files manually',
+    'This path could not be verified as the instance folder. Check the folder path before deleting it.',
+  'game.instanceDirectoryContainsAnotherInstance':
+    'This folder contains another instance. Remove that instance first.',
   'game.installThisInstanceFirst': 'Install this instance first',
   'game.addAndSelectAGameAccountFirst': 'Add and select a game account first',
   'game.runValue': 'Run {{value1}}',

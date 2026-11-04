@@ -1,5 +1,5 @@
-import { rm, stat } from 'node:fs/promises';
-import { isAbsolute, relative, resolve, sep } from 'node:path';
+import { lstat, realpath, rm, stat } from 'node:fs/promises';
+import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import type { Context } from 'cordis';
 import type { CreateInstanceInput, Instance } from '../../shared/contracts';
 import { tr } from '../../shared/i18n';
@@ -8,6 +8,44 @@ import { commandsFor } from '../commands';
 import { assertInstanceIdle, createInstance, getInstance } from '../instance-state';
 import type { GameProvider } from '../providers';
 import { startInstall } from './install';
+
+function realDirectory(path: string) {
+  return realpath(path).catch((error: NodeJS.ErrnoException) => {
+    if (error.code !== 'ENOENT') throw error;
+  });
+}
+
+async function directoryForDeletion({ id, directory }: Instance) {
+  const target = resolve(directory);
+  if (
+    !isAbsolute(directory) ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ||
+    dirname(target) === target ||
+    basename(target) !== id
+  )
+    throw new Error(tr('game.theInstanceDirectoryIsOutsideTheManaged'));
+  const info = await lstat(target).catch((error: NodeJS.ErrnoException) => {
+    if (error.code !== 'ENOENT') throw error;
+  });
+  if (!info) return;
+  if (!info.isDirectory()) throw new Error(tr('game.theInstanceDirectoryIsOutsideTheManaged'));
+  const actual = await realDirectory(target);
+  if (actual && relative(target, actual))
+    throw new Error(tr('game.theInstanceDirectoryIsOutsideTheManaged'));
+  return actual;
+}
+
+function containsDirectory(parent: string, child: string) {
+  const path = relative(parent, child);
+  return path !== '..' && !path.startsWith(`..${sep}`) && !isAbsolute(path);
+}
+
+async function containsAnotherInstance(directory: string, id: string, instances: Instance[]) {
+  const others = instances.filter((instance) => instance.id !== id);
+  if (others.some((instance) => containsDirectory(directory, instance.directory))) return true;
+  const actual = await Promise.all(others.map((instance) => realDirectory(instance.directory)));
+  return actual.some((path) => path && containsDirectory(directory, path));
+}
 
 export function registerInstanceManagement(ctx: Context) {
   const host = ctx.nixel;
@@ -82,6 +120,9 @@ export function registerInstanceManagement(ctx: Context) {
     });
   });
   command('instances.delete', async ({ id, deleteFiles }: { id: string; deleteFiles: boolean }) => {
+    const directory = deleteFiles ? await directoryForDeletion(getInstance(host, id)) : undefined;
+    if (directory && (await containsAnotherInstance(directory, id, host.store.read().instances)))
+      throw new Error(tr('game.instanceDirectoryContainsAnotherInstance'));
     const instance = getInstance(host, id);
     if (
       host.running.has(id) ||
@@ -89,20 +130,7 @@ export function registerInstanceManagement(ctx: Context) {
       host.tasks.list().some((task) => task.instanceId === id && task.status === 'running')
     )
       throw new Error(tr('game.stopThisInstanceSGameAndTasks'));
-    if (deleteFiles) {
-      const root = resolve(
-        host.store.read().settings.instanceDirectory || host.store.instancesRoot,
-      );
-      const difference = relative(root, resolve(instance.directory));
-      if (
-        !difference ||
-        difference === '..' ||
-        difference.startsWith(`..${sep}`) ||
-        isAbsolute(difference)
-      )
-        throw new Error(tr('game.theInstanceDirectoryIsOutsideTheManaged'));
-      await rm(instance.directory, { recursive: true, force: true });
-    }
+    if (directory) await rm(directory, { recursive: true, force: true });
     await host.store.update((draft) => {
       draft.instances = draft.instances.filter((entry) => entry.id !== id);
       draft.content = draft.content.filter((entry) => entry.instance !== id);
